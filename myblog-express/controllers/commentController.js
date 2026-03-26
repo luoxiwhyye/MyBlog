@@ -68,7 +68,7 @@ const createComment = async (req, res, next) => {
     };
 
     const commentId = await commentModel.createComment(commentData);
-    success(res, { id: commentId }, "评论发布成功，等待审核", 201);
+    success(res, { id: commentId }, "评论发布成功", 201);
   } catch (err) {
     next(err);
   }
