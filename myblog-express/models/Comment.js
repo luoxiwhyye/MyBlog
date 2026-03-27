@@ -1,45 +1,40 @@
 const pool = require("../config/database");
 
-/**
- * 分页查询评论
- */
 const getComments = async (offset, limit, filters = {}, isAdmin = false) => {
   let query = `
-    SELECT c.id, c.articleId, c.parentId, c.authorName, c.authorEmail, 
-           c.content, c.likeCount, c.status, c.createdAt
-    FROM comments c
+    SELECT c.id, c.article_id AS articleId, c.parent_id AS parentId,
+           c.author_name AS authorName, c.author_email AS authorEmail,
+           c.author_ip AS authorIp, c.content, c.like_count AS likeCount,
+           c.status, c.create_at AS createdAt
+    FROM comment c
     WHERE 1=1
   `;
 
   const params = [];
 
   if (filters.articleId) {
-    query += " AND c.articleId = ?";
+    query += " AND c.article_id = ?";
     params.push(filters.articleId);
   }
 
-  // 非管理员只能看已批准的评论
   if (!isAdmin) {
     query += " AND c.status = ?";
     params.push("approved");
   }
 
-  query += " ORDER BY c.createdAt DESC LIMIT ? OFFSET ?";
+  query += " ORDER BY c.create_at DESC LIMIT ? OFFSET ?";
   params.push(limit, offset);
 
   const [rows] = await pool.query(query, params);
   return rows;
 };
 
-/**
- * 获取评论总数
- */
 const getCommentsCount = async (filters = {}, isAdmin = false) => {
-  let query = "SELECT COUNT(*) as count FROM comments WHERE 1=1";
+  let query = "SELECT COUNT(*) as count FROM comment WHERE 1=1";
   const params = [];
 
   if (filters.articleId) {
-    query += " AND articleId = ?";
+    query += " AND article_id = ?";
     params.push(filters.articleId);
   }
 
@@ -52,87 +47,70 @@ const getCommentsCount = async (filters = {}, isAdmin = false) => {
   return rows[0].count;
 };
 
-/**
- * 获取评论详情
- */
 const getCommentById = async (id) => {
-  const [rows] = await pool.query("SELECT * FROM comments WHERE id = ?", [id]);
+  const [rows] = await pool.query("SELECT * FROM comment WHERE id = ?", [id]);
   return rows[0];
 };
 
-/**
- * 获取评论的回复
- */
 const getReplies = async (parentId) => {
   const [rows] = await pool.query(
-    `SELECT id, articleId, parentId, authorName, authorEmail, 
-            content, likeCount, status, createdAt
-     FROM comments WHERE parentId = ? AND status = ?
-     ORDER BY createdAt ASC`,
+    `SELECT id, article_id AS articleId, parent_id AS parentId,
+            author_name AS authorName, author_email AS authorEmail,
+            author_ip AS authorIp, content, like_count AS likeCount,
+            status, create_at AS createdAt
+     FROM comment WHERE parent_id = ? AND status = ?
+     ORDER BY create_at ASC`,
     [parentId, "approved"],
   );
   return rows;
 };
 
-/**
- * 创建评论
- */
 const createComment = async (commentData) => {
   const [result] = await pool.query(
-    `INSERT INTO comments 
-     (articleId, parentId, authorName, authorEmail, content, status, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    `INSERT INTO comment
+     (article_id, parent_id, author_name, author_email, author_ip, content, status, create_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       commentData.articleId,
       commentData.parentId || null,
       commentData.authorName,
       commentData.authorEmail,
+      commentData.authorIp || "",
       commentData.content,
-      "pending", // 默认待审核
+      "pending",
     ],
   );
   return result.insertId;
 };
 
-/**
- * 删除评论
- */
 const deleteComment = async (id) => {
-  const [result] = await pool.query("DELETE FROM comments WHERE id = ?", [id]);
+  const [result] = await pool.query("DELETE FROM comment WHERE id = ?", [id]);
   return result.affectedRows > 0;
 };
 
-/**
- * 更新评论状态
- */
 const updateCommentStatus = async (id, status) => {
   const [result] = await pool.query(
-    "UPDATE comments SET status = ? WHERE id = ?",
+    "UPDATE comment SET status = ? WHERE id = ?",
     [status, id],
   );
   return result.affectedRows > 0;
 };
 
-/**
- * 增加评论点赞数
- */
 const incrementCommentLikes = async (id) => {
   const [result] = await pool.query(
-    "UPDATE comments SET likeCount = likeCount + 1 WHERE id = ?",
+    "UPDATE comment SET like_count = like_count + 1 WHERE id = ?",
     [id],
   );
   return result.affectedRows > 0;
 };
 
-/**
- * 获取文章的所有评论及回复（树形结构）
- */
 const getCommentsWithReplies = async (articleId, isAdmin = false) => {
-  // 获取顶级评论
   let query = `
-    SELECT id, articleId, parentId, authorName, authorEmail, 
-           content, likeCount, status, createdAt
-    FROM comments WHERE articleId = ? AND parentId IS NULL
+    SELECT id, article_id AS articleId, parent_id AS parentId,
+           author_name AS authorName, author_email AS authorEmail,
+           author_ip AS authorIp, content, like_count AS likeCount,
+           status, create_at AS createdAt
+    FROM comment WHERE article_id = ? AND parent_id IS NULL
   `;
 
   const params = [articleId];
@@ -142,11 +120,10 @@ const getCommentsWithReplies = async (articleId, isAdmin = false) => {
     params.push("approved");
   }
 
-  query += " ORDER BY createdAt DESC";
+  query += " ORDER BY create_at DESC";
 
   const [topLevelComments] = await pool.query(query, params);
 
-  // 为每个顶级评论获取回复
   for (const comment of topLevelComments) {
     comment.replies = await getReplies(comment.id);
   }

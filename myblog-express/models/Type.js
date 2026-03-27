@@ -5,7 +5,7 @@ const pool = require("../config/database");
  */
 const getTypes = async (offset, limit) => {
   const [rows] = await pool.query(
-    `SELECT id, typeName, createdAt FROM types ORDER BY id DESC LIMIT ? OFFSET ?`,
+    "SELECT id, type_name AS typeName FROM `type` ORDER BY id DESC LIMIT ? OFFSET ?",
     [limit, offset],
   );
   return rows;
@@ -15,7 +15,7 @@ const getTypes = async (offset, limit) => {
  * 获取分类总数
  */
 const getTypesCount = async () => {
-  const [rows] = await pool.query("SELECT COUNT(*) as count FROM types");
+  const [rows] = await pool.query("SELECT COUNT(*) as count FROM `type`");
   return rows[0].count;
 };
 
@@ -24,7 +24,7 @@ const getTypesCount = async () => {
  */
 const getTypeById = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, typeName, createdAt FROM types WHERE id = ?",
+    "SELECT id, type_name AS typeName FROM `type` WHERE id = ?",
     [id],
   );
   return rows[0];
@@ -35,7 +35,7 @@ const getTypeById = async (id) => {
  */
 const getTypeArticleCount = async (typeId) => {
   const [rows] = await pool.query(
-    "SELECT COUNT(*) as count FROM articles WHERE typeId = ? AND deletedAt IS NULL",
+    "SELECT COUNT(*) as count FROM `article` WHERE type_id = ? AND deleted_at IS NULL",
     [typeId],
   );
   return rows[0].count;
@@ -46,7 +46,7 @@ const getTypeArticleCount = async (typeId) => {
  */
 const createType = async (typeName) => {
   const [result] = await pool.query(
-    "INSERT INTO types (typeName, createdAt) VALUES (?, NOW())",
+    "INSERT INTO `type` (type_name) VALUES (?)",
     [typeName],
   );
   return result.insertId;
@@ -57,7 +57,7 @@ const createType = async (typeName) => {
  */
 const updateType = async (id, typeName) => {
   const [result] = await pool.query(
-    "UPDATE types SET typeName = ? WHERE id = ?",
+    "UPDATE `type` SET type_name = ? WHERE id = ?",
     [typeName, id],
   );
   return result.affectedRows > 0;
@@ -67,7 +67,7 @@ const updateType = async (id, typeName) => {
  * 删除分类
  */
 const deleteType = async (id) => {
-  const [result] = await pool.query("DELETE FROM types WHERE id = ?", [id]);
+  const [result] = await pool.query("DELETE FROM `type` WHERE id = ?", [id]);
   return result.affectedRows > 0;
 };
 
@@ -76,7 +76,7 @@ const deleteType = async (id) => {
  */
 const isTypeInUse = async (typeId) => {
   const [rows] = await pool.query(
-    "SELECT COUNT(*) as count FROM articles WHERE typeId = ? AND deletedAt IS NULL",
+    "SELECT COUNT(*) as count FROM `article` WHERE type_id = ? AND deleted_at IS NULL",
     [typeId],
   );
   return rows[0].count > 0;

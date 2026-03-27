@@ -1,12 +1,30 @@
 const app = require("./app");
 const pool = require("./config/database");
+const { initBlogger } = require("./utils/initBlogger");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
-  console.log(`服务器运行在 http://localhost:${PORT}`);
-});
+let server;
+
+const startServer = async () => {
+  try {
+    console.log("✅ 数据库连接成功");
+
+    await initBlogger();
+
+    server = app.listen(PORT, () => {
+      console.log(`服务器启动成功，端口: ${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ 启动时报错:", err);
+    server = app.listen(PORT, () => {
+      console.log(`服务器启动成功（初始化失败），端口: ${PORT}`);
+    });
+  }
+};
+
+startServer();
 
 // 优雅关闭
 const gracefulShutdown = async () => {

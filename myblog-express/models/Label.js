@@ -5,7 +5,7 @@ const pool = require("../config/database");
  */
 const getLabels = async (offset, limit) => {
   const [rows] = await pool.query(
-    "SELECT id, labelName, createdAt FROM labels ORDER BY id DESC LIMIT ? OFFSET ?",
+    "SELECT id, label_name AS labelName FROM `label` ORDER BY id DESC LIMIT ? OFFSET ?;",
     [limit, offset],
   );
   return rows;
@@ -15,7 +15,7 @@ const getLabels = async (offset, limit) => {
  * 获取标签总数
  */
 const getLabelsCount = async () => {
-  const [rows] = await pool.query("SELECT COUNT(*) as count FROM labels");
+  const [rows] = await pool.query("SELECT COUNT(*) as count FROM `label`;");
   return rows[0].count;
 };
 
@@ -24,7 +24,7 @@ const getLabelsCount = async () => {
  */
 const getLabelById = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, labelName, createdAt FROM labels WHERE id = ?",
+    "SELECT id, label_name AS labelName FROM `label` WHERE id = ?;",
     [id],
   );
   return rows[0];
@@ -35,9 +35,9 @@ const getLabelById = async (id) => {
  */
 const getLabelArticleCount = async (labelId) => {
   const [rows] = await pool.query(
-    `SELECT COUNT(*) as count FROM article_labels 
-     WHERE labelId = ? AND articleId IN 
-     (SELECT id FROM articles WHERE deletedAt IS NULL)`,
+    `SELECT COUNT(*) as count FROM article_label al
+     JOIN article a ON al.article_id = a.id
+     WHERE al.label_id = ? AND a.deleted_at IS NULL;`,
     [labelId],
   );
   return rows[0].count;
@@ -48,7 +48,7 @@ const getLabelArticleCount = async (labelId) => {
  */
 const createLabel = async (labelName) => {
   const [result] = await pool.query(
-    "INSERT INTO labels (labelName, createdAt) VALUES (?, NOW())",
+    "INSERT INTO `label` (label_name) VALUES (?);",
     [labelName],
   );
   return result.insertId;
@@ -59,7 +59,7 @@ const createLabel = async (labelName) => {
  */
 const updateLabel = async (id, labelName) => {
   const [result] = await pool.query(
-    "UPDATE labels SET labelName = ? WHERE id = ?",
+    "UPDATE `label` SET label_name = ? WHERE id = ?;",
     [labelName, id],
   );
   return result.affectedRows > 0;
@@ -69,7 +69,7 @@ const updateLabel = async (id, labelName) => {
  * 删除标签
  */
 const deleteLabel = async (id) => {
-  const [result] = await pool.query("DELETE FROM labels WHERE id = ?", [id]);
+  const [result] = await pool.query("DELETE FROM `label` WHERE id = ?;", [id]);
   return result.affectedRows > 0;
 };
 
@@ -78,9 +78,8 @@ const deleteLabel = async (id) => {
  */
 const isLabelInUse = async (labelId) => {
   const [rows] = await pool.query(
-    `SELECT COUNT(*) as count FROM article_labels 
-     WHERE labelId = ? AND articleId IN 
-     (SELECT id FROM articles WHERE deletedAt IS NULL)`,
+    `SELECT COUNT(*) as count FROM article_label al
+     WHERE al.label_id = ?;`,
     [labelId],
   );
   return rows[0].count > 0;

@@ -182,7 +182,7 @@ const restoreArticle = async (req, res, next) => {
     const { id } = req.params;
 
     const [rows] = await require("../config/database").query(
-      "SELECT * FROM articles WHERE id = ? AND deletedAt IS NOT NULL",
+      "SELECT * FROM article WHERE id = ? AND deleted_at IS NOT NULL",
       [id],
     );
     if (rows.length === 0) {

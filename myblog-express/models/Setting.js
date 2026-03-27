@@ -1,11 +1,8 @@
 const pool = require("../config/database");
 
-/**
- * 获取所有配置
- */
 const getSettings = async () => {
   const [rows] = await pool.query(
-    "SELECT settingKey, settingValue, settingType FROM settings",
+    "SELECT setting_key AS settingKey, setting_value AS settingValue, setting_type AS settingType FROM setting",
   );
 
   const result = {};
@@ -15,35 +12,29 @@ const getSettings = async () => {
   return result;
 };
 
-/**
- * 获取单个配置
- */
 const getSettingByKey = async (key) => {
   const [rows] = await pool.query(
-    "SELECT settingKey, settingValue, settingType FROM settings WHERE settingKey = ?",
+    "SELECT setting_key AS settingKey, setting_value AS settingValue, setting_type AS settingType FROM setting WHERE setting_key = ?",
     [key],
   );
   return rows[0] || null;
 };
 
-/**
- * 创建或更新配置
- */
 const upsertSetting = async (key, value, type = "text", description = "") => {
   const [existing] = await pool.query(
-    "SELECT id FROM settings WHERE settingKey = ?",
+    "SELECT setting_key FROM setting WHERE setting_key = ?",
     [key],
   );
 
   if (existing.length > 0) {
     const [result] = await pool.query(
-      "UPDATE settings SET settingValue = ?, settingType = ?, description = ? WHERE settingKey = ?",
+      "UPDATE setting SET setting_value = ?, setting_type = ?, description = ? WHERE setting_key = ?",
       [value, type, description, key],
     );
     return result.affectedRows > 0;
   } else {
     const [result] = await pool.query(
-      "INSERT INTO settings (settingKey, settingValue, settingType, description) VALUES (?, ?, ?, ?)",
+      "INSERT INTO setting (setting_key, setting_value, setting_type, description) VALUES (?, ?, ?, ?)",
       [key, value, type, description],
     );
     return result.insertId;
@@ -55,15 +46,12 @@ const upsertSetting = async (key, value, type = "text", description = "") => {
  */
 const deleteSetting = async (key) => {
   const [result] = await pool.query(
-    "DELETE FROM settings WHERE settingKey = ?",
+    "DELETE FROM setting WHERE setting_key = ?",
     [key],
   );
   return result.affectedRows > 0;
 };
 
-/**
- * 批量更新配置
- */
 const updateSettings = async (settingsData) => {
   for (const [key, value] of Object.entries(settingsData)) {
     await upsertSetting(key, value, "text");
