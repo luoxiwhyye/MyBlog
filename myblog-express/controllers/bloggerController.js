@@ -33,7 +33,7 @@ const login = async (req, res, next) => {
       {
         id: blogger.id,
         username: blogger.username,
-        role: blogger.role,
+        role: blogger.role || "admin",
       },
       secret,
       { expiresIn },
@@ -77,7 +77,7 @@ const getProfile = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { email, bio } = req.body;
+    const { email, bio, avatarUrl } = req.body;
 
     const bloggerData = {};
     if (email !== undefined) bloggerData.email = email;
@@ -85,6 +85,8 @@ const updateProfile = async (req, res, next) => {
 
     if (req.file) {
       bloggerData.avatar = uploadToCDN(req.file.path);
+    } else if (avatarUrl) {
+      bloggerData.avatar = avatarUrl;
     }
 
     const updated = await bloggerModel.updateBlogger(req.user.id, bloggerData);

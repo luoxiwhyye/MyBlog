@@ -119,7 +119,7 @@ const fetchTypes = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize
     })
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       typeList.value = response.data.list
       pagination.total = response.data.total
     }
@@ -182,10 +182,13 @@ const submitForm = async () => {
           response = await typeApi.create(form)
         }
 
-        if (response.code === 200) {
+        if (response.code === 200 || response.code === 201) {
           ElMessage.success(isEdit.value ? '编辑成功' : '新增成功')
           dialogVisible.value = false
-          fetchTypes()
+          isEdit.value = false
+          form.id = null
+          form.typeName = ''
+          await fetchTypes()
         } else {
           ElMessage.error(response.message || '操作失败')
         }

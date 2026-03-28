@@ -13,6 +13,7 @@ const {
 // 获取文章列表（公开）
 router.get(
   "/",
+  auth.optionalAuth,
   validatePagination,
   handleValidationErrors,
   articleController.getArticles,
@@ -31,6 +32,7 @@ router.get(
 // 获取文章详情（公开，但博主可看草稿）
 router.get(
   "/:id",
+  auth.optionalAuth,
   validateIntId,
   handleValidationErrors,
   articleController.getArticleById,

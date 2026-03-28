@@ -11,6 +11,14 @@ async function initializeBlogger() {
     const password = process.env.BLOGGER_PASSWORD || "admin123";
     const email = process.env.BLOGGER_EMAIL || "admin@example.com";
 
+    // 确保 role 字段存在（兼容旧版本数据表）
+    const [columns] = await pool.query("SHOW COLUMNS FROM blogger LIKE 'role'");
+    if (!columns || columns.length === 0) {
+      await pool.query(
+        "ALTER TABLE blogger ADD COLUMN role VARCHAR(50) DEFAULT 'admin' COMMENT '角色: admin/guest'",
+      );
+    }
+
     // 检查是否已存在博主账户
     const existingBlogger = await bloggerModel.getBloggerByUsername(username);
 

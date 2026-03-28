@@ -2,12 +2,16 @@ const pool = require("../config/database");
 
 const getSettings = async () => {
   const [rows] = await pool.query(
-    "SELECT setting_key AS settingKey, setting_value AS settingValue, setting_type AS settingType FROM setting",
+    "SELECT setting_key AS settingKey, setting_value AS settingValue, setting_type AS settingType, description FROM setting",
   );
 
   const result = {};
   rows.forEach((row) => {
-    result[row.settingKey] = row.settingValue;
+    result[row.settingKey] = {
+      value: row.settingValue,
+      type: row.settingType,
+      description: row.description || "",
+    };
   });
   return result;
 };

@@ -12,6 +12,7 @@ const commentRoutes = require("./routes/commentRoutes");
 const bloggerRoutes = require("./routes/bloggerRoutes");
 const settingRoutes = require("./routes/settingRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // 导入中间件
 const errorHandler = require("./middleware/errorHandler");
@@ -19,11 +20,22 @@ const errorHandler = require("./middleware/errorHandler");
 // 创建应用
 const app = express();
 
-// 安全中间件
-app.use(helmet());
+// 安全中间件（允许跨源静态资源）
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  }),
+);
 
 // CORS 中间件
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_ORIGIN || true,
+    credentials: true,
+  }),
+);
 
 // 日志中间件
 app.use(morgan("combined"));
@@ -33,7 +45,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 静态文件服务（上传的文件）
-app.use("/uploads", express.static("uploads"));
+app.use(
+  "/uploads",
+  express.static("uploads", {
+    setHeaders(res) {
+      res.setHeader(
+        "Access-Control-Allow-Origin",
+        process.env.FRONTEND_ORIGIN || "*",
+      );
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  }),
+);
 
 // 注册路由
 const apiPrefix = "/api/v1";
@@ -45,6 +68,7 @@ app.use(`${apiPrefix}/comments`, commentRoutes);
 app.use(`${apiPrefix}/blogger`, bloggerRoutes);
 app.use(`${apiPrefix}/settings`, settingRoutes);
 app.use(`${apiPrefix}/upload`, uploadRoutes);
+app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
 
 // 404 处理
 app.use((req, res) => {

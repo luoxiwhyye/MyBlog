@@ -118,8 +118,6 @@ import { ElMessage } from 'element-plus'
 import { blogger, upload } from '@/api'
 import { useUserStore } from '@/stores/user'
 
-const userStore = useUserStore()
-
 const activeTab = ref('info')
 const updatingInfo = ref(false)
 const updatingPassword = ref(false)
@@ -168,8 +166,18 @@ const passwordRules = {
   ]
 }
 
+const userStore = useUserStore()
+
 // 获取用户信息
 const fetchUserInfo = async () => {
+  if (userStore.userInfo) {
+    const data = userStore.userInfo
+    infoForm.email = data.email
+    infoForm.bio = data.bio || ''
+    infoForm.avatar = data.avatar || ''
+    return
+  }
+
   try {
     const response = await blogger.getProfile()
     if (response.code === 200) {
@@ -177,9 +185,19 @@ const fetchUserInfo = async () => {
       infoForm.email = data.email
       infoForm.bio = data.bio || ''
       infoForm.avatar = data.avatar || ''
+      userStore.userInfo = data
+      localStorage.setItem('userInfo', JSON.stringify(data))
+    } else if (response.code === 401 || response.code === 403) {
+      ElMessage.warning('暂无权限访问用户信息，请重新登录')
+    } else {
+      ElMessage.error(response.message || '获取用户信息失败')
     }
-  } catch (error) {
-    ElMessage.error('获取用户信息失败')
+  } catch (error: any) {
+    if (error?.response?.status === 401 || error?.response?.status === 403) {
+      ElMessage.warning('权限不足或登录过期，请重新登录')
+    } else {
+      ElMessage.error('获取用户信息失败，请稍后重试')
+    }
   }
 }
 

@@ -64,7 +64,8 @@
             <div v-if="form.coverImage" class="cover-preview">
               <el-image
                 :src="form.coverImage"
-                style="width: 200px; height: 120px; object-fit: cover;"
+                fit="cover"
+                style="width: 200px; height: 120px;"
               />
               <div class="cover-actions">
                 <el-button type="danger" size="small" @click.stop="removeCover">删除</el-button>
@@ -84,12 +85,15 @@
         </el-form-item>
 
         <el-form-item label="内容" prop="content">
-          <QuillEditor
-            v-model:content="form.content"
-            content-type="html"
-            :options="editorOptions"
-            style="height: 400px;"
-          />
+          <div class="quill-wrapper">
+            <QuillEditor
+              ref="quillRef"
+              v-model:content="form.content"
+              content-type="html"
+              :options="editorOptions"
+              class="quill-editor"
+            />
+          </div>
         </el-form-item>
 
         <el-form-item label="状态">
@@ -102,17 +106,10 @@
         <el-form-item>
           <el-button
             type="primary"
-            :loading="saving"
-            @click="saveDraft"
+            :loading="submitting"
+            @click="submitArticle"
           >
-            保存草稿
-          </el-button>
-          <el-button
-            type="success"
-            :loading="publishing"
-            @click="publishArticle"
-          >
-            发布文章
+            提交文章
           </el-button>
         </el-form-item>
       </el-form>
@@ -135,10 +132,11 @@ const formRef = ref()
 const uploadRef = ref()
 
 const isEdit = ref(false)
-const saving = ref(false)
-const publishing = ref(false)
+const submitting = ref(false)
 const typeList = ref<any[]>([])
 const labelList = ref<any[]>([])
+
+const quillRef = ref<any>(null)
 
 const form = reactive({
   title: '',
@@ -158,7 +156,71 @@ const rules = {
 
 const editorOptions = {
   theme: 'snow',
-  placeholder: '请输入文章内容...'
+  placeholder: '请输入文章内容...',
+  modules: {
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ color: [] }, { background: [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        ['clean'],
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input')
+          input.setAttribute('type', 'file')
+          input.setAttribute('accept', 'image/*')
+          input.click()
+          input.onchange = async () => {
+            const file = input.files?.[0]
+            if (!file) return
+            try {
+              const response = await upload.image(file)
+              if (response.code !== 200 && response.code !== 201) {
+                ElMessage.error(response.message || '图片上传失败')
+                return
+              }
+
+              const imageUrl = response.data?.url
+              if (!imageUrl) {
+                ElMessage.error('上传结果缺少图片地址')
+                return
+              }
+
+              const quill = quillRef.value?.getQuill?.() as any
+              if (!quill) {
+                ElMessage.error('富文本编辑器实例获取失败')
+                return
+              }
+
+              let range = null
+              if (quill.getSelection) {
+                range = quill.getSelection()
+              }
+              let insertIndex = 0
+              if (range && typeof range.index === 'number') {
+                insertIndex = range.index
+              } else if (quill.getLength) {
+                insertIndex = quill.getLength()
+              }
+
+              quill.insertEmbed(insertIndex, 'image', imageUrl)
+              quill.setSelection(insertIndex + 1)
+              ElMessage.success('图片上传成功')
+            } catch (err) {
+              console.error('富文本图片上传失败', err)
+              ElMessage.error('图片上传失败')
+            } finally {
+              input.value = ''
+            }
+          }
+        },
+      },
+    },
+  },
 }
 
 // 获取分类和标签列表
@@ -206,6 +268,7 @@ const handleCoverChange = async (file: any) => {
     const response = await upload.image(file.raw)
     if (response.code === 200) {
       form.coverImage = response.data.url
+      console.log(form.coverImage)
       ElMessage.success('封面上传成功')
     }
   } catch (error) {
@@ -218,26 +281,13 @@ const removeCover = () => {
   form.coverImage = ''
 }
 
-// 保存草稿
-const saveDraft = async () => {
-  await submitArticle('draft')
-}
-
-// 发布文章
-const publishArticle = async () => {
-  await submitArticle('published')
-}
-
 // 提交文章
-const submitArticle = async (status: string) => {
+const submitArticle = async () => {
   if (!formRef.value) return
-
-  form.status = status
-  const loading = status === 'draft' ? saving : publishing
 
   await formRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      loading.value = true
+      submitting.value = true
       try {
         const formData = new FormData()
         formData.append('title', form.title)
@@ -248,8 +298,6 @@ const submitArticle = async (status: string) => {
         formData.append('labelIds', form.labelIds.join(','))
 
         if (form.coverImage) {
-          // 如果是新上传的封面，需要上传文件
-          // 这里简化处理，假设 coverImage 是 URL
           formData.append('coverImageUrl', form.coverImage)
         }
 
@@ -260,8 +308,8 @@ const submitArticle = async (status: string) => {
           response = await article.create(formData)
         }
 
-        if (response.code === 200) {
-          ElMessage.success(status === 'draft' ? '保存草稿成功' : '发布成功')
+        if (response.code === 200 || response.code === 201) {
+          ElMessage.success(form.status === 'draft' ? '保存草稿成功' : '发布成功')
           router.push('/admin/articles')
         } else {
           ElMessage.error(response.message || '操作失败')
@@ -269,7 +317,7 @@ const submitArticle = async (status: string) => {
       } catch (error) {
         ElMessage.error('操作失败')
       } finally {
-        loading.value = false
+        submitting.value = false
       }
     }
   })
@@ -311,5 +359,39 @@ onMounted(async () => {
   position: absolute;
   top: 5px;
   right: 5px;
+}
+
+.cover-preview .el-image__inner {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.quill-wrapper {
+  width: 100%;
+}
+
+.quill-wrapper :deep(.ql-toolbar),
+.quill-wrapper :deep(.ql-container) {
+  width: 100% !important;
+}
+
+.quill-wrapper :deep(.ql-container) {
+  height: 420px !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-y: auto;
+}
+
+.quill-wrapper :deep(.ql-editor) {
+  min-height: 340px;
+  height: 340px;
+}
+
+.quill-wrapper :deep(.ql-editor img) {
+  max-width: 100%;
+  object-fit: cover;
+  display: block;
 }
 </style>

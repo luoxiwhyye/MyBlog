@@ -86,7 +86,7 @@ const setUploadRef = (key: string, el: any) => {
 const fetchSettings = async () => {
   try {
     const response = await setting.getList()
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       settings.value = response.data
       // 初始化表单数据
       Object.keys(settings.value).forEach(key => {
@@ -102,7 +102,7 @@ const fetchSettings = async () => {
 const handleImageChange = async (key: string, file: any) => {
   try {
     const response = await upload.image(file.raw)
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       formData[key] = response.data.url
       ElMessage.success('图片上传成功')
     }
@@ -135,7 +135,7 @@ const saveSettings = async () => {
     })
 
     const response = await setting.update(formDataObj)
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       ElMessage.success('保存成功')
       fetchSettings() // 重新获取配置
     } else {

@@ -119,7 +119,7 @@ const fetchLabels = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize
     })
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       labelList.value = response.data.list
       pagination.total = response.data.total
     }
@@ -183,10 +183,13 @@ const submitForm = async () => {
           response = await labelApi.create(form)
         }
 
-        if (response.code === 200) {
+        if (response.code === 200 || response.code === 201) {
           ElMessage.success(isEdit.value ? '编辑成功' : '新增成功')
           dialogVisible.value = false
-          fetchLabels()
+          isEdit.value = false
+          form.id = null
+          form.labelName = ''
+          await fetchLabels()
         } else {
           ElMessage.error(response.message || '操作失败')
         }

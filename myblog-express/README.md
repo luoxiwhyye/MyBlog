@@ -205,19 +205,19 @@ Authorization: Bearer <your_jwt_token>
 
 ## 数据库表说明
 
-### types 表 - 分类
+### type 表 - 分类
 
 - `id` - 分类ID
 - `typeName` - 分类名称
 - `createdAt` - 创建时间
 
-### labels 表 - 标签
+### label 表 - 标签
 
 - `id` - 标签ID
 - `labelName` - 标签名称
 - `createdAt` - 创建时间
 
-### articles 表 - 文章
+### article 表 - 文章
 
 - `id` - 文章ID
 - `title` - 标题
@@ -231,12 +231,12 @@ Authorization: Bearer <your_jwt_token>
 - `updatedAt` - 更新时间
 - `deletedAt` - 删除时间（软删除）
 
-### article_labels 表 - 文章标签关联
+### article_label 表 - 文章标签关联
 
 - `articleId` - 文章ID
 - `labelId` - 标签ID
 
-### comments 表 - 评论
+### comment 表 - 评论
 
 - `id` - 评论ID
 - `articleId` - 所属文章ID
@@ -248,7 +248,7 @@ Authorization: Bearer <your_jwt_token>
 - `likeCount` - 点赞数
 - `createdAt` - 创建时间
 
-### bloggers 表 - 博主
+### blogger 表 - 博主
 
 - `id` - 博主ID
 - `username` - 用户名
@@ -260,7 +260,7 @@ Authorization: Bearer <your_jwt_token>
 - `createdAt` - 创建时间
 - `updatedAt` - 更新时间
 
-### settings 表 - 配置
+### setting 表 - 配置
 
 - `settingKey` - 配置键
 - `settingValue` - 配置值

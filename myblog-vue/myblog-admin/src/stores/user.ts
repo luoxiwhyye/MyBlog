@@ -14,7 +14,18 @@ interface UserInfo {
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: localStorage.getItem('token') || null,
-    userInfo: null as UserInfo | null,
+    userInfo: (() => {
+      const stored = localStorage.getItem('userInfo')
+      if (stored) {
+        try {
+          return JSON.parse(stored) as UserInfo
+        } catch (error) {
+          localStorage.removeItem('userInfo')
+          return null
+        }
+      }
+      return null
+    })(),
   }),
 
   getters: {
@@ -51,16 +62,35 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchUserInfo() {
-      if (!this.token) return
+      if (!this.token) {
+        return false
+      }
+
       try {
         const response = await blogger.getProfile()
         if (response.code === 200) {
           this.userInfo = response.data
           localStorage.setItem('userInfo', JSON.stringify(this.userInfo))
+          return true
         }
-      } catch (error) {
-        // 如果获取失败，可能是 token 过期
-        this.logout()
+
+        // 非 200 的情况可以考虑 token 异常
+        if (response.code === 401 || response.code === 403) {
+          this.logout()
+          return false
+        }
+
+        return false
+      } catch (error: any) {
+        const status = error?.response?.status
+        if (status === 401 || status === 403) {
+          this.logout()
+          return false
+        }
+
+        // 网络或暂时性服务器错误，暂不强制登出
+        console.warn('fetchUserInfo error', error)
+        return false
       }
     },
   },

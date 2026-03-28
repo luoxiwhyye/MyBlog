@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { comment } from '@/api'
+import { comment, dashboard } from '@/api'
 
 const stats = ref({
   totalArticles: 0,
@@ -77,13 +77,33 @@ const recentComments = ref<any[]>([])
 
 // 获取统计数据（暂时使用模拟数据，后续可从后端获取）
 const fetchStats = async () => {
-  // 这里可以调用后端统计接口
-  // 暂时使用模拟数据
-  stats.value = {
-    totalArticles: 25,
-    totalComments: 156,
-    totalViews: 12580,
-    pendingComments: 8
+  try {
+    const response = await dashboard.getStats()
+    if (response.code === 200 || response.code === 201) {
+      stats.value = {
+        totalArticles: response.data.totalArticles,
+        totalComments: response.data.totalComments,
+        totalViews: response.data.totalViews,
+        pendingComments: response.data.pendingComments,
+      }
+      return
+    }
+
+    // 兜底：如果后端未返回仍保持旧值
+    stats.value = {
+      totalArticles: 0,
+      totalComments: 0,
+      totalViews: 0,
+      pendingComments: 0,
+    }
+  } catch (error) {
+    console.error('获取统计失败:', error)
+    stats.value = {
+      totalArticles: 0,
+      totalComments: 0,
+      totalViews: 0,
+      pendingComments: 0,
+    }
   }
 }
 
@@ -91,7 +111,7 @@ const fetchStats = async () => {
 const fetchRecentComments = async () => {
   try {
     const response = await comment.getList({ page: 1, pageSize: 5 })
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       recentComments.value = response.data.list
     }
   } catch (error) {

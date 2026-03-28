@@ -38,7 +38,10 @@ const getCommentsCount = async (filters = {}, isAdmin = false) => {
     params.push(filters.articleId);
   }
 
-  if (!isAdmin) {
+  if (filters.status) {
+    query += " AND status = ?";
+    params.push(filters.status);
+  } else if (!isAdmin) {
     query += " AND status = ?";
     params.push("approved");
   }

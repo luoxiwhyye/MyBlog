@@ -245,3 +245,17 @@ export const upload = {
     })
   },
 }
+
+// 仪表盘数据
+export const dashboard = {
+  getStats: (): Promise<
+    ApiResponse<{
+      totalArticles: number
+      totalComments: number
+      totalViews: number
+      pendingComments: number
+    }>
+  > => {
+    return request.get('/dashboard/stats')
+  },
+}

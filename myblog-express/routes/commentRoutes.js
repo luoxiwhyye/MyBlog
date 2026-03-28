@@ -12,6 +12,7 @@ const {
 // 获取评论列表（公开，但博主可见所有状态）
 router.get(
   "/",
+  auth.optionalAuth,
   validatePagination,
   handleValidationErrors,
   commentController.getComments,

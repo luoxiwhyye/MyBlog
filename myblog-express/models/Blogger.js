@@ -3,7 +3,7 @@ const bcryptjs = require("bcryptjs");
 
 const getBloggerByUsername = async (username) => {
   const [rows] = await pool.query(
-    "SELECT id, username, password_hash AS password, email, avatar, bio FROM blogger WHERE username = ?",
+    "SELECT id, username, password_hash AS password, email, avatar, bio, role FROM blogger WHERE username = ?",
     [username],
   );
   return rows[0];
@@ -11,7 +11,7 @@ const getBloggerByUsername = async (username) => {
 
 const getBloggerById = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, username, email, avatar, bio, created_at AS createdAt FROM blogger WHERE id = ?",
+    "SELECT id, username, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE id = ?",
     [id],
   );
   return rows[0];
@@ -20,15 +20,18 @@ const getBloggerById = async (id) => {
 const createBlogger = async (bloggerData) => {
   const hashedPassword = await bcryptjs.hash(bloggerData.password, 10);
 
+  const role = bloggerData.role || "admin";
+
   const [result] = await pool.query(
-    `INSERT INTO blogger (username, password_hash, email, avatar, bio, created_at)
-     VALUES (?, ?, ?, ?, ?, NOW())`,
+    `INSERT INTO blogger (username, password_hash, email, avatar, bio, role, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
     [
       bloggerData.username,
       hashedPassword,
       bloggerData.email || "",
       bloggerData.avatar || "",
       bloggerData.bio || "",
+      role,
     ],
   );
   return result.insertId;

@@ -139,7 +139,7 @@ const handleCommand = (command: string) => {
 }
 
 .sidebar {
-  background-color: #304156;
+  background-color: #C0C4CC;
   transition: width 0.3s;
 }
 

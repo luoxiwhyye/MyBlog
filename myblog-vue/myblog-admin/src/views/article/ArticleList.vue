@@ -22,7 +22,8 @@
           </el-form-item>
           <el-form-item label="分类">
             <el-select
-              v-model="filters.typeId"
+              class="filter-select"
+              v-model.number="filters.typeId"
               placeholder="选择分类"
               clearable
               @change="handleSearch"
@@ -37,6 +38,7 @@
           </el-form-item>
           <el-form-item label="状态">
             <el-select
+              class="filter-select"
               v-model="filters.status"
               placeholder="选择状态"
               clearable
@@ -66,9 +68,15 @@
               v-if="scope.row.coverImage"
               :src="scope.row.coverImage"
               :preview-src-list="[scope.row.coverImage]"
-              style="width: 60px; height: 40px; object-fit: cover;"
+              fit="cover"
+              style="width: 60px; height: 40px;"
             />
-            <span v-else>无封面</span>
+            <el-image
+              v-else
+              src="https://via.placeholder.com/60x40?text=暂无"
+              fit="cover"
+              style="width: 60px; height: 40px;"
+            />
           </template>
         </el-table-column>
         <el-table-column label="标题" prop="title" min-width="200" show-overflow-tooltip />
@@ -93,7 +101,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="createdAt" width="160" />
+        <el-table-column label="创建时间" width="160">
+          <template #default="scope">
+            {{ formatDateTime(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="scope">
             <el-button
@@ -167,6 +179,20 @@ const fetchTypes = async () => {
 }
 
 // 获取文章列表
+const formatDateTime = (value: string | null | undefined) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
 const fetchArticles = async () => {
   loading.value = true
   try {
@@ -234,7 +260,7 @@ const deleteArticle = async (id: number) => {
       type: 'warning'
     })
     const response = await article.delete(id)
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       ElMessage.success('删除成功')
       fetchArticles()
     } else {
@@ -268,8 +294,22 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.pagination {
-  margin-top: 20px;
-  text-align: center;
+  .filter-bar .el-form-item {
+    min-width: 240px;
+  }
+
+  .filter-select {
+    min-width: 220px;
+    width: 220px;
+  }
+
+
+.el-image__inner {
+  object-fit: cover !important;
+}
+
+.el-image {
+  width: 60px;
+  height: 40px;
 }
 </style>

@@ -79,11 +79,8 @@ router.beforeEach(async (to, from, next) => {
     if (userStore.token) {
       // 如果有 token 但没有 userInfo，获取用户信息
       if (!userStore.userInfo) {
-        try {
-          await userStore.fetchUserInfo()
-        } catch (error) {
-          // 获取用户信息失败，可能是 token 过期，清除 token 并重定向到登录页
-          userStore.logout()
+        const gotInfo = await userStore.fetchUserInfo()
+        if (!gotInfo) {
           next({
             path: '/login',
             query: { redirect: to.fullPath },

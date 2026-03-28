@@ -811,3 +811,94 @@ myblog-express/
 5. **日期格式**: 统一使用`YYYY-MM-DD HH:mm:ss`
 
 ---
+
+-- 1. 分类表
+CREATE TABLE `type` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '分类ID',
+`type_name` VARCHAR(50) NOT NULL COMMENT '分类名称',
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='分类表';
+
+-- 2. 标签表
+CREATE TABLE `label` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '标签ID',
+`label_name` VARCHAR(50) NOT NULL COMMENT '标签名称',
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='标签表';
+
+-- 3. 文章表
+CREATE TABLE `article` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '文章ID',
+`type_id` INT NOT NULL COMMENT '分类外键',
+`title` VARCHAR(200) NOT NULL COMMENT '文章标题',
+`summary` VARCHAR(500) DEFAULT NULL COMMENT '文章摘要',
+`content` LONGTEXT NOT NULL COMMENT '文章内容',
+`cover_image` VARCHAR(500) DEFAULT NULL COMMENT '封面图',
+`view_count` INT NOT NULL DEFAULT 0 COMMENT '浏览次数',
+`status` ENUM('draft', 'published') NOT NULL DEFAULT 'draft' COMMENT '发布状态',
+`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+`updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+`deleted_at` DATETIME DEFAULT NULL COMMENT '删除时间（软删除）',
+PRIMARY KEY (`id`),
+KEY `idx_type_id` (`type_id`),
+KEY `idx_status` (`status`),
+KEY `idx_deleted_at` (`deleted_at`),
+CONSTRAINT `fk_article_type` FOREIGN KEY (`type_id`) REFERENCES `type` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章表';
+
+-- 4. 文章-标签关联表
+CREATE TABLE `article_label` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+`article_id` INT NOT NULL COMMENT '文章外键',
+`label_id` INT NOT NULL COMMENT '标签外键',
+PRIMARY KEY (`id`),
+UNIQUE KEY `uk_article_label` (`article_id`, `label_id`),
+KEY `idx_article_id` (`article_id`),
+KEY `idx_label_id` (`label_id`),
+CONSTRAINT `fk_article_label_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+CONSTRAINT `fk_article_label_label` FOREIGN KEY (`label_id`) REFERENCES `label` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文章-标签关联表';
+
+-- 5. 评论表
+CREATE TABLE `comment` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '评论ID',
+`article_id` INT NOT NULL COMMENT '文章外键',
+`parent_id` INT DEFAULT NULL COMMENT '父评论ID，用于嵌套评论',
+`author_name` VARCHAR(50) NOT NULL COMMENT '昵称',
+`author_email` VARCHAR(100) NOT NULL COMMENT '邮箱',
+`author_ip` VARCHAR(45) NOT NULL COMMENT 'IP地址',
+`content` TEXT NOT NULL COMMENT '评论内容',
+`status` ENUM('pending', 'approved', 'spam', 'deleted') NOT NULL DEFAULT 'pending' COMMENT '评论状态',
+`like_count` INT NOT NULL DEFAULT 0 COMMENT '点赞数',
+`create_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+PRIMARY KEY (`id`),
+KEY `idx_article_id` (`article_id`),
+KEY `idx_parent_id` (`parent_id`),
+KEY `idx_status` (`status`),
+KEY `idx_create_at` (`create_at`),
+CONSTRAINT `fk_comment_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+CONSTRAINT `fk_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论表';
+
+-- 6. 博主表
+CREATE TABLE `blogger` (
+`id` INT NOT NULL AUTO_INCREMENT COMMENT '博主ID',
+`username` VARCHAR(50) NOT NULL COMMENT '博主账号',
+`password_hash` VARCHAR(255) NOT NULL COMMENT '博主哈希密码',
+`email` VARCHAR(100) NOT NULL COMMENT '博主电子邮箱',
+`avatar` VARCHAR(500) DEFAULT NULL COMMENT '博主头像',
+`bio` TEXT DEFAULT NULL COMMENT '个人简介',
+`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '博主创建时间',
+PRIMARY KEY (`id`),
+UNIQUE KEY `uk_username` (`username`),
+UNIQUE KEY `uk_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='博主表';
+
+-- 7. 网站配置表
+CREATE TABLE `setting` (
+`setting_key` VARCHAR(100) NOT NULL COMMENT '配置键名',
+`setting_value` TEXT NOT NULL COMMENT '配置值',
+`setting_type` ENUM('text', 'image', 'html', 'boolean') NOT NULL DEFAULT 'text' COMMENT '配置类型',
+`description` VARCHAR(255) DEFAULT NULL COMMENT '配置项说明',
+PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='网站配置表';

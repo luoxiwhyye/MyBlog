@@ -9,13 +9,19 @@ const fs = require("fs");
  */
 const uploadToCDN = (localPath, remotePath = "") => {
   try {
-    // 当前实现：返回相对URL
-    // 真实CDN实现应该上传文件到对象存储服务
+    // 当前实现：本地存储 + 返回完整访问URL
+    // 真实场景：上传到 CDN/OSS 再返回公网 URL
+    const appBaseUrl =
+      process.env.APP_BASE_URL ||
+      `http://localhost:${process.env.PORT || 3000}`;
     const fileName = path.basename(localPath);
     const relativeUrl = remotePath ? `${remotePath}/${fileName}` : fileName;
 
-    // 返回可访问的URL路径
-    const cdnUrl = `/uploads/${relativeUrl}`;
+    // 返回可访问的完整 URL
+    const cdnUrl = `${appBaseUrl}/uploads/${relativeUrl}`.replace(
+      /([^:]\/\/)\/+/,
+      "$1",
+    );
 
     return cdnUrl;
   } catch (err) {

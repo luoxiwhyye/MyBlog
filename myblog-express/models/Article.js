@@ -14,6 +14,8 @@ const formatArticle = (row) => {
     }
   }
 
+  const labelIds = labels.map((label) => label.id);
+
   return {
     id: row.id,
     title: row.title,
@@ -25,7 +27,9 @@ const formatArticle = (row) => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
+    typeId: row.type_id,
     type: row.type_name ? { id: row.type_id, typeName: row.type_name } : null,
+    labelIds,
     labels,
   };
 };
@@ -115,6 +119,13 @@ const getArticlesCount = async (filters = {}) => {
 
   const [rows] = await pool.query(query, params);
   return rows[0].count;
+};
+
+const getTotalViewCount = async () => {
+  const [rows] = await pool.query(
+    "SELECT COALESCE(SUM(view_count),0) as totalViews FROM article WHERE deleted_at IS NULL",
+  );
+  return rows[0].totalViews;
 };
 
 const getArticleById = async (id) => {
@@ -275,6 +286,7 @@ module.exports = {
   getTrashArticles,
   getTrashArticlesCount,
   incrementViewCount,
+  getTotalViewCount,
   addArticleLabels,
   clearArticleLabels,
 };

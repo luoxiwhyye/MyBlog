@@ -11,7 +11,8 @@ const request: AxiosInstance = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const userStore = useUserStore()
+    const token = userStore?.token || localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -31,13 +32,16 @@ request.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
+      const userStore = useUserStore()
       if (status === 401) {
-        // 清除 token 并跳转到登录页
         localStorage.removeItem('token')
-        const userStore = useUserStore()
-        userStore.logout()
-        // 这里可能需要使用 router，但为了避免循环依赖，可以在组件中处理
-        // 或者使用 window.location.href = '/login'
+        localStorage.removeItem('userInfo')
+        if (userStore?.token) {
+          userStore.logout()
+        }
+        ElMessage.error('登录已过期，请重新登录')
+      } else if (status === 403) {
+        ElMessage.error(data?.message || '权限不足')
       } else {
         ElMessage.error(data?.message || '请求失败')
       }

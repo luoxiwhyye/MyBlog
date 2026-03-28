@@ -49,7 +49,7 @@
           </template>
         </el-table-column>
         <el-table-column label="创建时间" prop="createAt" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="400" fixed="right">
           <template #default="scope">
             <el-button
               v-if="scope.row.status === 'pending'"
@@ -180,7 +180,7 @@ const handleReset = () => {
 const updateStatus = async (id: number, status: 'pending' | 'approved' | 'spam' | 'deleted') => {
   try {
     const response = await comment.updateStatus(id, { status })
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       ElMessage.success('操作成功')
       fetchComments()
     } else {
@@ -200,7 +200,7 @@ const deleteComment = async (id: number) => {
       type: 'warning'
     })
     const response = await comment.delete(id)
-    if (response.code === 200) {
+    if (response.code === 200 || response.code === 201) {
       ElMessage.success('删除成功')
       fetchComments()
     } else {

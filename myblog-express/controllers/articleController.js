@@ -79,6 +79,10 @@ const createArticle = async (req, res, next) => {
     }
 
     let coverImage = "";
+    // 优先使用前端传来的封面地址，兼容通过 upload/image 先上传再写入场景
+    if (req.body.coverImageUrl) {
+      coverImage = req.body.coverImageUrl;
+    }
     if (req.file) {
       coverImage = uploadToCDN(req.file.path);
     }
@@ -126,6 +130,11 @@ const updateArticle = async (req, res, next) => {
     if (summary !== undefined) articleData.summary = summary;
     if (typeId !== undefined) articleData.typeId = typeId;
     if (status !== undefined) articleData.status = status;
+
+    // 优先处理前端传来的地址字段，兼容先上传再写入场景
+    if (req.body.coverImageUrl) {
+      articleData.coverImage = req.body.coverImageUrl;
+    }
 
     if (req.file) {
       articleData.coverImage = uploadToCDN(req.file.path);
