@@ -414,6 +414,7 @@ npm start
 
 ### 主要数据表
 
+<<<<<<< HEAD
 - `blogger`: 博主信息表
 - `article`: 文章表
 - `type`: 分类表
@@ -421,6 +422,15 @@ npm start
 - `article_label`: 文章标签关联表
 - `comment`: 评论表
 - `setting`: 配置表
+=======
+- `bloggers`: 博主信息表
+- `articles`: 文章表
+- `types`: 分类表
+- `labels`: 标签表
+- `article_labels`: 文章标签关联表
+- `comments`: 评论表
+- `settings`: 配置表
+>>>>>>> 51a269d3 (个人博客前台部分)
 
 详细表结构请参考 `database.sql` 文件。
 
