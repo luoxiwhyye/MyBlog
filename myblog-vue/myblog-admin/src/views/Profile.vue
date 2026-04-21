@@ -204,7 +204,7 @@ const fetchUserInfo = async () => {
 // 处理头像上传
 const handleAvatarChange = async (file: any) => {
   try {
-    const response = await upload.image(file.raw)
+    const response = await upload.image(file.raw, 'avatar')
     if (response.code === 200) {
       infoForm.avatar = response.data.url
       ElMessage.success('头像上传成功')

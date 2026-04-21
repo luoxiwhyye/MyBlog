@@ -1,7 +1,10 @@
 <template>
   <DefaultLayout>
     <div class="category">
-      <h1>分类</h1>
+      <div class="page-header">
+        <el-button class="home-btn" plain @click="goHome">返回首页</el-button>
+        <h1>分类</h1>
+      </div>
       <div v-if="loading" class="loading">
         <el-icon class="is-loading">
           <Loading />
@@ -40,6 +43,10 @@ const goToCategory = (id: number) => {
   router.push(`/category/${id}`)
 }
 
+const goHome = () => {
+  router.push('/')
+}
+
 onMounted(() => {
   categoryStore.fetchCategories()
 })
@@ -51,11 +58,23 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.page-header {
+  position: relative;
+  min-height: 40px;
+  margin-bottom: 32px;
+}
+
 .category h1 {
   text-align: center;
   font-size: 32px;
-  margin-bottom: 40px;
+  margin: 0;
   color: #333;
+}
+
+.home-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .loading {
@@ -91,5 +110,22 @@ onMounted(() => {
 
 .category-card p {
   color: #666;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .home-btn {
+    position: static;
+  }
+
+  .category h1 {
+    width: 100%;
+  }
 }
 </style>

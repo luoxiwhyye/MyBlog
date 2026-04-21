@@ -1,6 +1,20 @@
 const pool = require("../config/database");
 
-const getComments = async (offset, limit, filters = {}, isAdmin = false) => {
+const getOrderClause = (sortBy = "latest") => {
+  if (sortBy === "hottest") {
+    return " ORDER BY c.like_count DESC, c.create_at DESC";
+  }
+
+  return " ORDER BY c.create_at DESC";
+};
+
+const getComments = async (
+  offset,
+  limit,
+  filters = {},
+  isAdmin = false,
+  options = {},
+) => {
   let query = `
     SELECT c.id, c.article_id AS articleId, c.parent_id AS parentId,
            c.author_name AS authorName, c.author_email AS authorEmail,
@@ -11,31 +25,50 @@ const getComments = async (offset, limit, filters = {}, isAdmin = false) => {
   `;
 
   const params = [];
+  const { topLevelOnly = false, sortBy = "latest" } = options;
 
   if (filters.articleId) {
     query += " AND c.article_id = ?";
     params.push(filters.articleId);
   }
 
-  if (!isAdmin) {
+  if (topLevelOnly) {
+    query += " AND c.parent_id IS NULL";
+  }
+
+  if (filters.status) {
+    query += " AND c.status = ?";
+    params.push(filters.status);
+  }
+
+  if (!isAdmin && !filters.status) {
     query += " AND c.status = ?";
     params.push("approved");
   }
 
-  query += " ORDER BY c.create_at DESC LIMIT ? OFFSET ?";
+  query += `${getOrderClause(sortBy)} LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
   const [rows] = await pool.query(query, params);
   return rows;
 };
 
-const getCommentsCount = async (filters = {}, isAdmin = false) => {
+const getCommentsCount = async (
+  filters = {},
+  isAdmin = false,
+  options = {},
+) => {
   let query = "SELECT COUNT(*) as count FROM comment WHERE 1=1";
   const params = [];
+  const { topLevelOnly = false } = options;
 
   if (filters.articleId) {
     query += " AND article_id = ?";
     params.push(filters.articleId);
+  }
+
+  if (topLevelOnly) {
+    query += " AND parent_id IS NULL";
   }
 
   if (filters.status) {
@@ -86,9 +119,58 @@ const createComment = async (commentData) => {
   return result.insertId;
 };
 
+const getDirectReplyIds = async (connection, parentIds) => {
+  if (!parentIds.length) return [];
+
+  const placeholders = parentIds.map(() => "?").join(", ");
+  const [rows] = await connection.query(
+    `SELECT id FROM comment WHERE parent_id IN (${placeholders})`,
+    parentIds,
+  );
+
+  return rows.map((item) => item.id);
+};
+
+const getDescendantCommentIds = async (connection, rootId) => {
+  const ids = [rootId];
+  let currentLevel = [rootId];
+
+  while (currentLevel.length > 0) {
+    const nextLevel = await getDirectReplyIds(connection, currentLevel);
+    if (!nextLevel.length) {
+      break;
+    }
+
+    ids.push(...nextLevel);
+    currentLevel = nextLevel;
+  }
+
+  return ids;
+};
+
 const deleteComment = async (id) => {
-  const [result] = await pool.query("DELETE FROM comment WHERE id = ?", [id]);
-  return result.affectedRows > 0;
+  const connection = await pool.getConnection();
+
+  try {
+    const rootId = Number(id);
+
+    await connection.beginTransaction();
+
+    const idsToDelete = await getDescendantCommentIds(connection, rootId);
+    const placeholders = idsToDelete.map(() => "?").join(", ");
+    const [result] = await connection.query(
+      `DELETE FROM comment WHERE id IN (${placeholders})`,
+      idsToDelete,
+    );
+
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 };
 
 const updateCommentStatus = async (id, status) => {
@@ -135,6 +217,7 @@ const getCommentsWithReplies = async (articleId, isAdmin = false) => {
 };
 
 module.exports = {
+  getOrderClause,
   getComments,
   getCommentsCount,
   getCommentById,

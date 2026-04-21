@@ -21,9 +21,10 @@ router.get(
 // 发布评论（公开，但需要基本信息）
 router.post("/", commentController.createComment);
 
-// 删除评论（需认证，或通过邮箱验证）
+// 删除评论（需认证）
 router.delete(
   "/:id",
+  auth,
   validateIntId,
   handleValidationErrors,
   commentController.deleteComment,

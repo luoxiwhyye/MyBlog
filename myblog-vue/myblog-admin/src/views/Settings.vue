@@ -101,7 +101,7 @@ const fetchSettings = async () => {
 // 处理图片上传
 const handleImageChange = async (key: string, file: any) => {
   try {
-    const response = await upload.image(file.raw)
+    const response = await upload.image(file.raw, 'setting-image')
     if (response.code === 200 || response.code === 201) {
       formData[key] = response.data.url
       ElMessage.success('图片上传成功')

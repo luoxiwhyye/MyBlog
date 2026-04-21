@@ -53,7 +53,7 @@
             <div class="comment-item">
               <div class="comment-author">{{ scope.row.authorName }}</div>
               <div class="comment-content">{{ scope.row.content }}</div>
-              <div class="comment-time">{{ formatTime(scope.row.createAt) }}</div>
+              <div class="comment-time">{{ formatTime(scope.row.createdAt) }}</div>
             </div>
           </template>
         </el-table-column>
@@ -120,8 +120,13 @@ const fetchRecentComments = async () => {
 }
 
 // 格式化时间
-const formatTime = (time: string) => {
-  return new Date(time).toLocaleString()
+const formatTime = (time?: string) => {
+  if (!time) return '--'
+
+  const date = new Date(time)
+  if (Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleString('zh-CN', { hour12: false })
 }
 
 onMounted(() => {

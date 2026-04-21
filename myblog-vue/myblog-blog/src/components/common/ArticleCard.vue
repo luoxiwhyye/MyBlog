@@ -1,7 +1,8 @@
 <template>
   <article class="article-card">
-    <div v-if="article.coverImage" class="cover">
-      <img :src="article.coverImage" :alt="article.title" />
+    <div class="cover">
+      <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" />
+      <div v-else class="cover-placeholder">暂无图片</div>
     </div>
     <div class="content">
       <h3 class="title">
@@ -9,12 +10,16 @@
       </h3>
       <p class="summary">{{ article.summary }}</p>
       <div class="meta">
-        <span class="category">{{ article.type.typeName }}</span>
-        <span v-for="tag in article.labels" :key="tag.id" class="tag">
-          {{ tag.labelName }}
-        </span>
-        <time class="date">{{ formatDate(article.createdAt) }}</time>
-        <span class="views">{{ article.viewCount }} 阅读</span>
+        <div class="meta-top">
+          <span class="category meta-item">{{ article.type.typeName }}</span>
+          <span v-for="tag in article.labels" :key="tag.id" class="tag meta-item">
+            {{ tag.labelName }}
+          </span>
+        </div>
+        <div class="meta-bottom">
+          <time class="date meta-item">{{ formatDate(article.createdAt) }}</time>
+          <span class="views meta-item">{{ article.viewCount }} 阅读</span>
+        </div>
       </div>
     </div>
   </article>
@@ -52,6 +57,17 @@ defineProps<{
   object-fit: cover;
 }
 
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  font-size: 15px;
+}
+
 .content {
   padding: 20px;
 }
@@ -79,10 +95,34 @@ defineProps<{
 
 .meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 10px;
   font-size: 14px;
   color: #999;
+}
+
+.meta-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+}
+
+.meta-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 24px;
+  font-size: 14px;
+  color: #999;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  line-height: 24px;
 }
 
 .category {
@@ -102,5 +142,6 @@ defineProps<{
 .date,
 .views {
   color: #999;
+  font-variant-numeric: tabular-nums;
 }
 </style>

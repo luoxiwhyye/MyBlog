@@ -178,7 +178,7 @@ const editorOptions = {
             const file = input.files?.[0]
             if (!file) return
             try {
-              const response = await upload.image(file)
+              const response = await upload.image(file, 'article-content')
               if (response.code !== 200 && response.code !== 201) {
                 ElMessage.error(response.message || '图片上传失败')
                 return
@@ -265,7 +265,7 @@ const fetchArticle = async (id: number) => {
 // 处理封面上传
 const handleCoverChange = async (file: any) => {
   try {
-    const response = await upload.image(file.raw)
+    const response = await upload.image(file.raw, 'article-cover')
     if (response.code === 200) {
       form.coverImage = response.data.url
       console.log(form.coverImage)

@@ -33,7 +33,8 @@ export interface Comment {
   content: string;
   likeCount: number;
   status: "approved" | "pending" | "spam" | "deleted";
-  createAt: string;
+  createdAt: string;
+  createAt?: string;
   replies?: Comment[];
 }
 
@@ -51,6 +52,8 @@ export interface CommentListParams {
   pageSize?: number;
   articleId?: number;
   status?: "approved";
+  sortBy?: "latest" | "hottest";
+  topLevelOnly?: boolean;
 }
 
 export interface ApiResponse<T> {

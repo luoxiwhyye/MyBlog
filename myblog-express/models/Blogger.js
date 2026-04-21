@@ -3,7 +3,7 @@ const bcryptjs = require("bcryptjs");
 
 const getBloggerByUsername = async (username) => {
   const [rows] = await pool.query(
-    "SELECT id, username, password_hash AS password, email, avatar, bio, role FROM blogger WHERE username = ?",
+    "SELECT id, username, password_hash AS password, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE username = ?",
     [username],
   );
   return rows[0];

@@ -1,0 +1,1 @@
+import{B as r,r as a}from"./index-nQA4NotJ.js";import{a as s}from"./index-D_89ZOvb.js";const f=r("category",()=>{const t=a([]),e=a(!1);return{categories:t,loading:e,fetchCategories:async()=>{e.value=!0;try{const o=await s.getList();t.value=o.data.list}finally{e.value=!1}}}});export{f as u};

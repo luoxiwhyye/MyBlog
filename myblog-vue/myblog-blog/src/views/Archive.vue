@@ -79,11 +79,11 @@ const groupedArticles = computed(() => {
     .sort((a, b) => parseInt(b) - parseInt(a))
     .map(year => ({
       year,
-      months: Object.keys(groups[year])
+      months: Object.keys(groups[year] || {})
         .sort((a, b) => parseInt(b) - parseInt(a))
         .map(month => ({
           month,
-          articles: groups[year][month]
+          articles: groups[year]?.[month] || []
         }))
     }))
 })

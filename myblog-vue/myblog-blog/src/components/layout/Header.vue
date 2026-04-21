@@ -2,7 +2,10 @@
   <header class="header">
     <div class="container">
       <div class="logo">
-        <router-link to="/">{{ siteName }}</router-link>
+        <router-link to="/">
+          <span class="logo-mark">MB</span>
+          <span class="logo-text">{{ siteName }}</span>
+        </router-link>
       </div>
       <nav class="nav">
         <router-link to="/" class="nav-link">首页</router-link>
@@ -18,8 +21,8 @@
           @keyup.enter="handleSearch"
           clearable
         >
-          <template #suffix>
-            <el-button @click="handleSearch" icon="Search" />
+          <template #append>
+            <el-button @click="handleSearch" :icon="Search" />
           </template>
         </el-input>
       </div>
@@ -28,8 +31,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Search } from '@element-plus/icons-vue'
 import { useSettingsStore } from '@/stores/settings'
 
 const router = useRouter()
@@ -43,13 +47,21 @@ const handleSearch = () => {
     router.push({ name: 'Search', query: { q: searchQuery.value.trim() } })
   }
 }
+
+onMounted(() => {
+  settingsStore.fetchSettings()
+})
 </script>
 
 <style scoped>
 .header {
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
-  padding: 10px 0;
+  background: #ffffff;
+  border-bottom: 1px solid #eef1f5;
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(8px);
 }
 
 .container {
@@ -57,40 +69,78 @@ const handleSearch = () => {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 20px;
-}
-
-.logo {
-  font-size: 24px;
-  font-weight: bold;
+  gap: 16px;
+  padding: 0 16px;
 }
 
 .logo a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
-  color: #333;
+}
+
+.logo-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.logo-text {
+  color: #16213e;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .nav {
   display: flex;
-  gap: 20px;
+  gap: 8px;
 }
 
 .nav-link {
   text-decoration: none;
-  color: #666;
-  padding: 5px 10px;
-  border-radius: 4px;
+  color: #44506b;
+  padding: 7px 12px;
+  border-radius: 999px;
   transition: background-color 0.3s;
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: #edf6f5;
+  color: #0f766e;
 }
 
 .search {
   margin-left: auto;
-  width: 300px;
+  width: 320px;
+}
+
+@media (max-width: 992px) {
+  .container {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+
+  .search {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

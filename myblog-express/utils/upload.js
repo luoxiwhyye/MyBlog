@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
 
+const uploadsRoot = path.resolve(__dirname, "../uploads");
+
 /**
  * 上传文件到CDN（当前实现为本地存储，可后续替换为OSS）
  * @param {string} localPath 本地文件路径
@@ -15,7 +17,18 @@ const uploadToCDN = (localPath, remotePath = "") => {
       process.env.APP_BASE_URL ||
       `http://localhost:${process.env.PORT || 3000}`;
     const fileName = path.basename(localPath);
-    const relativeUrl = remotePath ? `${remotePath}/${fileName}` : fileName;
+    let relativeUrl = fileName;
+
+    if (remotePath) {
+      relativeUrl = `${remotePath}/${fileName}`;
+    } else {
+      const relativePath = path.relative(uploadsRoot, path.resolve(localPath));
+      if (relativePath && !relativePath.startsWith("..")) {
+        relativeUrl = relativePath;
+      }
+    }
+
+    relativeUrl = relativeUrl.replace(/\\/g, "/");
 
     // 返回可访问的完整 URL
     const cdnUrl = `${appBaseUrl}/uploads/${relativeUrl}`.replace(
