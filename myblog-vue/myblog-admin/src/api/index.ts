@@ -240,9 +240,13 @@ export const upload = {
   image: (
     file: File,
     scene: 'avatar' | 'article-cover' | 'article-content' | 'setting-image' = 'article-content',
+    options?: { settingKey?: string },
   ): Promise<ApiResponse<{ url: string }>> => {
     const formData = new FormData()
     formData.append('scene', scene)
+    if (options?.settingKey) {
+      formData.append('settingKey', options.settingKey)
+    }
     formData.append('image', file)
     return request.post('/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

@@ -42,6 +42,70 @@ const uploadToCDN = (localPath, remotePath = "") => {
   }
 };
 
+const getUploadRelativePathFromUrl = (fileUrl) => {
+  if (!fileUrl || typeof fileUrl !== "string") {
+    return "";
+  }
+
+  try {
+    const parsedUrl = new URL(fileUrl);
+    const marker = "/uploads/";
+    const index = parsedUrl.pathname.indexOf(marker);
+    if (index === -1) {
+      return "";
+    }
+
+    return decodeURIComponent(parsedUrl.pathname.slice(index + marker.length));
+  } catch (err) {
+    const normalized = fileUrl.replace(/\\/g, "/");
+    const marker = "/uploads/";
+    const index = normalized.indexOf(marker);
+    if (index === -1) {
+      return "";
+    }
+    return normalized.slice(index + marker.length);
+  }
+};
+
+const removeEmptyParentDirs = (dirPath) => {
+  let currentDir = dirPath;
+
+  while (
+    currentDir &&
+    currentDir.startsWith(uploadsRoot) &&
+    currentDir !== uploadsRoot
+  ) {
+    if (!fs.existsSync(currentDir)) {
+      currentDir = path.dirname(currentDir);
+      continue;
+    }
+
+    const entries = fs.readdirSync(currentDir);
+    if (entries.length > 0) {
+      break;
+    }
+
+    fs.rmdirSync(currentDir);
+    currentDir = path.dirname(currentDir);
+  }
+};
+
+const deleteUploadedUrl = (fileUrl) => {
+  const relativePath = getUploadRelativePathFromUrl(fileUrl);
+  if (!relativePath) {
+    return false;
+  }
+
+  const fullPath = path.join(uploadsRoot, relativePath);
+  if (!fs.existsSync(fullPath)) {
+    return false;
+  }
+
+  fs.unlinkSync(fullPath);
+  removeEmptyParentDirs(path.dirname(fullPath));
+  return true;
+};
+
 /**
  * 删除本地文件
  * @param {string} filePath 文件路径（相对于 uploads）
@@ -60,4 +124,6 @@ const deleteFile = (filePath) => {
 module.exports = {
   uploadToCDN,
   deleteFile,
+  getUploadRelativePathFromUrl,
+  deleteUploadedUrl,
 };
