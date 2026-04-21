@@ -1,1 +1,0 @@
-import{B as o,r as s}from"./index-nQA4NotJ.js";import{t as r}from"./index-D_89ZOvb.js";const l=o("tag",()=>{const a=s([]),t=s(!1);return{tags:a,loading:t,fetchTags:async()=>{t.value=!0;try{const e=await r.getList();a.value=e.data.list}finally{t.value=!1}}}});export{l as u};

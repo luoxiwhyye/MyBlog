@@ -52,11 +52,14 @@ const categoryStore = useCategoryStore()
 
 const currentPage = ref(1)
 const pageSize = ref(10)
-const categoryName = ref('')
 
 const articles = computed(() => articleStore.articles)
 const loading = computed(() => articleStore.loading)
 const total = computed(() => articleStore.total)
+const categoryName = computed(() => {
+  const categoryId = Number(route.params.id)
+  return categoryStore.categories.find((item) => item.id === categoryId)?.typeName || '分类详情'
+})
 
 const handlePageUpdate = (page: number, size: number) => {
   currentPage.value = page
@@ -73,18 +76,12 @@ const fetchArticles = async () => {
       typeId: categoryId,
       status: 'published',
     })
-
-    // Find category name
-    const category = categoryStore.categories.find(c => c.id === categoryId)
-    if (category) {
-      categoryName.value = category.typeName
-    }
   }
 }
 
-onMounted(() => {
-  categoryStore.fetchCategories()
-  fetchArticles()
+onMounted(async () => {
+  await categoryStore.fetchCategories()
+  await fetchArticles()
 })
 
 watch(

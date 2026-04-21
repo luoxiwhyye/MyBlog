@@ -6,5 +6,11 @@ const { requireRole } = require("../middleware/role");
 
 // 仪表盘统计（需管理员）
 router.get("/stats", auth, requireRole("admin"), dashboardController.getStats);
+router.get(
+  "/charts",
+  auth,
+  requireRole("admin"),
+  dashboardController.getCharts,
+);
 
 module.exports = router;

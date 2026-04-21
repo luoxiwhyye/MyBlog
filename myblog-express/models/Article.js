@@ -128,6 +128,44 @@ const getTotalViewCount = async () => {
   return rows[0].totalViews;
 };
 
+const getArticlePublishTrend = async (days = 30, scope = "published") => {
+  let query = `SELECT DATE(created_at) AS publishDate, COUNT(*) AS articleCount
+     FROM article
+     WHERE deleted_at IS NULL
+       AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)`;
+  const params = [days];
+
+  if (scope !== "all") {
+    query += " AND status = 'published'";
+  }
+
+  query += " GROUP BY DATE(created_at) ORDER BY publishDate ASC";
+
+  const [rows] = await pool.query(query, params);
+  return rows;
+};
+
+const getTypeArticleDistribution = async (scope = "published") => {
+  let query = `SELECT t.id,
+            t.type_name AS typeName,
+            COUNT(a.id) AS articleCount
+     FROM \`type\` t
+     LEFT JOIN article a
+       ON a.type_id = t.id
+      AND a.deleted_at IS NULL`;
+
+  if (scope !== "all") {
+    query += " AND a.status = 'published'";
+  }
+
+  query += `
+     GROUP BY t.id, t.type_name
+     ORDER BY articleCount DESC, t.id ASC`;
+
+  const [rows] = await pool.query(query);
+  return rows;
+};
+
 const getArticleById = async (id) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
@@ -287,6 +325,8 @@ module.exports = {
   getTrashArticlesCount,
   incrementViewCount,
   getTotalViewCount,
+  getArticlePublishTrend,
+  getTypeArticleDistribution,
   addArticleLabels,
   clearArticleLabels,
 };

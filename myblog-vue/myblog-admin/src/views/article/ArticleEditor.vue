@@ -25,7 +25,7 @@
           <el-select
             v-model="form.typeId"
             placeholder="请选择分类"
-            style="width: 200px"
+            class="article-type-select"
           >
             <el-option
               v-for="type in typeList"
@@ -41,7 +41,8 @@
             v-model="form.labelIds"
             multiple
             placeholder="请选择标签"
-            style="width: 300px"
+            class="article-label-select"
+            :style="{ width: `${labelSelectWidth}px` }"
           >
             <el-option
               v-for="label in labelList"
@@ -118,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { QuillEditor } from '@vueup/vue-quill'
@@ -135,18 +136,43 @@ const isEdit = ref(false)
 const submitting = ref(false)
 const typeList = ref<any[]>([])
 const labelList = ref<any[]>([])
+const baseSelectWidth = 240
 
 const quillRef = ref<any>(null)
 
 const form = reactive({
   title: '',
-  typeId: null,
-  labelIds: [],
+  typeId: null as number | null,
+  labelIds: [] as number[],
   coverImage: '',
   summary: '',
   content: '',
   status: 'draft'
 })
+
+const labelSelectWidth = computed(() => {
+  const extraCount = Math.max(0, form.labelIds.length - 2)
+  return Math.min(720, baseSelectWidth + extraCount * 46)
+})
+
+const fetchAllPagedOptions = async <T>(
+  fetchPage: (params: { page: number; pageSize: number }) => Promise<any>
+) => {
+  const pageSize = 100
+  let page = 1
+  let total = 0
+  const allItems: T[] = []
+
+  do {
+    const response = await fetchPage({ page, pageSize })
+    const list = (response.data?.list || []) as T[]
+    total = response.data?.total || 0
+    allItems.push(...list)
+    page += 1
+  } while (allItems.length < total)
+
+  return allItems
+}
 
 const rules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
@@ -226,16 +252,13 @@ const editorOptions = {
 // 获取分类和标签列表
 const fetchOptions = async () => {
   try {
-    const [typeRes, labelRes] = await Promise.all([
-      typeApi.getList(),
-      labelApi.getList()
+    const [allTypes, allLabels] = await Promise.all([
+      fetchAllPagedOptions(typeApi.getList),
+      fetchAllPagedOptions(labelApi.getList)
     ])
-    if (typeRes.code === 200) {
-      typeList.value = typeRes.data.list
-    }
-    if (labelRes.code === 200) {
-      labelList.value = labelRes.data.list
-    }
+
+    typeList.value = allTypes
+    labelList.value = allLabels
   } catch (error) {
     console.error('获取选项失败:', error)
   }
@@ -348,6 +371,15 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.article-type-select {
+  width: 240px;
+}
+
+.article-label-select {
+  min-width: 240px;
+  max-width: 100%;
 }
 
 .cover-preview {
