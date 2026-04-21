@@ -3,7 +3,8 @@
     <div class="container">
       <div class="logo">
         <router-link to="/">
-          <span class="logo-mark">MB</span>
+          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" />
+          <span v-else class="logo-mark">MB</span>
           <span class="logo-text">{{ siteName }}</span>
         </router-link>
       </div>
@@ -41,6 +42,7 @@ const settingsStore = useSettingsStore()
 const searchQuery = ref('')
 
 const siteName = computed(() => settingsStore.getSetting('site_name') || 'MyBlog')
+const siteLogo = computed(() => settingsStore.getSetting('site_logo'))
 
 const handleSearch = () => {
   if (searchQuery.value.trim()) {
@@ -92,6 +94,14 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
+}
+
+.logo-image {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(15, 118, 110, 0.18);
 }
 
 .logo-text {

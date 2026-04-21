@@ -29,6 +29,27 @@ const normalizeScene = (scene) => {
   return scene.trim().toLowerCase();
 };
 
+const normalizeSettingKey = (value) => {
+  if (!value || typeof value !== "string") return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
+const getSettingImageSubDir = (req, file) => {
+  const settingKey = normalizeSettingKey(
+    req.body?.settingKey || req.body?.setting_key || file?.fieldname,
+  );
+
+  if (settingKey) {
+    return ["setting", "image", settingKey];
+  }
+
+  return ["setting", "image"];
+};
+
 const REQUIRED_SCENES_FOR_UPLOAD_API = [
   "avatar",
   "article-cover",
@@ -46,6 +67,10 @@ const getUploadSubDir = (req, file) => {
     req.body?.scene || req.body?.type || req.body?.category,
   );
 
+  if (scene === "setting-image") {
+    return getSettingImageSubDir(req, file);
+  }
+
   if (scene && SCENE_DIR_MAP[scene]) {
     return SCENE_DIR_MAP[scene];
   }
@@ -56,7 +81,7 @@ const getUploadSubDir = (req, file) => {
     return ["blogger", "avatar"];
   }
   if (baseUrl.includes("/settings")) {
-    return ["setting", "image"];
+    return getSettingImageSubDir(req, file);
   }
   if (file?.fieldname === "coverImage") {
     return ["article", "cover"];

@@ -1,1 +1,0 @@
-import{B as a,r as n}from"./index-Dg1Vy-ty.js";import{s as r}from"./index-hUzCIyT-.js";const u=a("settings",()=>{const t=n({}),e=n(!1);return{settings:t,loading:e,fetchSettings:async()=>{e.value=!0;try{const s=await r.getAll();t.value=s.data}finally{e.value=!1}},getSetting:s=>t.value[s]?.value||""}});export{u};

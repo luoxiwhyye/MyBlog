@@ -24,22 +24,29 @@ const getSettingByKey = async (key) => {
   return rows[0] || null;
 };
 
-const upsertSetting = async (key, value, type = "text", description = "") => {
+const upsertSetting = async (key, value, type = "text", description) => {
   const [existing] = await pool.query(
-    "SELECT setting_key FROM setting WHERE setting_key = ?",
+    "SELECT setting_key, description FROM setting WHERE setting_key = ?",
     [key],
   );
+
+  const nextDescription =
+    description !== undefined
+      ? description
+      : existing.length > 0
+        ? existing[0].description || ""
+        : "";
 
   if (existing.length > 0) {
     const [result] = await pool.query(
       "UPDATE setting SET setting_value = ?, setting_type = ?, description = ? WHERE setting_key = ?",
-      [value, type, description, key],
+      [value, type, nextDescription, key],
     );
     return result.affectedRows > 0;
   } else {
     const [result] = await pool.query(
       "INSERT INTO setting (setting_key, setting_value, setting_type, description) VALUES (?, ?, ?, ?)",
-      [key, value, type, description],
+      [key, value, type, nextDescription],
     );
     return result.insertId;
   }

@@ -2,7 +2,14 @@
   <div class="login-container">
     <el-card class="login-card" shadow="hover">
       <template #header>
-        <div class="login-title">博客后台管理系统</div>
+        <div class="login-header">
+          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="login-logo" />
+          <div v-else class="login-logo-fallback">MB</div>
+          <div>
+            <div class="login-title">{{ siteName }}</div>
+            <div class="login-subtitle">后台管理系统</div>
+          </div>
+        </div>
       </template>
       <el-form
         ref="loginFormRef"
@@ -49,19 +56,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useSettingsStore } from '@/stores/settings'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const settingsStore = useSettingsStore()
 
 const loginFormRef = ref()
 const loading = ref(false)
 const rememberMe = ref(false)
+const siteName = computed(() => settingsStore.getSetting('site_name') || 'MyBlog')
+const siteLogo = computed(() => settingsStore.getSetting('site_logo'))
 
 const loginForm = reactive({
   username: '',
@@ -96,6 +107,10 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
+  if (!settingsStore.settings.site_name && !settingsStore.settings.site_logo) {
+    settingsStore.fetchSettings()
+  }
+
   // 如果有记住的用户名，从 localStorage 恢复
   const rememberedUsername = localStorage.getItem('rememberedUsername')
   if (rememberedUsername) {
@@ -119,11 +134,45 @@ onMounted(() => {
   padding: 20px;
 }
 
+.login-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.login-logo,
+.login-logo-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.login-logo {
+  object-fit: cover;
+  background: #fff;
+}
+
+.login-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .login-title {
-  text-align: center;
   font-size: 24px;
   font-weight: bold;
   color: #333;
+}
+
+.login-subtitle {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .login-form {

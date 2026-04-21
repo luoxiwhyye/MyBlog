@@ -2,6 +2,11 @@
   <el-container class="admin-layout">
     <!-- 侧边栏 -->
     <el-aside :width="isCollapse ? '64px' : '200px'" class="sidebar">
+      <div class="brand" :class="{ collapsed: isCollapse }">
+        <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo" />
+        <div v-else class="brand-fallback">MB</div>
+        <span v-if="!isCollapse" class="brand-name">{{ siteName }}</span>
+      </div>
       <el-menu
         :default-active="$route.path"
         class="sidebar-menu"
@@ -90,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   HomeFilled,
@@ -104,12 +109,16 @@ import {
   ArrowDown
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useSettingsStore } from '@/stores/settings'
 import { ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
+const settingsStore = useSettingsStore()
 
 const isCollapse = ref(false)
+const siteName = computed(() => settingsStore.getSetting('site_name') || 'MyBlog')
+const siteLogo = computed(() => settingsStore.getSetting('site_logo'))
 
 const toggleSidebar = () => {
   isCollapse.value = !isCollapse.value
@@ -131,6 +140,12 @@ const handleCommand = (command: string) => {
       break
   }
 }
+
+onMounted(() => {
+  if (!settingsStore.settings.site_name && !settingsStore.settings.site_logo) {
+    settingsStore.fetchSettings()
+  }
+})
 </script>
 
 <style scoped>
@@ -141,6 +156,53 @@ const handleCommand = (command: string) => {
 .sidebar {
   background-color: #C0C4CC;
   transition: width 0.3s;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px 10px;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+.brand.collapsed {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.brand-logo,
+.brand-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  object-fit: cover;
+  background: #fff;
+}
+
+.brand-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-menu {

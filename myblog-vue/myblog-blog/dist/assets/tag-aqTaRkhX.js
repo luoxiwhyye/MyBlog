@@ -1,0 +1,1 @@
+import{D as i,r as n,H as r}from"./index-xnhz15ms.js";const u=i("tag",()=>{const e=n([]),t=n(!1);return{tags:e,loading:t,fetchTags:async()=>{t.value=!0;try{let s=1,l=0;const a=[];do{const o=await r.getList({page:s,pageSize:100}),g=o.data.list||[];l=o.data.total||0,a.push(...g),s+=1}while(a.length<l);e.value=a}finally{t.value=!1}}}});export{u};
