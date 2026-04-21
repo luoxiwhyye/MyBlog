@@ -1,7 +1,10 @@
 <template>
   <DefaultLayout>
     <div class="search">
-      <h1>搜索结果</h1>
+      <div class="page-header">
+        <el-button class="home-btn" plain @click="goHome">返回首页</el-button>
+        <h1>搜索结果</h1>
+      </div>
       <div class="search-input">
         <el-input
           v-model="query"
@@ -124,6 +127,10 @@ const handleSearch = () => {
   }
 }
 
+const goHome = () => {
+  router.push('/')
+}
+
 const handlePageUpdate = (page: number, size: number) => {
   currentPage.value = page
   pageSize.value = size
@@ -164,11 +171,23 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.page-header {
+  position: relative;
+  min-height: 40px;
+  margin-bottom: 30px;
+}
+
 .search h1 {
   text-align: center;
   font-size: 32px;
-  margin-bottom: 30px;
+  margin: 0;
   color: #333;
+}
+
+.home-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .search-input {
@@ -233,9 +252,17 @@ onMounted(() => {
 .meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   font-size: 13px;
   color: #666;
+}
+
+.meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  line-height: 22px;
 }
 
 :deep(mark) {
@@ -245,6 +272,18 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .home-btn {
+    position: static;
+    align-self: flex-start;
+  }
+
   .results-header {
     flex-direction: column;
     align-items: flex-start;

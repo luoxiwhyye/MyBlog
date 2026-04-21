@@ -22,13 +22,19 @@ export const articleApi = {
 };
 
 export const categoryApi = {
-  getList: (): Promise<ApiResponse<PaginatedResponse<Category>>> =>
-    request.get("/types"),
+  getList: (params?: {
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<PaginatedResponse<Category>>> =>
+    request.get("/types", { params }),
 };
 
 export const tagApi = {
-  getList: (): Promise<ApiResponse<PaginatedResponse<Tag>>> =>
-    request.get("/labels"),
+  getList: (params?: {
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<PaginatedResponse<Tag>>> =>
+    request.get("/labels", { params }),
 };
 
 export const commentApi = {

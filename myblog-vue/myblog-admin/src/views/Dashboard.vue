@@ -38,6 +38,40 @@
       </el-col>
     </el-row>
 
+    <el-row :gutter="20" class="chart-row">
+      <el-col :span="16">
+        <el-card>
+          <template #header>
+            <div class="chart-header">
+              <h4>文章发布趋势</h4>
+              <div class="chart-controls">
+                <el-radio-group v-model="trendDays" size="small" @change="fetchCharts">
+                  <el-radio-button :label="7">近 7 天</el-radio-button>
+                  <el-radio-button :label="30">近 30 天</el-radio-button>
+                  <el-radio-button :label="90">近 90 天</el-radio-button>
+                </el-radio-group>
+                <el-segmented
+                  v-model="chartScope"
+                  :options="scopeOptions"
+                  size="small"
+                  @change="fetchCharts"
+                />
+              </div>
+            </div>
+          </template>
+          <div ref="publishTrendRef" class="chart-box"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card>
+          <template #header>
+            <h4>分类文章分布</h4>
+          </template>
+          <div ref="typeDistributionRef" class="chart-box"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 最新评论 -->
     <el-card style="margin-top: 20px;">
       <template #header>
@@ -63,7 +97,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import * as echarts from 'echarts'
 import { comment, dashboard } from '@/api'
 
 const stats = ref({
@@ -74,6 +109,138 @@ const stats = ref({
 })
 
 const recentComments = ref<any[]>([])
+const publishTrendRef = ref<HTMLElement | null>(null)
+const typeDistributionRef = ref<HTMLElement | null>(null)
+const trendDays = ref<7 | 30 | 90>(30)
+const chartScope = ref<'published' | 'all'>('published')
+const scopeOptions = [
+  { label: '已发布', value: 'published' },
+  { label: '全部', value: 'all' },
+]
+
+let publishTrendChart: echarts.ECharts | null = null
+let typeDistributionChart: echarts.ECharts | null = null
+
+const handleResize = () => {
+  publishTrendChart?.resize()
+  typeDistributionChart?.resize()
+}
+
+const initCharts = () => {
+  if (publishTrendRef.value && !publishTrendChart) {
+    publishTrendChart = echarts.init(publishTrendRef.value)
+  }
+  if (typeDistributionRef.value && !typeDistributionChart) {
+    typeDistributionChart = echarts.init(typeDistributionRef.value)
+  }
+}
+
+const renderEmptyCharts = () => {
+  publishTrendChart?.setOption({
+    xAxis: { type: 'category', data: [] },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [{ type: 'line', data: [] }],
+    grid: { left: 40, right: 20, top: 24, bottom: 30 },
+  })
+
+  typeDistributionChart?.setOption({
+    tooltip: { trigger: 'item' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['38%', '65%'],
+        label: { formatter: '{b}: {d}%' },
+        data: [],
+      },
+    ],
+  })
+}
+
+const renderCharts = (chartData: {
+  scope: 'published' | 'all'
+  articlePublishTrend: Array<{ date: string; count: number }>
+  typeDistribution: Array<{ typeId: number; typeName: string; articleCount: number }>
+}) => {
+  const trendXAxis = chartData.articlePublishTrend.map((item) => item.date)
+  const trendSeries = chartData.articlePublishTrend.map((item) => item.count)
+
+  publishTrendChart?.setOption({
+    tooltip: {
+      trigger: 'axis',
+    },
+    xAxis: {
+      type: 'category',
+      data: trendXAxis,
+      boundaryGap: false,
+      axisLabel: {
+        formatter: (value: string) => value.slice(5),
+      },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+    },
+    grid: {
+      left: 40,
+      right: 20,
+      top: 24,
+      bottom: 30,
+    },
+    series: [
+      {
+        name: '发布文章数',
+        type: 'line',
+        smooth: true,
+        data: trendSeries,
+        symbolSize: 6,
+        lineStyle: {
+          width: 3,
+        },
+        areaStyle: {
+          opacity: 0.2,
+        },
+      },
+    ],
+  })
+
+  typeDistributionChart?.setOption({
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      extraCssText: 'max-width: 260px; white-space: normal; word-break: break-all;',
+      formatter: (params: { name: string; value: number; percent: number }) => {
+        return `${params.name}<br/>文章数：${params.value}<br/>占比：${params.percent}%`
+      },
+    },
+    legend: {
+      bottom: 0,
+      type: 'scroll',
+    },
+    series: [
+      {
+        name: '分类文章分布',
+        type: 'pie',
+        radius: ['38%', '65%'],
+        center: ['50%', '42%'],
+        avoidLabelOverlap: true,
+        label: {
+          formatter: (params: { name: string; percent: number }) => `${params.name}\n${params.percent}%`,
+          width: 96,
+          overflow: 'break',
+          lineHeight: 16,
+        },
+        labelLine: {
+          length: 10,
+          length2: 8,
+        },
+        data: chartData.typeDistribution.map((item) => ({
+          name: item.typeName,
+          value: item.articleCount,
+        })),
+      },
+    ],
+  })
+}
 
 // 获取统计数据（暂时使用模拟数据，后续可从后端获取）
 const fetchStats = async () => {
@@ -119,6 +286,24 @@ const fetchRecentComments = async () => {
   }
 }
 
+const fetchCharts = async () => {
+  try {
+    const response = await dashboard.getCharts({
+      days: trendDays.value,
+      scope: chartScope.value,
+    })
+    if (response.code === 200 || response.code === 201) {
+      chartScope.value = response.data.scope
+      renderCharts(response.data)
+      return
+    }
+    renderEmptyCharts()
+  } catch (error) {
+    console.error('获取图表数据失败:', error)
+    renderEmptyCharts()
+  }
+}
+
 // 格式化时间
 const formatTime = (time?: string) => {
   if (!time) return '--'
@@ -130,8 +315,21 @@ const formatTime = (time?: string) => {
 }
 
 onMounted(() => {
+  nextTick(() => {
+    initCharts()
+    fetchCharts()
+  })
+  window.addEventListener('resize', handleResize)
   fetchStats()
   fetchRecentComments()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  publishTrendChart?.dispose()
+  typeDistributionChart?.dispose()
+  publishTrendChart = null
+  typeDistributionChart = null
 })
 </script>
 
@@ -142,6 +340,30 @@ onMounted(() => {
 
 .stats-row {
   margin-bottom: 20px;
+}
+
+.chart-row {
+  margin-bottom: 20px;
+}
+
+.chart-header {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chart-box {
+  width: 100%;
+  height: 320px;
 }
 
 .stat-card {
@@ -184,5 +406,29 @@ onMounted(() => {
 .comment-time {
   font-size: 12px;
   color: #999;
+}
+
+@media (max-width: 1200px) {
+  .chart-row .el-col {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 992px) {
+  .chart-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .chart-row {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .chart-row .el-col {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
 }
 </style>

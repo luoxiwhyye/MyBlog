@@ -262,4 +262,16 @@ export const dashboard = {
   > => {
     return request.get('/dashboard/stats')
   },
+  getCharts: (params?: {
+    days?: number
+    scope?: 'published' | 'all'
+  }): Promise<
+    ApiResponse<{
+      scope: 'published' | 'all'
+      articlePublishTrend: Array<{ date: string; count: number }>
+      typeDistribution: Array<{ typeId: number; typeName: string; articleCount: number }>
+    }>
+  > => {
+    return request.get('/dashboard/charts', { params })
+  },
 }

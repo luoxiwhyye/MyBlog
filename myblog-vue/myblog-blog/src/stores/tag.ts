@@ -10,8 +10,20 @@ export const useTagStore = defineStore("tag", () => {
   const fetchTags = async () => {
     loading.value = true;
     try {
-      const response = await tagApi.getList();
-      tags.value = response.data.list;
+      const pageSize = 100;
+      let page = 1;
+      let total = 0;
+      const allTags: Tag[] = [];
+
+      do {
+        const response = await tagApi.getList({ page, pageSize });
+        const list = response.data.list || [];
+        total = response.data.total || 0;
+        allTags.push(...list);
+        page += 1;
+      } while (allTags.length < total);
+
+      tags.value = allTags;
     } finally {
       loading.value = false;
     }

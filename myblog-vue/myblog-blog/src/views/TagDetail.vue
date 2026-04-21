@@ -52,11 +52,14 @@ const tagStore = useTagStore()
 
 const currentPage = ref(1)
 const pageSize = ref(10)
-const tagName = ref('')
 
 const articles = computed(() => articleStore.articles)
 const loading = computed(() => articleStore.loading)
 const total = computed(() => articleStore.total)
+const tagName = computed(() => {
+  const tagId = Number(route.params.id)
+  return tagStore.tags.find((tag) => tag.id === tagId)?.labelName || '标签详情'
+})
 
 const handlePageUpdate = (page: number, size: number) => {
   currentPage.value = page
@@ -73,18 +76,12 @@ const fetchArticles = async () => {
       labelId: tagId,
       status: 'published',
     })
-
-    // Find tag name
-    const tag = tagStore.tags.find(t => t.id === tagId)
-    if (tag) {
-      tagName.value = tag.labelName
-    }
   }
 }
 
-onMounted(() => {
-  tagStore.fetchTags()
-  fetchArticles()
+onMounted(async () => {
+  await tagStore.fetchTags()
+  await fetchArticles()
 })
 
 watch(
