@@ -19,6 +19,13 @@ MyBlog Admin 是一个基于 Vue 3 + TypeScript + Element Plus 构建的个人�
 - **代码规范**: ESLint + Prettier
 - **开发工具**: Vue DevTools
 
+## 字段映射约定（与 myblog.sql 一致）
+
+- 后端数据库列名使用 `snake_case`，前端页面和类型定义使用 `camelCase`。
+- 评论时间字段在前端统一使用 `createdAt`。
+- 评论表数据库列名为 `create_at`（历史命名），由后端模型映射为 `createdAt` 返回。
+- 文章相关时间字段统一为 `createdAt`、`updatedAt`、`deletedAt`。
+
 ## 功能特性
 
 ### 🔐 用户认证

@@ -254,6 +254,8 @@ interface CommentListParams {
   pageSize?: number;
   articleId?: number; // 按文章筛选
   status?: "approved"; // 只获取已审核评论
+  sortBy?: "latest" | "hottest"; // 评论排序，默认 latest
+  topLevelOnly?: boolean; // 是否仅分页顶级评论
 }
 ```
 
@@ -276,7 +278,7 @@ interface Comment {
   content: string;
   likeCount: number;
   status: "approved";
-  createAt: string;
+  createdAt: string;
   replies?: Comment[];
 }
 ```
@@ -494,7 +496,7 @@ myblog-blog/
   <div class="comment">
     <div class="comment-header">
       <span class="author">{{ comment.authorName }}</span>
-      <time>{{ formatDate(comment.createAt) }}</time>
+      <time>{{ formatDate(comment.createdAt) }}</time>
     </div>
     <div class="comment-content" v-html="comment.content"></div>
     <div class="comment-actions">

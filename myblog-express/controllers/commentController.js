@@ -13,24 +13,34 @@ const getComments = async (req, res, next) => {
   try {
     const { page, pageSize, offset, limit } = getPaginationParams(req);
     const filters = {};
+    const sortBy = req.query.sortBy === "hottest" ? "hottest" : "latest";
+    const topLevelOnly = req.query.topLevelOnly === "true";
+    const isAdmin = req.user && req.user.role === "admin";
 
     if (req.query.articleId) {
       filters.articleId = req.query.articleId;
     }
 
-    const isAdmin = req.user && req.user.role === "admin";
+    if (isAdmin && req.query.status && req.query.status !== "all") {
+      filters.status = req.query.status;
+    } else if (!isAdmin) {
+      filters.status = "approved";
+    }
 
     const comments = await commentModel.getComments(
       offset,
       limit,
       filters,
       isAdmin,
+      { topLevelOnly, sortBy },
     );
-    const total = await commentModel.getCommentsCount(filters, isAdmin);
+    const total = await commentModel.getCommentsCount(filters, isAdmin, {
+      topLevelOnly,
+    });
 
-    // 为顶级评论添加回复
-    for (const comment of comments) {
-      if (!comment.parentId) {
+    // 文章详情页按顶级评论分页时，额外附带该页评论的回复树
+    if (topLevelOnly) {
+      for (const comment of comments) {
         comment.replies = await commentModel.getReplies(comment.id);
       }
     }
@@ -81,6 +91,7 @@ const deleteComment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const isAdmin = req.user && req.user.role === "admin";
+    const requesterEmail = req.user?.email;
 
     const comment = await commentModel.getCommentById(id);
     if (!comment) {
@@ -88,7 +99,11 @@ const deleteComment = async (req, res, next) => {
     }
 
     // 权限判断：博主可以删除任何评论，用户只能删除自己的评论
-    if (!isAdmin && req.user.email !== comment.authorEmail) {
+    if (!isAdmin && !requesterEmail) {
+      return error(res, "请先登录后再删除评论", 401);
+    }
+
+    if (!isAdmin && requesterEmail !== comment.authorEmail) {
       return error(res, "无权删除该评论", 403);
     }
 

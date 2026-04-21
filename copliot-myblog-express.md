@@ -414,7 +414,6 @@ npm start
 
 ### 主要数据表
 
-<<<<<<< HEAD
 - `blogger`: 博主信息表
 - `article`: 文章表
 - `type`: 分类表
@@ -422,17 +421,17 @@ npm start
 - `article_label`: 文章标签关联表
 - `comment`: 评论表
 - `setting`: 配置表
-=======
-- `bloggers`: 博主信息表
-- `articles`: 文章表
-- `types`: 分类表
-- `labels`: 标签表
-- `article_labels`: 文章标签关联表
-- `comments`: 评论表
-- `settings`: 配置表
->>>>>>> 51a269d3 (个人博客前台部分)
 
-详细表结构请参考 `database.sql` 文件。
+详细表结构请以 `myblog.sql` 为准。
+
+### 字段映射规范（基于 myblog.sql）
+
+- 数据库统一使用 `snake_case`，API 返回统一使用 `camelCase`。
+- 文章时间字段：数据库 `created_at/updated_at/deleted_at`，API 映射为 `createdAt/updatedAt/deletedAt`。
+- 评论时间字段：数据库列名是 `create_at`（历史命名），API 统一映射为 `createdAt`。
+- 博主密码字段：数据库 `password_hash`，仅用于校验，不对前端透出。
+- 博主创建时间：数据库 `created_at`，API 映射为 `createdAt`。
+- 评论删除策略：删除父评论时，会在事务中递归删除所有子孙评论。
 
 ## 部署说明
 

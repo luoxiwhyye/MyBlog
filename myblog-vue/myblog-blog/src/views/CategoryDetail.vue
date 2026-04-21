@@ -8,6 +8,7 @@
       </nav>
 
       <h1>{{ categoryName }}</h1>
+      <p class="stats">共 {{ total }} 篇文章</p>
 
       <div v-if="loading" class="loading">
         <el-icon class="is-loading">
@@ -36,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Loading } from '@element-plus/icons-vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
@@ -63,10 +64,10 @@ const handlePageUpdate = (page: number, size: number) => {
   fetchArticles()
 }
 
-const fetchArticles = () => {
+const fetchArticles = async () => {
   const categoryId = Number(route.params.id)
   if (categoryId) {
-    articleStore.fetchArticles({
+    await articleStore.fetchArticles({
       page: currentPage.value,
       pageSize: pageSize.value,
       typeId: categoryId,
@@ -85,6 +86,16 @@ onMounted(() => {
   categoryStore.fetchCategories()
   fetchArticles()
 })
+
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      currentPage.value = 1
+      fetchArticles()
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -109,9 +120,15 @@ onMounted(() => {
 
 .category-detail h1 {
   font-size: 32px;
-  margin-bottom: 40px;
+  margin-bottom: 8px;
   color: #333;
   text-align: center;
+}
+
+.stats {
+  text-align: center;
+  color: #64748b;
+  margin-bottom: 26px;
 }
 
 .loading {

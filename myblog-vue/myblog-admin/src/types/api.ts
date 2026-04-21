@@ -83,7 +83,7 @@ export interface Comment {
   content: string
   likeCount: number
   status: 'pending' | 'approved' | 'spam' | 'deleted'
-  createAt: string
+  createdAt: string
   replies?: Comment[]
 }
 

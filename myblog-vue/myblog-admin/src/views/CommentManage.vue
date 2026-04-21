@@ -19,6 +19,15 @@
               @keyup.enter="handleSearch"
             />
           </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 140px">
+              <el-option label="全部" value="all" />
+              <el-option label="待审核" value="pending" />
+              <el-option label="已审核" value="approved" />
+              <el-option label="垃圾评论" value="spam" />
+              <el-option label="已删除" value="deleted" />
+            </el-select>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="handleSearch">搜索</el-button>
             <el-button @click="handleReset">重置</el-button>
@@ -48,7 +57,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="createAt" width="160" />
+        <el-table-column label="创建时间" width="180">
+          <template #default="scope">
+            {{ formatTime(scope.row.createdAt) }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="400" fixed="right">
           <template #default="scope">
             <el-button
@@ -110,7 +123,8 @@ const loading = ref(false)
 const commentList = ref<any[]>([])
 
 const filters = reactive({
-  articleId: ''
+  articleId: '',
+  status: 'all'
 })
 
 const pagination = reactive({
@@ -129,6 +143,9 @@ const fetchComments = async () => {
     }
     if (filters.articleId) {
       params.articleId = Number(filters.articleId)
+    }
+    if (filters.status && filters.status !== 'all') {
+      params.status = filters.status
     }
     const response = await comment.getList(params)
     if (response.code === 200) {
@@ -164,6 +181,16 @@ const getStatusText = (status: string) => {
   return texts[status] || status
 }
 
+// 格式化时间
+const formatTime = (time?: string) => {
+  if (!time) return '--'
+
+  const date = new Date(time)
+  if (Number.isNaN(date.getTime())) return '--'
+
+  return date.toLocaleString('zh-CN', { hour12: false })
+}
+
 // 搜索
 const handleSearch = () => {
   pagination.page = 1
@@ -173,6 +200,7 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   filters.articleId = ''
+  filters.status = 'all'
   handleSearch()
 }
 
@@ -216,7 +244,7 @@ const deleteComment = async (id: number) => {
 // 查看文章
 const viewArticle = (articleId: number) => {
   // 跳转到前端文章页面
-  window.open(`http://localhost:3000/article/${articleId}`, '_blank')
+  window.open(`http://localhost:5174/article/${articleId}`, '_blank')
 }
 
 // 分页大小改变

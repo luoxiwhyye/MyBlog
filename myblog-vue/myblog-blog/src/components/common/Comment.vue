@@ -2,7 +2,7 @@
   <div class="comment">
     <div class="comment-header">
       <span class="author">{{ comment.authorName }}</span>
-      <time class="date">{{ formatDateTime(comment.createAt) }}</time>
+      <time class="date">{{ formatDateTime(comment.createdAt || comment.createAt || '') }}</time>
     </div>
     <div class="comment-content" v-html="comment.content"></div>
     <div class="comment-actions">
@@ -43,7 +43,7 @@
       </el-form>
     </div>
     <div v-if="comment.replies" class="replies">
-      <Comment
+      <BlogComment
         v-for="reply in comment.replies"
         :key="reply.id"
         :comment="reply"
@@ -59,6 +59,10 @@ import { ElMessage } from 'element-plus'
 import { commentApi } from '@/api'
 import type { Comment } from '@/types'
 import { formatDateTime } from '@/utils/format'
+
+defineOptions({
+  name: 'BlogComment',
+})
 
 const props = defineProps<{
   comment: Comment

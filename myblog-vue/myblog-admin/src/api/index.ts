@@ -141,7 +141,7 @@ export const comment = {
         content: string
         likeCount: number
         status: 'pending' | 'approved' | 'spam' | 'deleted'
-        createAt: string
+        createdAt: string
         replies: any[]
       }>
     >
@@ -237,8 +237,12 @@ export const setting = {
 
 // 文件上传
 export const upload = {
-  image: (file: File): Promise<ApiResponse<{ url: string }>> => {
+  image: (
+    file: File,
+    scene: 'avatar' | 'article-cover' | 'article-content' | 'setting-image' = 'article-content',
+  ): Promise<ApiResponse<{ url: string }>> => {
     const formData = new FormData()
+    formData.append('scene', scene)
     formData.append('image', file)
     return request.post('/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

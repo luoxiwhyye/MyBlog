@@ -1,10 +1,15 @@
 <template>
   <footer class="footer">
     <div class="container">
-      <p>&copy; {{ new Date().getFullYear() }} {{ siteAuthor || 'MyBlog' }}. All rights reserved.</p>
+      <div>
+        <p class="copyright">
+          &copy; {{ new Date().getFullYear() }} {{ siteAuthor || 'MyBlog' }}. All rights reserved.
+        </p>
+        <p class="icp">{{ siteIcp || '备案号：待补充' }}</p>
+      </div>
       <div class="links">
-        <a href="/about">关于</a>
-        <a href="/rss">RSS</a>
+        <router-link to="/about">关于</router-link>
+        <router-link to="/archive">归档</router-link>
       </div>
     </div>
   </footer>
@@ -17,13 +22,15 @@ import { useSettingsStore } from '@/stores/settings'
 const settingsStore = useSettingsStore()
 
 const siteAuthor = computed(() => settingsStore.getSetting('site_author'))
+const siteIcp = computed(() => settingsStore.getSetting('site_icp'))
 </script>
 
 <style scoped>
 .footer {
-  background: #f8f8f8;
+  background: #f4f7fb;
   padding: 20px 0;
   margin-top: 40px;
+  border-top: 1px solid #e4ebf4;
 }
 
 .container {
@@ -32,6 +39,18 @@ const siteAuthor = computed(() => settingsStore.getSetting('site_author'))
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.copyright {
+  color: #23324a;
+  margin-bottom: 4px;
+}
+
+.icp {
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .links {
@@ -41,6 +60,13 @@ const siteAuthor = computed(() => settingsStore.getSetting('site_author'))
 
 .links a {
   text-decoration: none;
-  color: #666;
+  color: #4b5563;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
