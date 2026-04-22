@@ -188,6 +188,7 @@ export interface ApiEndpoints {
     create: (data: FormData) => Promise<ApiResponse<{ id: number; coverImageUrl?: string }>>
     update: (id: number, data: FormData) => Promise<ApiResponse<{ coverImageUrl?: string }>>
     delete: (id: number) => Promise<ApiResponse>
+    hardDelete: (id: number) => Promise<ApiResponse>
     restore: (id: number) => Promise<ApiResponse>
     getTrash: (params?: {
       page?: number
@@ -206,6 +207,8 @@ export interface ApiEndpoints {
       content: string
     }) => Promise<ApiResponse<{ id: number }>>
     delete: (id: number) => Promise<ApiResponse>
+    restore: (id: number) => Promise<ApiResponse>
+    hardDelete: (id: number) => Promise<ApiResponse>
     updateStatus: (id: number, data: CommentStatusUpdate) => Promise<ApiResponse>
     like: (id: number) => Promise<ApiResponse<{ likeCount: number }>>
   }

@@ -262,6 +262,14 @@ const restoreArticle = async (id) => {
   return result.affectedRows > 0;
 };
 
+const hardDeleteArticle = async (id) => {
+  const [result] = await pool.query(
+    "DELETE FROM article WHERE id = ? AND deleted_at IS NOT NULL",
+    [id],
+  );
+  return result.affectedRows > 0;
+};
+
 const getTrashArticles = async (offset, limit) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.cover_image, a.view_count, a.status,
@@ -321,6 +329,7 @@ module.exports = {
   updateArticle,
   softDeleteArticle,
   restoreArticle,
+  hardDeleteArticle,
   getTrashArticles,
   getTrashArticlesCount,
   incrementViewCount,

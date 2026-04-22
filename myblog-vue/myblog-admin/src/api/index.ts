@@ -112,6 +112,9 @@ export const article = {
   delete: (id: number): Promise<ApiResponse> => {
     return request.delete(`/articles/${id}`)
   },
+  hardDelete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/articles/${id}/hard`)
+  },
   restore: (id: number): Promise<ApiResponse> => {
     return request.put(`/articles/${id}/restore`)
   },
@@ -159,6 +162,12 @@ export const comment = {
   },
   delete: (id: number): Promise<ApiResponse> => {
     return request.delete(`/comments/${id}`)
+  },
+  restore: (id: number): Promise<ApiResponse> => {
+    return request.put(`/comments/${id}/restore`)
+  },
+  hardDelete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/comments/${id}/hard`)
   },
   updateStatus: (
     id: number,

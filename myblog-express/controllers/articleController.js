@@ -210,6 +210,24 @@ const restoreArticle = async (req, res, next) => {
 };
 
 /**
+ * 彻底删除文章
+ */
+const hardDeleteArticle = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await articleModel.hardDeleteArticle(id);
+    if (!deleted) {
+      return error(res, "文章不存在或不在回收站", 404);
+    }
+
+    success(res, null, "文章已彻底删除");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * 获取回收站文章
  */
 const getTrashArticles = async (req, res, next) => {
@@ -232,5 +250,6 @@ module.exports = {
   updateArticle,
   deleteArticle,
   restoreArticle,
+  hardDeleteArticle,
   getTrashArticles,
 };

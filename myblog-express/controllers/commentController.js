@@ -21,9 +21,14 @@ const getComments = async (req, res, next) => {
       filters.articleId = req.query.articleId;
     }
 
-    if (isAdmin && req.query.status && req.query.status !== "all") {
-      filters.status = req.query.status;
-    } else if (!isAdmin) {
+    if (isAdmin) {
+      if (req.query.status && req.query.status !== "all") {
+        filters.status = req.query.status;
+      } else {
+        // 管理端默认列表不展示已删除评论，避免与回收站混在一起。
+        filters.excludeDeleted = true;
+      }
+    } else {
       filters.status = "approved";
     }
 
@@ -107,12 +112,58 @@ const deleteComment = async (req, res, next) => {
       return error(res, "无权删除该评论", 403);
     }
 
-    const deleted = await commentModel.deleteComment(id);
+    const deleted = await commentModel.softDeleteComment(id);
     if (!deleted) {
       return error(res, "评论删除失败", 500);
     }
 
-    success(res, null, "评论已删除");
+    success(res, null, "评论已移入回收站");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 恢复评论
+ */
+const restoreComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const comment = await commentModel.getCommentById(id);
+    if (!comment) {
+      return error(res, "评论不存在", 404);
+    }
+
+    const restored = await commentModel.restoreComment(id);
+    if (!restored) {
+      return error(res, "评论恢复失败", 500);
+    }
+
+    success(res, null, "评论已恢复为待审核");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 彻底删除评论
+ */
+const hardDeleteComment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const comment = await commentModel.getCommentById(id);
+    if (!comment) {
+      return error(res, "评论不存在", 404);
+    }
+
+    const deleted = await commentModel.deleteComment(id);
+    if (!deleted) {
+      return error(res, "评论彻底删除失败", 500);
+    }
+
+    success(res, null, "评论已彻底删除");
   } catch (err) {
     next(err);
   }
@@ -174,6 +225,8 @@ module.exports = {
   getComments,
   createComment,
   deleteComment,
+  restoreComment,
+  hardDeleteComment,
   updateCommentStatus,
   likeComment,
 };

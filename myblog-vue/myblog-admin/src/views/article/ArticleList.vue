@@ -3,13 +3,19 @@
     <el-card>
       <template #header>
         <div class="header-actions">
-          <h3>文章管理</h3>
-          <el-button type="primary" @click="goToEdit">写文章</el-button>
+          <h3>{{ inTrash ? '回收站' : '文章管理' }}</h3>
+          <div class="header-right">
+            <el-radio-group v-model="viewMode" size="small" @change="handleViewModeChange">
+              <el-radio-button label="list">文章列表</el-radio-button>
+              <el-radio-button label="trash">回收站</el-radio-button>
+            </el-radio-group>
+            <el-button type="primary" @click="goToEdit">写文章</el-button>
+          </div>
         </div>
       </template>
 
       <!-- 搜索筛选栏 -->
-      <div class="filter-bar">
+      <div class="filter-bar" v-if="!inTrash">
         <el-form :inline="true" :model="filters">
           <el-form-item label="标题">
             <el-input
@@ -101,27 +107,45 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="160">
+        <el-table-column :label="inTrash ? '删除时间' : '创建时间'" width="180">
           <template #default="scope">
-            {{ formatDateTime(scope.row.createdAt) }}
+            {{ formatDateTime(inTrash ? scope.row.deletedAt : scope.row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column :label="inTrash ? '操作' : '操作'" :width="inTrash ? 210 : 150" fixed="right">
           <template #default="scope">
-            <el-button
-              size="small"
-              type="primary"
-              @click="editArticle(scope.row.id)"
-            >
-              编辑
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              @click="deleteArticle(scope.row.id)"
-            >
-              删除
-            </el-button>
+            <template v-if="!inTrash">
+              <el-button
+                size="small"
+                type="primary"
+                @click="editArticle(scope.row.id)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="deleteArticle(scope.row.id)"
+              >
+                删除
+              </el-button>
+            </template>
+            <template v-else>
+              <el-button
+                size="small"
+                type="success"
+                @click="restoreArticle(scope.row.id)"
+              >
+                恢复
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="hardDeleteArticle(scope.row.id)"
+              >
+                彻底删除
+              </el-button>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -153,6 +177,8 @@ const router = useRouter()
 const loading = ref(false)
 const articleList = ref<any[]>([])
 const typeList = ref<any[]>([])
+const viewMode = ref<'list' | 'trash'>('list')
+const inTrash = ref(false)
 
 const filters = reactive({
   keyword: '',
@@ -196,12 +222,17 @@ const formatDateTime = (value: string | null | undefined) => {
 const fetchArticles = async () => {
   loading.value = true
   try {
-    const params = {
-      ...filters,
-      page: pagination.page,
-      pageSize: pagination.pageSize
-    }
-    const response = await article.getList(params)
+    const response = inTrash.value
+      ? await article.getTrash({
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        })
+      : await article.getList({
+          ...filters,
+          page: pagination.page,
+          pageSize: pagination.pageSize
+        })
+
     if (response.code === 200) {
       articleList.value = response.data.list
       pagination.total = response.data.total
@@ -246,6 +277,12 @@ const goToEdit = () => {
   router.push('/admin/articles/edit')
 }
 
+const handleViewModeChange = (mode: 'list' | 'trash') => {
+  inTrash.value = mode === 'trash'
+  pagination.page = 1
+  fetchArticles()
+}
+
 // 编辑文章
 const editArticle = (id: number) => {
   router.push(`/admin/articles/edit/${id}`)
@@ -254,14 +291,14 @@ const editArticle = (id: number) => {
 // 删除文章
 const deleteArticle = async (id: number) => {
   try {
-    await ElMessageBox.confirm('确定要删除这篇文章吗？', '提示', {
+    await ElMessageBox.confirm('确定要将这篇文章移入回收站吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     const response = await article.delete(id)
     if (response.code === 200 || response.code === 201) {
-      ElMessage.success('删除成功')
+      ElMessage.success('已移入回收站')
       fetchArticles()
     } else {
       ElMessage.error(response.message || '删除失败')
@@ -269,6 +306,42 @@ const deleteArticle = async (id: number) => {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
+    }
+  }
+}
+
+const restoreArticle = async (id: number) => {
+  try {
+    const response = await article.restore(id)
+    if (response.code === 200 || response.code === 201) {
+      ElMessage.success('恢复成功')
+      fetchArticles()
+    } else {
+      ElMessage.error(response.message || '恢复失败')
+    }
+  } catch (error) {
+    ElMessage.error('恢复失败')
+  }
+}
+
+const hardDeleteArticle = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('彻底删除后不可恢复，确定继续吗？', '高风险操作', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error'
+    })
+
+    const response = await article.hardDelete(id)
+    if (response.code === 200 || response.code === 201) {
+      ElMessage.success('已彻底删除')
+      fetchArticles()
+    } else {
+      ElMessage.error(response.message || '彻底删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('彻底删除失败')
     }
   }
 }
@@ -288,6 +361,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .filter-bar {

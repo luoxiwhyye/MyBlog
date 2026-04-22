@@ -3,12 +3,16 @@
     <el-card>
       <template #header>
         <div class="header-actions">
-          <h3>评论管理</h3>
+          <h3>{{ inTrash ? '评论回收站' : '评论管理' }}</h3>
+          <el-radio-group v-model="viewMode" size="small" @change="handleViewModeChange">
+            <el-radio-button label="list">评论列表</el-radio-button>
+            <el-radio-button label="trash">回收站</el-radio-button>
+          </el-radio-group>
         </div>
       </template>
 
       <!-- 筛选栏 -->
-      <div class="filter-bar">
+      <div class="filter-bar" v-if="!inTrash">
         <el-form :inline="true" :model="filters">
           <el-form-item label="文章ID">
             <el-input
@@ -57,43 +61,69 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column :label="inTrash ? '回收站时间' : '创建时间'" width="180">
           <template #default="scope">
             {{ formatTime(scope.row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="400" fixed="right">
+        <el-table-column :width="inTrash ? 320 : 420" label="操作" fixed="right">
           <template #default="scope">
-            <el-button
-              v-if="scope.row.status === 'pending'"
-              size="small"
-              type="success"
-              @click="updateStatus(scope.row.id, 'approved')"
-            >
-              审核通过
-            </el-button>
-            <el-button
-              v-if="scope.row.status === 'pending'"
-              size="small"
-              type="warning"
-              @click="updateStatus(scope.row.id, 'spam')"
-            >
-              标记为垃圾
-            </el-button>
-            <el-button
-              size="small"
-              type="info"
-              @click="viewArticle(scope.row.articleId)"
-            >
-              查看文章
-            </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              @click="deleteComment(scope.row.id)"
-            >
-              删除
-            </el-button>
+            <template v-if="!inTrash">
+              <el-button
+                v-if="scope.row.status !== 'approved'"
+                size="small"
+                type="success"
+                @click="updateStatus(scope.row.id, 'approved')"
+              >
+                设为已审核
+              </el-button>
+              <el-button
+                v-if="scope.row.status !== 'pending'"
+                size="small"
+                type="primary"
+                @click="updateStatus(scope.row.id, 'pending')"
+              >
+                设为待审核
+              </el-button>
+              <el-button
+                v-if="scope.row.status !== 'spam'"
+                size="small"
+                type="warning"
+                @click="updateStatus(scope.row.id, 'spam')"
+              >
+                设为垃圾
+              </el-button>
+              <el-button
+                size="small"
+                type="info"
+                @click="viewArticle(scope.row.articleId)"
+              >
+                查看文章
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="deleteComment(scope.row.id)"
+              >
+                移入回收站
+              </el-button>
+            </template>
+            <template v-else>
+              <el-button
+                size="small"
+                type="success"
+                @click="restoreComment(scope.row.id)"
+              >
+                恢复为待审核
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="hardDeleteComment(scope.row.id)"
+              >
+                彻底删除
+              </el-button>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -121,6 +151,8 @@ import { comment } from '@/api'
 
 const loading = ref(false)
 const commentList = ref<any[]>([])
+const viewMode = ref<'list' | 'trash'>('list')
+const inTrash = ref(false)
 
 const filters = reactive({
   articleId: '',
@@ -141,10 +173,12 @@ const fetchComments = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize
     }
-    if (filters.articleId) {
+    if (!inTrash.value && filters.articleId) {
       params.articleId = Number(filters.articleId)
     }
-    if (filters.status && filters.status !== 'all') {
+    if (inTrash.value) {
+      params.status = 'deleted'
+    } else if (filters.status && filters.status !== 'all') {
       params.status = filters.status
     }
     const response = await comment.getList(params)
@@ -204,6 +238,12 @@ const handleReset = () => {
   handleSearch()
 }
 
+const handleViewModeChange = (mode: 'list' | 'trash') => {
+  inTrash.value = mode === 'trash'
+  pagination.page = 1
+  fetchComments()
+}
+
 // 更新评论状态
 const updateStatus = async (id: number, status: 'pending' | 'approved' | 'spam' | 'deleted') => {
   try {
@@ -222,14 +262,14 @@ const updateStatus = async (id: number, status: 'pending' | 'approved' | 'spam' 
 // 删除评论
 const deleteComment = async (id: number) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', {
+    await ElMessageBox.confirm('确定将该评论移入回收站吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
     const response = await comment.delete(id)
     if (response.code === 200 || response.code === 201) {
-      ElMessage.success('删除成功')
+      ElMessage.success('已移入回收站')
       fetchComments()
     } else {
       ElMessage.error(response.message || '删除失败')
@@ -237,6 +277,42 @@ const deleteComment = async (id: number) => {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
+    }
+  }
+}
+
+const restoreComment = async (id: number) => {
+  try {
+    const response = await comment.restore(id)
+    if (response.code === 200 || response.code === 201) {
+      ElMessage.success('恢复成功')
+      fetchComments()
+    } else {
+      ElMessage.error(response.message || '恢复失败')
+    }
+  } catch (error) {
+    ElMessage.error('恢复失败')
+  }
+}
+
+const hardDeleteComment = async (id: number) => {
+  try {
+    await ElMessageBox.confirm('彻底删除后无法恢复，是否继续？', '高风险操作', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error'
+    })
+
+    const response = await comment.hardDelete(id)
+    if (response.code === 200 || response.code === 201) {
+      ElMessage.success('已彻底删除')
+      fetchComments()
+    } else {
+      ElMessage.error(response.message || '彻底删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('彻底删除失败')
     }
   }
 }

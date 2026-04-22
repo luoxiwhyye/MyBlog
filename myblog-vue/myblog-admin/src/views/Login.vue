@@ -98,6 +98,12 @@ const handleLogin = async () => {
       loading.value = false
 
       if (success) {
+        if (rememberMe.value) {
+          localStorage.setItem('rememberedUsername', loginForm.username)
+        } else {
+          localStorage.removeItem('rememberedUsername')
+        }
+
         // 获取重定向参数
         const redirect = route.query.redirect as string || '/admin/dashboard'
         router.push(redirect)
