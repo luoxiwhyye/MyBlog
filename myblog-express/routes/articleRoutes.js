@@ -78,4 +78,14 @@ router.put(
   articleController.restoreArticle,
 );
 
+// 彻底删除文章（需认证）
+router.delete(
+  "/:id/hard",
+  validateIntId,
+  handleValidationErrors,
+  auth,
+  requireRole("admin"),
+  articleController.hardDeleteArticle,
+);
+
 module.exports = router;

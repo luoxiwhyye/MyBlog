@@ -30,6 +30,26 @@ router.delete(
   commentController.deleteComment,
 );
 
+// 恢复评论（需认证 + 管理员权限）
+router.put(
+  "/:id/restore",
+  validateIntId,
+  handleValidationErrors,
+  auth,
+  requireRole("admin"),
+  commentController.restoreComment,
+);
+
+// 彻底删除评论（需认证 + 管理员权限）
+router.delete(
+  "/:id/hard",
+  validateIntId,
+  handleValidationErrors,
+  auth,
+  requireRole("admin"),
+  commentController.hardDeleteComment,
+);
+
 // 更新评论状态（需认证 + 管理员权限）
 router.put(
   "/:id/status",

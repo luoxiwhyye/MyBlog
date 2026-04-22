@@ -39,6 +39,9 @@ const getComments = async (
   if (filters.status) {
     query += " AND c.status = ?";
     params.push(filters.status);
+  } else if (filters.excludeDeleted) {
+    query += " AND c.status <> ?";
+    params.push("deleted");
   }
 
   if (!isAdmin && !filters.status) {
@@ -74,6 +77,9 @@ const getCommentsCount = async (
   if (filters.status) {
     query += " AND status = ?";
     params.push(filters.status);
+  } else if (filters.excludeDeleted) {
+    query += " AND status <> ?";
+    params.push("deleted");
   } else if (!isAdmin) {
     query += " AND status = ?";
     params.push("approved");
@@ -146,6 +152,66 @@ const getDescendantCommentIds = async (connection, rootId) => {
   }
 
   return ids;
+};
+
+const updateCommentsStatusByIds = async (connection, ids, status) => {
+  if (!ids.length) return false;
+
+  const placeholders = ids.map(() => "?").join(", ");
+  const [result] = await connection.query(
+    `UPDATE comment SET status = ? WHERE id IN (${placeholders})`,
+    [status, ...ids],
+  );
+
+  return result.affectedRows > 0;
+};
+
+const softDeleteComment = async (id) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const rootId = Number(id);
+
+    await connection.beginTransaction();
+    const idsToDelete = await getDescendantCommentIds(connection, rootId);
+    const updated = await updateCommentsStatusByIds(
+      connection,
+      idsToDelete,
+      "deleted",
+    );
+    await connection.commit();
+
+    return updated;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+};
+
+const restoreComment = async (id) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const rootId = Number(id);
+
+    await connection.beginTransaction();
+    const idsToRestore = await getDescendantCommentIds(connection, rootId);
+    const updated = await updateCommentsStatusByIds(
+      connection,
+      idsToRestore,
+      "pending",
+    );
+    await connection.commit();
+
+    return updated;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 };
 
 const deleteComment = async (id) => {
@@ -223,6 +289,8 @@ module.exports = {
   getCommentById,
   getReplies,
   createComment,
+  softDeleteComment,
+  restoreComment,
   deleteComment,
   updateCommentStatus,
   incrementCommentLikes,
