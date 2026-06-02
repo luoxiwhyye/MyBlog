@@ -1,11 +1,4 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
-    },
-    {
-      "path": "./tsconfig.app.json"
-    }
-  ]
+  "extends": "./.nuxt/tsconfig.json",
+  "exclude": ["src", "dist", ".vite", "node_modules"]
 }

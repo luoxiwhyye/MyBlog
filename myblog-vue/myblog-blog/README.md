@@ -1,33 +1,31 @@
 # MyBlog 前台
 
-这是一个基于 Vue 3 + TypeScript + Vite 构建的个人博客前台项目。
+这是一个基于 **Nuxt 3 + TypeScript** 的博客前台项目，已从 Vue 3 + Vite SPA 重构为支持 SSR 的 Nuxt 应用，并保留原有博客页面能力与现有 Express API 契约。
 
 ## 功能特性
 
-- 🏠 首页展示最新文章
-- 📖 文章详情页，支持评论
-- 🏷️ 分类和标签系统
-- 🔍 全文搜索功能
-- 📅 文章归档
-- 💬 评论系统
+- 🏠 首页、文章详情、分类、标签、归档、关于、搜索页面
+- 📖 文章详情页支持评论、回复、代码高亮、目录导航
+- 🔎 基础 SEO：全局 `titleTemplate`、默认 description、Open Graph、Twitter Card、canonical
+- 🗺️ 内置 `robots.txt` 与 `sitemap.xml`
+- 🔁 通过 Nuxt server route 代理后端 Express API
 - 📱 响应式设计
 
 ## 技术栈
 
-- **框架**: Vue 3 (Composition API)
+- **框架**: Nuxt 3
 - **语言**: TypeScript
-- **构建工具**: Vite
+- **渲染模式**: SSR
 - **状态管理**: Pinia
 - **UI 组件库**: Element Plus
-- **HTTP 客户端**: Axios
-- **路由**: Vue Router
+- **路由**: Nuxt 约定式路由
 - **日期处理**: Day.js
 
 ## 安装和运行
 
 ### 环境要求
 
-- Node.js 18+
+- Node.js 20.19+
 - npm 或 yarn
 
 ### 1. 安装依赖
@@ -36,12 +34,11 @@
 npm install
 ```
 
-### 2. 配置环境变量
-
-创建 `.env` 文件：
+### 2. 可选环境变量
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000/api
+NUXT_API_BASE=http://localhost:3000/api/v1
+NUXT_SITE_URL=http://localhost:3001
 ```
 
 ### 3. 启动开发服务器
@@ -50,7 +47,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 npm run dev
 ```
 
-应用将在 `http://localhost:5173` 启动。
+应用默认运行在 `http://localhost:3001`，并通过 Nuxt 内部 `/api/v1/*` 代理转发到原有 Express API。
 
 ### 4. 构建生产版本
 
@@ -60,38 +57,30 @@ npm run build
 
 ## 项目结构
 
+```text
+api/                  # API 封装（复用原接口契约）
+assets/               # 全局样式
+components/           # 通用组件与布局组件
+composables/          # SEO 等复用逻辑
+layouts/              # Nuxt 布局
+pages/                # Nuxt 页面与约定式路由
+plugins/              # Nuxt 插件（Element Plus）
+public/               # 静态资源
+server/               # API 代理、robots、sitemap
+stores/               # Pinia 状态
+types/                # TypeScript 类型
+utils/                # 通用工具函数
 ```
-src/
-├── api/               # API 接口
-├── components/        # 组件
-│   ├── common/        # 通用组件
-│   └── layout/        # 布局组件
-├── layouts/           # 页面布局
-├── router/            # 路由配置
-├── stores/            # Pinia 状态管理
-├── types/             # TypeScript 类型
-├── utils/             # 工具函数
-├── views/             # 页面组件
-└── main.ts            # 应用入口
-```
 
-## 开发指南
+## API 集成
 
-### 添加新页面
-
-1. 在 `src/views/` 下创建 Vue 组件
-2. 在 `src/router/index.ts` 中添加路由
-3. 如需要，在 `src/stores/` 中添加状态管理
-
-### API 集成
-
-1. 在 `src/api/index.ts` 中定义接口
-2. 在 `src/types/index.ts` 中定义类型
-3. 在组件中使用 API
+1. 在 `api/index.ts` 中定义接口
+2. 在 `types/index.ts` 中定义类型
+3. 优先通过 Nuxt 内部 `/api/v1/*` 代理访问后端
 
 ## 部署
 
-构建后的文件位于 `dist/` 目录，可以部署到任何静态文件服务器。
+构建后会生成 Nuxt 服务端产物（`.output/`），适合以 Node 服务方式部署。
 
 ## 许可证
 
