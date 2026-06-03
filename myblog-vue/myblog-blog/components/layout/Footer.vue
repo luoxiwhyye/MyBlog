@@ -10,6 +10,7 @@
       <div class="links">
         <NuxtLink to="/about">关于</NuxtLink>
         <NuxtLink to="/archive">归档</NuxtLink>
+        <NuxtLink to="/tools">工具箱</NuxtLink>
       </div>
     </div>
   </footer>

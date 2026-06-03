@@ -13,6 +13,7 @@
         <NuxtLink to="/category" class="nav-link">分类</NuxtLink>
         <NuxtLink to="/tag" class="nav-link">标签</NuxtLink>
         <NuxtLink to="/archive" class="nav-link">归档</NuxtLink>
+        <NuxtLink to="/tools" class="nav-link">工具箱</NuxtLink>
         <NuxtLink to="/about" class="nav-link">关于</NuxtLink>
       </nav>
       <div class="search">

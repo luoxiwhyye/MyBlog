@@ -11,11 +11,15 @@ import type {
   Settings,
 } from "~/types";
 
+const toRequestParams = <T extends object>(params?: T) => {
+  return params as Record<string, string | number | boolean | undefined> | undefined;
+};
+
 export const articleApi = {
   getList: (
     params?: ArticleListParams,
   ): Promise<ApiResponse<PaginatedResponse<Article>>> =>
-    request.get("/articles", { params }),
+    request.get("/articles", { params: toRequestParams(params) }),
 
   getDetail: (id: number): Promise<ApiResponse<Article>> =>
     request.get(`/articles/${id}`),
@@ -26,7 +30,7 @@ export const categoryApi = {
     page?: number;
     pageSize?: number;
   }): Promise<ApiResponse<PaginatedResponse<Category>>> =>
-    request.get("/types", { params }),
+    request.get("/types", { params: toRequestParams(params) }),
 };
 
 export const tagApi = {
@@ -34,14 +38,14 @@ export const tagApi = {
     page?: number;
     pageSize?: number;
   }): Promise<ApiResponse<PaginatedResponse<Tag>>> =>
-    request.get("/labels", { params }),
+    request.get("/labels", { params: toRequestParams(params) }),
 };
 
 export const commentApi = {
   getList: (
     params?: CommentListParams,
   ): Promise<ApiResponse<PaginatedResponse<Comment>>> =>
-    request.get("/comments", { params }),
+    request.get("/comments", { params: toRequestParams(params) }),
 
   create: (data: {
     articleId: number;

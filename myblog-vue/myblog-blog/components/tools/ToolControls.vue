@@ -1,0 +1,209 @@
+<template>
+  <section class="tool-panel">
+    <div class="panel-header">
+      <h2>控制台</h2>
+      <span class="shortcut-tip">Ctrl / Cmd + K 快速切换工具</span>
+    </div>
+
+    <div v-if="tool.options.length" class="option-list">
+      <div v-for="option in tool.options" :key="option.key" class="option-item">
+        <span class="option-label">{{ option.label }}</span>
+
+        <el-select
+          v-if="option.type === 'select'"
+          :model-value="String(options[option.key] ?? option.defaultValue)"
+          size="large"
+          @update:model-value="emit('update-option', option.key, $event)"
+        >
+          <el-option
+            v-for="choice in option.options"
+            :key="choice.value"
+            :label="choice.label"
+            :value="choice.value"
+          />
+        </el-select>
+
+        <el-radio-group
+          v-else-if="option.type === 'radio'"
+          :model-value="String(options[option.key] ?? option.defaultValue)"
+          @update:model-value="emit('update-option', option.key, $event)"
+        >
+          <el-radio-button
+            v-for="choice in option.options"
+            :key="choice.value"
+            :label="choice.value"
+          >
+            {{ choice.label }}
+          </el-radio-button>
+        </el-radio-group>
+
+        <el-checkbox-group
+          v-else-if="option.type === 'checkbox-group'"
+          :model-value="getCheckboxValue(option.key, option.defaultValue)"
+          @update:model-value="emit('update-option', option.key, $event)"
+        >
+          <el-checkbox
+            v-for="choice in option.options"
+            :key="choice.value"
+            :value="choice.value"
+            border
+          >
+            {{ choice.label }}
+          </el-checkbox>
+        </el-checkbox-group>
+
+        <el-switch
+          v-else-if="option.type === 'switch'"
+          :model-value="Boolean(options[option.key] ?? option.defaultValue)"
+          @update:model-value="emit('update-option', option.key, $event)"
+        />
+
+        <el-input-number
+          v-else
+          :model-value="Number(options[option.key] ?? option.defaultValue)"
+          :min="getNumberMin(option)"
+          :max="getNumberMax(option)"
+          :step="getNumberStep(option)"
+          controls-position="right"
+          @update:model-value="emit('update-option', option.key, Number($event ?? option.defaultValue))"
+        />
+
+        <small v-if="option.helperText" class="option-help">{{ option.helperText }}</small>
+      </div>
+    </div>
+
+    <div class="action-list">
+      <el-button type="primary" size="large" :loading="loading" @click="emit('process')">
+        立即处理
+      </el-button>
+      <el-button v-if="tool.features.hasExample" size="large" @click="emit('example')">
+        示例
+      </el-button>
+      <el-button v-if="tool.features.hasSwap" size="large" @click="emit('swap')">
+        交换
+      </el-button>
+      <el-button v-if="tool.features.hasClear" size="large" @click="emit('clear')">
+        清空
+      </el-button>
+      <el-button v-if="tool.features.hasCopy" size="large" :disabled="!hasOutput" @click="emit('copy')">
+        复制结果
+      </el-button>
+      <el-button
+        v-if="tool.features.hasExport"
+        size="large"
+        :disabled="!hasOutput"
+        @click="emit('export')"
+      >
+        导出文件
+      </el-button>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import type { ToolMeta, ToolNumberOption, ToolOptionDefinition, ToolOptionValues } from "~/types/tool";
+
+const props = defineProps<{
+  tool: ToolMeta;
+  options: ToolOptionValues;
+  loading: boolean;
+  hasOutput: boolean;
+}>();
+const { tool, options, loading, hasOutput } = toRefs(props);
+
+const emit = defineEmits<{
+  "update-option": [key: string, value: string | number | boolean | string[]];
+  process: [];
+  example: [];
+  swap: [];
+  clear: [];
+  copy: [];
+  export: [];
+}>();
+
+const getCheckboxValue = (key: string, fallback: string[]) => {
+  const value = props.options[key];
+  return Array.isArray(value) ? value : fallback;
+};
+
+const isNumberOption = (option: ToolOptionDefinition): option is ToolNumberOption => {
+  return option.type === "number";
+};
+
+const getNumberMin = (option: ToolOptionDefinition) => {
+  return isNumberOption(option) ? option.min : undefined;
+};
+
+const getNumberMax = (option: ToolOptionDefinition) => {
+  return isNumberOption(option) ? option.max : undefined;
+};
+
+const getNumberStep = (option: ToolOptionDefinition) => {
+  return isNumberOption(option) ? (option.step ?? 1) : 1;
+};
+</script>
+
+<style scoped>
+.tool-panel {
+  background: #ffffff;
+  border: 1px solid #e6edf5;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panel-header h2 {
+  font-size: 18px;
+  color: #16213e;
+}
+
+.shortcut-tip {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.option-list {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.option-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-label {
+  font-weight: 600;
+  color: #16213e;
+}
+
+.option-help {
+  color: #64748b;
+}
+
+.action-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .tool-panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+  }
+}
+</style>

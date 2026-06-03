@@ -27,6 +27,10 @@ export default defineNuxtConfig({
       siteUrl: process.env.NUXT_SITE_URL || "http://localhost:3001",
     },
   },
+  routeRules: {
+    "/tools": { ssr: false },
+    "/tools/**": { ssr: false },
+  },
   app: {
     head: {
       htmlAttrs: {

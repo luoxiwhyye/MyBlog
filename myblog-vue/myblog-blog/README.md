@@ -5,6 +5,7 @@
 ## 功能特性
 
 - 🏠 首页、文章详情、分类、标签、归档、关于、搜索页面
+- 🧰 编程工具箱：编解码、格式化、哈希、文本处理、颜色工具
 - 📖 文章详情页支持评论、回复、代码高亮、目录导航
 - 🔎 基础 SEO：全局 `titleTemplate`、默认 description、Open Graph、Twitter Card、canonical
 - 🗺️ 内置 `robots.txt` 与 `sitemap.xml`
@@ -20,6 +21,7 @@
 - **UI 组件库**: Element Plus
 - **路由**: Nuxt 约定式路由
 - **日期处理**: Day.js
+- **工具计算**: 浏览器原生 API + Web Worker
 
 ## 安装和运行
 
@@ -62,6 +64,7 @@ api/                  # API 封装（复用原接口契约）
 assets/               # 全局样式
 components/           # 通用组件与布局组件
 composables/          # SEO 等复用逻辑
+config/               # 工具箱配置
 layouts/              # Nuxt 布局
 pages/                # Nuxt 页面与约定式路由
 plugins/              # Nuxt 插件（Element Plus）
@@ -71,6 +74,19 @@ stores/               # Pinia 状态
 types/                # TypeScript 类型
 utils/                # 通用工具函数
 ```
+
+## 编程工具箱模块
+
+- 入口页：`/tools`
+- 动态工具页：`/tools/[category]/[tool]`
+- `/tools/**` 路由使用客户端渲染，不影响博客主体 SSR
+- 已内置工具：
+  - 编解码：Base64、URL、Unicode、HTML Entity
+  - 格式化：JSON 格式化、JSON 压缩、SQL 格式化、XML 格式化
+  - 哈希与加密：MD5、SHA-1 / SHA-256 / SHA-512、时间戳转换
+  - 文本处理：正则测试、字符统计、大小写转换
+  - 颜色工具：HEX↔RGB、颜色选择器
+- 体验增强：输入防抖、1MB 输入限制、localStorage 记忆、快捷切换（Ctrl/Cmd + K）、一键复制、示例、清空、交换、结果导出
 
 ## API 集成
 
