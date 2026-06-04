@@ -1,28 +1,28 @@
 <template>
   <section class="tool-panel">
     <div class="panel-header">
-      <h2>{{ tool.outputLabel ?? "输出结果" }}</h2>
-      <el-tag v-if="loading" type="primary" effect="plain">处理中</el-tag>
+      <h2>{{ props.tool.outputLabel ?? "输出结果" }}</h2>
+      <el-tag v-if="props.loading" type="primary" effect="plain">处理中</el-tag>
     </div>
 
     <el-alert
-      v-if="error"
+      v-if="props.error"
       type="error"
       :closable="false"
-      :title="error"
+      :title="props.error"
       show-icon
       class="output-alert"
     />
 
     <el-empty
-      v-else-if="!loading && !output && !details"
+      v-else-if="!props.loading && !props.output && !props.details"
       description="输入内容后将自动处理并在这里展示结果"
     />
 
     <template v-else>
       <el-input
-        v-if="output"
-        :model-value="output"
+        v-if="props.output"
+        :model-value="props.output"
         type="textarea"
         :rows="12"
         readonly
@@ -30,43 +30,43 @@
         :input-style="monospaceStyle"
       />
 
-      <div v-if="details?.kind === 'metrics'" class="metric-grid">
-        <article v-for="item in details.items" :key="item.label" class="metric-card">
+      <div v-if="props.details?.kind === 'metrics'" class="metric-grid">
+        <article v-for="item in props.details.items" :key="item.label" class="metric-card">
           <strong>{{ item.value }}</strong>
           <span>{{ item.label }}</span>
         </article>
       </div>
 
-      <div v-else-if="details?.kind === 'timestamp'" class="kv-grid">
-        <article v-for="item in details.entries" :key="item.label" class="kv-card">
+      <div v-else-if="props.details?.kind === 'timestamp'" class="kv-grid">
+        <article v-for="item in props.details.entries" :key="item.label" class="kv-card">
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}</strong>
         </article>
       </div>
 
-      <div v-else-if="details?.kind === 'color'" class="color-card">
-        <div class="color-swatch" :style="{ backgroundColor: details.swatch }" />
+      <div v-else-if="props.details?.kind === 'color'" class="color-card">
+        <div class="color-swatch" :style="{ backgroundColor: props.details.swatch }" />
         <div class="color-values">
-          <div v-for="variant in details.variants" :key="variant.label" class="kv-card">
+          <div v-for="variant in props.details.variants" :key="variant.label" class="kv-card">
             <span>{{ variant.label }}</span>
             <strong>{{ variant.value }}</strong>
           </div>
         </div>
       </div>
 
-      <div v-else-if="details?.kind === 'case'" class="kv-grid">
+      <div v-else-if="props.details?.kind === 'case'" class="kv-grid">
         <article
-          v-for="variant in details.variants"
+          v-for="variant in props.details.variants"
           :key="variant.key"
           class="kv-card"
-          :class="{ 'kv-card--active': variant.key === details.selectedKey }"
+          :class="{ 'kv-card--active': variant.key === props.details!.selectedKey }"
         >
           <span>{{ variant.label }}</span>
           <strong>{{ variant.value }}</strong>
         </article>
       </div>
 
-      <div v-else-if="details?.kind === 'regex'" class="regex-block">
+      <div v-else-if="props.details?.kind === 'regex'" class="regex-block">
         <div class="regex-preview">
           <span
             v-for="(segment, index) in regexSegments"
@@ -78,7 +78,7 @@
         </div>
 
         <div class="kv-grid">
-          <article v-for="(match, index) in details.matches" :key="`${match.index}-${index}`" class="kv-card">
+          <article v-for="(match, index) in props.details.matches" :key="`${match.index}-${index}`" class="kv-card">
             <span>匹配 #{{ index + 1 }} @ {{ match.index }}</span>
             <strong>{{ match.text }}</strong>
           </article>
@@ -98,39 +98,38 @@ const props = defineProps<{
   error: string | null;
   details: ToolResultDetails | null;
 }>();
-const { tool, output, loading, error, details } = toRefs(props);
 
 const monospaceStyle = {
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
 };
 
 const regexSegments = computed(() => {
-  if (details.value?.kind !== "regex") {
+  if (props.details?.kind !== "regex") {
     return [];
   }
 
   const segments: Array<{ value: string; highlighted: boolean }> = [];
   let cursor = 0;
 
-  for (const match of details.value.matches) {
+  for (const match of props.details.matches) {
     if (match.index > cursor) {
       segments.push({
-        value: details.value.sourceText.slice(cursor, match.index),
+        value: props.details.sourceText.slice(cursor, match.index),
         highlighted: false,
       });
     }
 
     const matchEnd = match.index + match.text.length;
     segments.push({
-      value: details.value.sourceText.slice(match.index, matchEnd),
+      value: props.details.sourceText.slice(match.index, matchEnd),
       highlighted: true,
     });
     cursor = matchEnd;
   }
 
-  if (cursor < details.value.sourceText.length) {
+  if (cursor < props.details.sourceText.length) {
     segments.push({
-      value: details.value.sourceText.slice(cursor),
+      value: props.details.sourceText.slice(cursor),
       highlighted: false,
     });
   }

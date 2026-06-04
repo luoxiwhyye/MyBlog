@@ -214,6 +214,10 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
     }
 
     const rawValue = localStorage.getItem(getPersistKey(tool));
+    console.log("[useTool] hydrateFromStorage", {
+      toolId: tool.id,
+      hasStored: !!rawValue,
+    });
     if (!rawValue) {
       hydrated = true;
       return;
@@ -263,11 +267,19 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
     const currentRunId = latestRunId;
 
     syncInputSnapshot();
+    console.log("[useTool] processNow start", {
+      toolId: tool.id,
+      runId: currentRunId,
+      inputs: JSON.stringify(inputs.value),
+      options: JSON.stringify(state.options),
+    });
+
     state.error = null;
     state.isLoading = true;
 
     try {
       if (Object.values(inputs.value).every((value) => !value.trim())) {
+        console.log("[useTool] processNow skipped — all inputs empty");
         state.output = "";
         state.details = null;
         state.isLoading = false;
@@ -281,11 +293,19 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
       );
 
       if (currentRunId !== latestRunId) {
+        console.log("[useTool] processNow result discarded (stale run)", {
+          currentRunId,
+          latestRunId,
+        });
         return;
       }
 
       state.output = result.output;
       state.details = result.details;
+      console.log("[useTool] processNow success", {
+        output: result.output.substring(0, 100),
+        details: JSON.stringify(result.details).substring(0, 200),
+      });
       options.onProcess?.(result);
     } catch (error) {
       if (currentRunId !== latestRunId) {
@@ -296,6 +316,7 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
       state.details = null;
       state.error =
         error instanceof Error ? error.message : "处理失败，请检查输入内容。";
+      console.error("[useTool] processNow error", state.error, error);
     } finally {
       if (currentRunId === latestRunId) {
         state.isLoading = false;
@@ -305,6 +326,7 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
 
   const scheduleProcess = () => {
     if (!hydrated) {
+      console.log("[useTool] scheduleProcess skipped — not hydrated");
       return;
     }
 
@@ -312,7 +334,12 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
       window.clearTimeout(debounceTimer);
     }
 
+    console.log("[useTool] scheduleProcess → debouncing", {
+      toolId: tool.id,
+      debounceMs,
+    });
     debounceTimer = window.setTimeout(() => {
+      console.log("[useTool] scheduleProcess → executing processNow");
       void processNow();
     }, debounceMs);
   };
@@ -326,7 +353,15 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
   };
 
   const updateOption = (key: string, value: ToolOptionValues[string]) => {
+    console.log("[useTool] updateOption called", {
+      key,
+      value,
+      currentOptions: JSON.stringify(state.options),
+    });
     state.options = mergeToolOptions(state.options, { [key]: value });
+    console.log("[useTool] updateOption after merge", {
+      newOptions: JSON.stringify(state.options),
+    });
   };
 
   const loadExample = () => {
@@ -456,6 +491,10 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
   );
 
   onMounted(() => {
+    console.log("[useTool] onMounted", {
+      toolId: tool.id,
+      hasStored: hadStoredState,
+    });
     ensureWorker();
     hydrateFromStorage();
     if (
@@ -463,10 +502,12 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
       !state.input &&
       Object.values(state.extraInputs).every((value) => !value)
     ) {
+      console.log("[useTool] onMounted → loading example");
       loadExample();
       return;
     }
 
+    console.log("[useTool] onMounted → calling processNow");
     void processNow();
   });
 

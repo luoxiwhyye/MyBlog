@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
-import type { ToolProcessPayload, ToolProcessResult } from "~/types/tool";
-import { processTool } from "~/utils/tools/processor";
+import type { ToolProcessPayload, ToolProcessResult } from "../../types/tool";
+import { processTool } from "./processor";
 
 interface WorkerRequest {
   id: string;
@@ -26,9 +26,14 @@ declare const self: DedicatedWorkerGlobalScope;
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { id, payload } = event.data;
+  console.log("[Worker] received message", { id, toolId: payload.toolId });
 
   try {
     const result = await processTool(payload);
+    console.log("[Worker] processTool success", {
+      id,
+      output: result.output.substring(0, 100),
+    });
     const response: WorkerResponse = {
       id,
       ok: true,
@@ -36,6 +41,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     };
     self.postMessage(response);
   } catch (error) {
+    console.error("[Worker] processTool error", error);
     const response: WorkerResponse = {
       id,
       ok: false,

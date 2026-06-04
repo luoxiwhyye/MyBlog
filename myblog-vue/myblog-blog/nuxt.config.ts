@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   devtools: {
     enabled: false,
   },
+  experimental: {
+    appManifest: false,
+  },
   modules: ["@pinia/nuxt"],
   components: [
     {
@@ -18,18 +21,16 @@ export default defineNuxtConfig({
     "highlight.js/styles/github.css",
     "~/assets/css/main.css",
   ],
-  build: {
-    transpile: ["element-plus"],
+  vite: {
+    optimizeDeps: {
+      include: ["dayjs"],
+    },
   },
   runtimeConfig: {
     apiBase: process.env.NUXT_API_BASE || "http://localhost:3000/api/v1",
     public: {
       siteUrl: process.env.NUXT_SITE_URL || "http://localhost:3001",
     },
-  },
-  routeRules: {
-    "/tools": { ssr: false },
-    "/tools/**": { ssr: false },
   },
   app: {
     head: {

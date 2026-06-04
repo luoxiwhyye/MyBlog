@@ -1,4 +1,4 @@
-import type { RegexMatchItem } from "~/types/tool";
+import type { RegexMatchItem } from "../../types/tool";
 
 const textEncoder = new TextEncoder();
 
@@ -28,12 +28,22 @@ const tokenizeWords = (input: string) => {
 };
 
 const capitalize = (value: string) => {
-  return value ? `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}` : "";
+  return value
+    ? `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`
+    : "";
 };
 
-export const testRegex = (pattern: string, flags: string, sourceText: string) => {
-  const normalizedFlags = Array.from(new Set(flags.split("").filter(Boolean))).join("");
-  const runtimeFlags = normalizedFlags.includes("g") ? normalizedFlags : `${normalizedFlags}g`;
+export const testRegex = (
+  pattern: string,
+  flags: string,
+  sourceText: string,
+) => {
+  const normalizedFlags = Array.from(
+    new Set(flags.split("").filter(Boolean)),
+  ).join("");
+  const runtimeFlags = normalizedFlags.includes("g")
+    ? normalizedFlags
+    : `${normalizedFlags}g`;
   const regex = new RegExp(pattern, runtimeFlags);
   const matches: RegexMatchItem[] = [];
   let currentMatch: RegExpExecArray | null = regex.exec(sourceText);
@@ -61,9 +71,7 @@ export const testRegex = (pattern: string, flags: string, sourceText: string) =>
 
 export const countTextMetrics = (input: string) => {
   const lines = input ? input.split(/\r?\n/) : [];
-  const words =
-    input.match(/[A-Za-z0-9_]+|[\u3400-\u9fff]/g)?.length ??
-    0;
+  const words = input.match(/[A-Za-z0-9_]+|[\u3400-\u9fff]/g)?.length ?? 0;
   const paragraphs = input
     .split(/\n\s*\n/)
     .map((segment) => segment.trim())

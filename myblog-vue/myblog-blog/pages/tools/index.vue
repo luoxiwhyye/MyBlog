@@ -67,6 +67,7 @@ import { TOOL_CATEGORIES, TOOL_LIST, getToolPath } from "~/config/tools";
 
 definePageMeta({
   layout: "tools",
+  ssr: false,
 });
 
 useSeoMeta({

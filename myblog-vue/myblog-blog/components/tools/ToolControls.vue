@@ -5,15 +5,15 @@
       <span class="shortcut-tip">Ctrl / Cmd + K 快速切换工具</span>
     </div>
 
-    <div v-if="tool.options.length" class="option-list">
-      <div v-for="option in tool.options" :key="option.key" class="option-item">
+    <div v-if="props.tool.options.length" class="option-list">
+      <div v-for="option in props.tool.options" :key="option.key" class="option-item">
         <span class="option-label">{{ option.label }}</span>
 
         <el-select
           v-if="option.type === 'select'"
-          :model-value="String(options[option.key] ?? option.defaultValue)"
+          :model-value="getOptionValue(option.key, option.defaultValue as string)"
           size="large"
-          @update:model-value="emit('update-option', option.key, $event)"
+          @update:model-value="(val: string) => handleOptionChange(option.key, val)"
         >
           <el-option
             v-for="choice in option.options"
@@ -25,13 +25,13 @@
 
         <el-radio-group
           v-else-if="option.type === 'radio'"
-          :model-value="String(options[option.key] ?? option.defaultValue)"
-          @update:model-value="emit('update-option', option.key, $event)"
+          :model-value="getOptionValue(option.key, option.defaultValue as string)"
+          @update:model-value="(val: string) => handleOptionChange(option.key, val)"
         >
           <el-radio-button
             v-for="choice in option.options"
             :key="choice.value"
-            :label="choice.value"
+            :value="choice.value"
           >
             {{ choice.label }}
           </el-radio-button>
@@ -40,7 +40,7 @@
         <el-checkbox-group
           v-else-if="option.type === 'checkbox-group'"
           :model-value="getCheckboxValue(option.key, option.defaultValue)"
-          @update:model-value="emit('update-option', option.key, $event)"
+          @update:model-value="(val: string[]) => handleOptionChange(option.key, val)"
         >
           <el-checkbox
             v-for="choice in option.options"
@@ -54,18 +54,18 @@
 
         <el-switch
           v-else-if="option.type === 'switch'"
-          :model-value="Boolean(options[option.key] ?? option.defaultValue)"
-          @update:model-value="emit('update-option', option.key, $event)"
+          :model-value="Boolean(props.options[option.key] ?? option.defaultValue)"
+          @update:model-value="(val: boolean) => handleOptionChange(option.key, val)"
         />
 
         <el-input-number
           v-else
-          :model-value="Number(options[option.key] ?? option.defaultValue)"
+          :model-value="Number(props.options[option.key] ?? option.defaultValue)"
           :min="getNumberMin(option)"
           :max="getNumberMax(option)"
           :step="getNumberStep(option)"
           controls-position="right"
-          @update:model-value="emit('update-option', option.key, Number($event ?? option.defaultValue))"
+          @update:model-value="(val: number | undefined) => handleOptionChange(option.key, Number(val ?? option.defaultValue))"
         />
 
         <small v-if="option.helperText" class="option-help">{{ option.helperText }}</small>
@@ -73,25 +73,25 @@
     </div>
 
     <div class="action-list">
-      <el-button type="primary" size="large" :loading="loading" @click="emit('process')">
+      <el-button type="primary" size="large" :loading="props.loading" @click="emit('process')">
         立即处理
       </el-button>
-      <el-button v-if="tool.features.hasExample" size="large" @click="emit('example')">
+      <el-button v-if="props.tool.features.hasExample" size="large" @click="emit('example')">
         示例
       </el-button>
-      <el-button v-if="tool.features.hasSwap" size="large" @click="emit('swap')">
+      <el-button v-if="props.tool.features.hasSwap" size="large" @click="emit('swap')">
         交换
       </el-button>
-      <el-button v-if="tool.features.hasClear" size="large" @click="emit('clear')">
+      <el-button v-if="props.tool.features.hasClear" size="large" @click="emit('clear')">
         清空
       </el-button>
-      <el-button v-if="tool.features.hasCopy" size="large" :disabled="!hasOutput" @click="emit('copy')">
+      <el-button v-if="props.tool.features.hasCopy" size="large" :disabled="!props.hasOutput" @click="emit('copy')">
         复制结果
       </el-button>
       <el-button
-        v-if="tool.features.hasExport"
+        v-if="props.tool.features.hasExport"
         size="large"
-        :disabled="!hasOutput"
+        :disabled="!props.hasOutput"
         @click="emit('export')"
       >
         导出文件
@@ -109,7 +109,6 @@ const props = defineProps<{
   loading: boolean;
   hasOutput: boolean;
 }>();
-const { tool, options, loading, hasOutput } = toRefs(props);
 
 const emit = defineEmits<{
   "update-option": [key: string, value: string | number | boolean | string[]];
@@ -120,6 +119,17 @@ const emit = defineEmits<{
   copy: [];
   export: [];
 }>();
+
+const getOptionValue = (key: string, fallback: string): string => {
+  const value = props.options[key];
+  console.log('[ToolControls] getOptionValue', { key, value, fallback, allOptions: JSON.stringify(props.options) });
+  return value !== undefined && value !== null ? String(value) : fallback;
+};
+
+const handleOptionChange = (key: string, value: string | number | boolean | string[]) => {
+  console.log('[ToolControls] handleOptionChange → emit update-option', { key, value, type: typeof value });
+  emit("update-option", key, value);
+};
 
 const getCheckboxValue = (key: string, fallback: string[]) => {
   const value = props.options[key];

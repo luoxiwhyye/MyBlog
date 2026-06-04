@@ -7,9 +7,7 @@
       :current-category-id="toolMeta.category"
       :categories="categories"
     >
-      <ClientOnly>
-        <ToolWorkbench :key="`${toolMeta.category}-${toolMeta.id}`" :tool="toolMeta" />
-      </ClientOnly>
+      <ToolWorkbench :key="`${toolMeta.category}-${toolMeta.id}`" :tool="toolMeta" />
     </ToolLayout>
   </div>
 
@@ -27,6 +25,7 @@ import { TOOL_CATEGORIES, getToolByRoute } from "~/config/tools";
 
 definePageMeta({
   layout: "tools",
+  ssr: false,
 });
 
 const route = useRoute();

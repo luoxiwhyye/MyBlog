@@ -3,7 +3,7 @@ import type {
   ToolProcessPayload,
   ToolProcessResult,
   ToolResultDetails,
-} from "~/types/tool";
+} from "../../types/tool";
 import {
   decodeBase64,
   decodeHtmlEntity,
@@ -13,11 +13,11 @@ import {
   encodeHtmlEntity,
   encodeUnicode,
   encodeUrl,
-} from "~/utils/tools/encoding";
-import { convertTimestamp, createMd5, createShaHash } from "~/utils/tools/crypto";
-import { convertColorValue, describePickedColor } from "~/utils/tools/color";
-import { formatJson, formatSql, formatXml, minifyJson } from "~/utils/tools/formatter";
-import { convertCase, countTextMetrics, testRegex } from "~/utils/tools/text";
+} from "./encoding";
+import { convertTimestamp, createMd5, createShaHash } from "./crypto";
+import { convertColorValue, describePickedColor } from "./color";
+import { formatJson, formatSql, formatXml, minifyJson } from "./formatter";
+import { convertCase, countTextMetrics, testRegex } from "./text";
 
 const getInput = (payload: ToolProcessPayload, key: string) => {
   return payload.inputs[key] ?? "";
@@ -31,7 +31,10 @@ const getOption = <TValue extends string | number | boolean | string[]>(
   return (payload.options[key] as TValue | undefined) ?? fallback;
 };
 
-const buildResult = (output: string, details: ToolResultDetails | null = null): ToolProcessResult => ({
+const buildResult = (
+  output: string,
+  details: ToolResultDetails | null = null,
+): ToolProcessResult => ({
   output,
   details,
 });
@@ -45,24 +48,35 @@ const runEncodingTool = (toolId: ToolId, input: string, mode: string) => {
     case "unicode":
       return mode === "decode" ? decodeUnicode(input) : encodeUnicode(input);
     case "html-entity":
-      return mode === "decode" ? decodeHtmlEntity(input) : encodeHtmlEntity(input);
+      return mode === "decode"
+        ? decodeHtmlEntity(input)
+        : encodeHtmlEntity(input);
     default:
       return input;
   }
 };
 
-export const processTool = async (payload: ToolProcessPayload): Promise<ToolProcessResult> => {
+export const processTool = async (
+  payload: ToolProcessPayload,
+): Promise<ToolProcessResult> => {
   switch (payload.toolId) {
     case "base64":
     case "url":
     case "unicode":
     case "html-entity": {
-      const output = runEncodingTool(payload.toolId, getInput(payload, "content"), getOption(payload, "mode", "encode"));
+      const output = runEncodingTool(
+        payload.toolId,
+        getInput(payload, "content"),
+        getOption(payload, "mode", "encode"),
+      );
       return buildResult(output);
     }
     case "json": {
       return buildResult(
-        formatJson(getInput(payload, "content"), Number(getOption(payload, "indent", 2))),
+        formatJson(
+          getInput(payload, "content"),
+          Number(getOption(payload, "indent", 2)),
+        ),
       );
     }
     case "json-minify": {
@@ -70,12 +84,18 @@ export const processTool = async (payload: ToolProcessPayload): Promise<ToolProc
     }
     case "sql": {
       return buildResult(
-        formatSql(getInput(payload, "content"), getOption(payload, "keywordCase", "upper") === "upper"),
+        formatSql(
+          getInput(payload, "content"),
+          getOption(payload, "keywordCase", "upper") === "upper",
+        ),
       );
     }
     case "xml": {
       return buildResult(
-        formatXml(getInput(payload, "content"), Number(getOption(payload, "indent", 2))),
+        formatXml(
+          getInput(payload, "content"),
+          Number(getOption(payload, "indent", 2)),
+        ),
       );
     }
     case "md5": {
@@ -85,7 +105,10 @@ export const processTool = async (payload: ToolProcessPayload): Promise<ToolProc
       return buildResult(
         await createShaHash(
           getInput(payload, "content"),
-          getOption(payload, "algorithm", "SHA-256") as "SHA-1" | "SHA-256" | "SHA-512",
+          getOption(payload, "algorithm", "SHA-256") as
+            | "SHA-1"
+            | "SHA-256"
+            | "SHA-512",
         ),
       );
     }
@@ -120,11 +143,14 @@ export const processTool = async (payload: ToolProcessPayload): Promise<ToolProc
     }
     case "word-count": {
       const metrics = countTextMetrics(getInput(payload, "content"));
-      return buildResult(metrics.map((item) => `${item.label}：${item.value}`).join("\n"), {
-        kind: "metrics",
-        title: "文本统计",
-        items: metrics,
-      });
+      return buildResult(
+        metrics.map((item) => `${item.label}：${item.value}`).join("\n"),
+        {
+          kind: "metrics",
+          title: "文本统计",
+          items: metrics,
+        },
+      );
     }
     case "case-convert": {
       const target = getOption(payload, "target", "camel");
@@ -136,7 +162,10 @@ export const processTool = async (payload: ToolProcessPayload): Promise<ToolProc
       });
     }
     case "color-convert": {
-      const result = convertColorValue(getInput(payload, "content"), getOption(payload, "mode", "auto"));
+      const result = convertColorValue(
+        getInput(payload, "content"),
+        getOption(payload, "mode", "auto"),
+      );
       return buildResult(result.output, {
         kind: "color",
         swatch: result.swatch,
@@ -144,7 +173,10 @@ export const processTool = async (payload: ToolProcessPayload): Promise<ToolProc
       });
     }
     case "color-picker": {
-      const result = describePickedColor(getInput(payload, "color"), getOption(payload, "format", "hex"));
+      const result = describePickedColor(
+        getInput(payload, "color"),
+        getOption(payload, "format", "hex"),
+      );
       return buildResult(result.output, {
         kind: "color",
         swatch: result.swatch,

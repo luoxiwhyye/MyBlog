@@ -4,8 +4,8 @@
       <h2>输入区</h2>
       <span>{{ totalBytesText }}</span>
     </div>
-    <div class="input-grid" :class="{ 'input-grid--stacked': tool.features.multiInput }">
-      <div v-for="field in tool.inputs" :key="field.key" class="input-item">
+    <div class="input-grid" :class="{ 'input-grid--stacked': props.tool.features.multiInput }">
+      <div v-for="field in props.tool.inputs" :key="field.key" class="input-item">
         <div class="field-header">
           <label :for="field.key">{{ field.label }}</label>
           <small v-if="field.helperText">{{ field.helperText }}</small>
@@ -14,29 +14,29 @@
         <template v-if="field.type === 'textarea'">
           <el-input
             :id="field.key"
-            :model-value="modelValue[field.key] ?? ''"
+            :model-value="props.modelValue[field.key] ?? ''"
             type="textarea"
             :rows="field.rows ?? 10"
             :placeholder="field.placeholder"
             resize="vertical"
             :input-style="field.monospace ? monospaceStyle : undefined"
-            @update:model-value="emitUpdate(field.key, $event)"
+            @update:model-value="(val: string) => emitUpdate(field.key, val)"
           />
         </template>
 
         <template v-else-if="field.type === 'color'">
           <div class="color-field">
             <el-color-picker
-              :model-value="modelValue[field.key] ?? '#409EFF'"
+              :model-value="props.modelValue[field.key] ?? '#409EFF'"
               :show-alpha="false"
-              @update:model-value="emitUpdate(field.key, $event || '#409EFF')"
+              @update:model-value="(val: string | null) => emitUpdate(field.key, val || '#409EFF')"
             />
             <el-input
               :id="field.key"
-              :model-value="modelValue[field.key] ?? ''"
+              :model-value="props.modelValue[field.key] ?? ''"
               :placeholder="field.placeholder"
               :input-style="monospaceStyle"
-              @update:model-value="emitUpdate(field.key, $event)"
+              @update:model-value="(val: string) => emitUpdate(field.key, val)"
             />
           </div>
         </template>
@@ -44,10 +44,10 @@
         <template v-else>
           <el-input
             :id="field.key"
-            :model-value="modelValue[field.key] ?? ''"
+            :model-value="props.modelValue[field.key] ?? ''"
             :placeholder="field.placeholder"
             :input-style="field.monospace ? monospaceStyle : undefined"
-            @update:model-value="emitUpdate(field.key, $event)"
+            @update:model-value="(val: string) => emitUpdate(field.key, val)"
           />
         </template>
       </div>
@@ -63,7 +63,6 @@ const props = defineProps<{
   modelValue: ToolInputValues;
   totalBytes: number;
 }>();
-const { tool, modelValue, totalBytes } = toRefs(props);
 
 const emit = defineEmits<{
   update: [key: string, value: string];
@@ -78,7 +77,7 @@ const emitUpdate = (key: string, value: string) => {
 };
 
 const totalBytesText = computed(() => {
-  return `已输入 ${(totalBytes.value / 1024).toFixed(totalBytes.value > 1024 ? 1 : 0)} KB`;
+  return `已输入 ${(props.totalBytes / 1024).toFixed(props.totalBytes > 1024 ? 1 : 0)} KB`;
 });
 </script>
 
