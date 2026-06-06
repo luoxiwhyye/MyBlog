@@ -30,6 +30,7 @@ export interface Comment {
   parentId: number | null;
   authorName: string;
   authorEmail: string;
+  authorUrl?: string;
   content: string;
   likeCount: number;
   status: "approved" | "pending" | "spam" | "deleted";
@@ -80,4 +81,12 @@ export interface Settings {
 export interface FriendLink {
   name: string;
   url: string;
+}
+
+export interface BloggerProfile {
+  id: number;
+  nickname: string;
+  avatar: string;
+  bio: string;
+  createdAt: string;
 }

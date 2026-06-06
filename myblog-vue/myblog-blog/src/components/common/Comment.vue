@@ -1,7 +1,25 @@
 <template>
   <div class="comment">
     <div class="comment-header">
-      <span class="author">{{ comment.authorName }}</span>
+      <div class="author-info">
+        <img
+          class="avatar"
+          :src="getGravatarUrl(comment.authorEmail, 40)"
+          :alt="comment.authorName"
+          width="40"
+          height="40"
+          loading="lazy"
+        />
+        <span class="author">
+          <a
+            v-if="comment.authorUrl"
+            :href="normalizeUrl(comment.authorUrl)"
+            target="_blank"
+            rel="noopener noreferrer ugc"
+          >{{ comment.authorName }}</a>
+          <template v-else>{{ comment.authorName }}</template>
+        </span>
+      </div>
       <time class="date">{{ formatDateTime(comment.createdAt || comment.createAt || '') }}</time>
     </div>
     <div class="comment-content" v-html="comment.content"></div>
@@ -25,6 +43,9 @@
         </el-form-item>
         <el-form-item>
           <el-input v-model="replyForm.authorEmail" placeholder="您的邮箱" />
+        </el-form-item>
+        <el-form-item>
+          <el-input v-model="replyForm.authorUrl" placeholder="https://yourblog.com（选填）" />
         </el-form-item>
         <el-form-item>
           <el-input
@@ -59,6 +80,7 @@ import { ElMessage } from 'element-plus'
 import { commentApi } from '@/api'
 import type { Comment } from '@/types'
 import { formatDateTime } from '@/utils/format'
+import { getGravatarUrl } from '@/utils/gravatar'
 
 defineOptions({
   name: 'BlogComment',
@@ -79,8 +101,17 @@ const submitting = ref(false)
 const replyForm = reactive({
   authorName: '',
   authorEmail: '',
+  authorUrl: '',
   content: '',
-})
+});
+
+const normalizeUrl = (url: string) => {
+  if (!url) return "";
+  if (!/^https?:\/\//i.test(url)) {
+    return `https://${url}`;
+  }
+  return url;
+};
 
 const handleLike = async () => {
   try {
@@ -105,12 +136,14 @@ const handleReply = async () => {
       parentId: props.comment.id,
       authorName: replyForm.authorName,
       authorEmail: replyForm.authorEmail,
+      authorUrl: replyForm.authorUrl || undefined,
       content: replyForm.content,
     })
     ElMessage.success('回复成功')
     showReply.value = false
     replyForm.authorName = ''
     replyForm.authorEmail = ''
+    replyForm.authorUrl = ''
     replyForm.content = ''
     emit('replySubmitted')
   } catch (error) {
@@ -127,28 +160,50 @@ const handleReplySubmitted = () => {
 
 <style scoped>
 .comment {
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--border-color);
   padding: 15px 0;
 }
 
 .comment-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
 }
 
 .author {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
+}
+
+.author a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+.author a:hover {
+  text-decoration: underline;
 }
 
 .date {
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
 .comment-content {
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 10px;
 }
@@ -160,13 +215,14 @@ const handleReplySubmitted = () => {
 .reply-form {
   margin-top: 15px;
   padding: 15px;
-  background: #f8f8f8;
+  background: var(--bg-hover);
+  backdrop-filter: blur(8px);
   border-radius: 4px;
 }
 
 .replies {
   margin-left: 30px;
-  border-left: 2px solid #e5e5e5;
+  border-left: 2px solid var(--border-color);
   padding-left: 15px;
 }
 </style>

@@ -97,19 +97,19 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin-bottom: 40px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .no-articles {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .year-group {
@@ -118,9 +118,9 @@ usePageSeo({
 
 .year-group h2 {
   font-size: 24px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 20px;
-  border-bottom: 2px solid #e5e5e5;
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 10px;
 }
 
@@ -130,7 +130,7 @@ usePageSeo({
 
 .month-group h3 {
   font-size: 18px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
@@ -144,21 +144,21 @@ usePageSeo({
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .article-item a {
   text-decoration: none;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .article-item a:hover {
-  color: #007bff;
+  color: var(--color-link);
 }
 
 .date {
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
   margin-left: 10px;
 }

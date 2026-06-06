@@ -141,6 +141,7 @@ export const comment = {
         parentId: number | null
         authorName: string
         authorEmail: string
+        authorUrl?: string
         content: string
         likeCount: number
         status: 'pending' | 'approved' | 'spam' | 'deleted'
@@ -156,6 +157,7 @@ export const comment = {
     parentId?: number
     authorName: string
     authorEmail: string
+    authorUrl?: string
     content: string
   }): Promise<ApiResponse<{ id: number }>> => {
     return request.post('/comments', data)

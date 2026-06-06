@@ -75,7 +75,7 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .home-btn {
@@ -87,7 +87,7 @@ usePageSeo({
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .tags-cloud {
@@ -100,8 +100,8 @@ usePageSeo({
 .tag-item {
   display: inline-block;
   padding: 8px 16px;
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   border-radius: 20px;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -109,7 +109,7 @@ usePageSeo({
 }
 
 .tag-item:hover {
-  background: #e1bee7;
+  opacity: 0.8;
 }
 
 @media (max-width: 768px) {

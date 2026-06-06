@@ -9,6 +9,7 @@ async function initializeBlogger() {
   try {
     const username = process.env.BLOGGER_USERNAME || "admin";
     const password = process.env.BLOGGER_PASSWORD || "admin123";
+    const nickname = process.env.BLOGGER_NICKNAME || "博主";
     const email = process.env.BLOGGER_EMAIL || "admin@example.com";
 
     // 确保 role 字段存在（兼容旧版本数据表）
@@ -30,12 +31,14 @@ async function initializeBlogger() {
     // 创建默认博主账户
     const bloggerId = await bloggerModel.createBlogger({
       username,
+      nickname,
       password,
       email,
     });
 
     console.log(`博主账户初始化成功! ID: ${bloggerId}`);
     console.log(`用户名: ${username}`);
+    console.log(`昵称: ${nickname}`);
     console.log(`邮箱: ${email}`);
   } catch (err) {
     console.error("博主账户初始化失败:", err);

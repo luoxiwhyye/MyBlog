@@ -184,7 +184,7 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .home-btn {
@@ -201,17 +201,17 @@ usePageSeo({
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .no-results {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .results-count {
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .results-header {
@@ -232,9 +232,10 @@ usePageSeo({
 }
 
 .result-item {
-  border: 1px solid #e7edf6;
+  border: 1px solid var(--border-light);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
   padding: 16px;
 }
 
@@ -243,12 +244,12 @@ usePageSeo({
 }
 
 .result-item h3 a {
-  color: #0f172a;
+  color: var(--text-primary);
   text-decoration: none;
 }
 
 .summary {
-  color: #475569;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
@@ -258,7 +259,7 @@ usePageSeo({
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .meta span {

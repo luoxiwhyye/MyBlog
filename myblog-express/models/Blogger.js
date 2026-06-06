@@ -3,7 +3,7 @@ const bcryptjs = require("bcryptjs");
 
 const getBloggerByUsername = async (username) => {
   const [rows] = await pool.query(
-    "SELECT id, username, password_hash AS password, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE username = ?",
+    "SELECT id, username, nickname, password_hash AS password, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE username = ?",
     [username],
   );
   return rows[0];
@@ -11,7 +11,7 @@ const getBloggerByUsername = async (username) => {
 
 const getBloggerById = async (id) => {
   const [rows] = await pool.query(
-    "SELECT id, username, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE id = ?",
+    "SELECT id, username, nickname, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE id = ?",
     [id],
   );
   return rows[0];
@@ -23,10 +23,11 @@ const createBlogger = async (bloggerData) => {
   const role = bloggerData.role || "admin";
 
   const [result] = await pool.query(
-    `INSERT INTO blogger (username, password_hash, email, avatar, bio, role, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    `INSERT INTO blogger (username, nickname, password_hash, email, avatar, bio, role, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       bloggerData.username,
+      bloggerData.nickname || bloggerData.username,
       hashedPassword,
       bloggerData.email || "",
       bloggerData.avatar || "",
@@ -48,6 +49,10 @@ const updateBlogger = async (id, bloggerData) => {
   if (bloggerData.email !== undefined) {
     updates.push("email = ?");
     params.push(bloggerData.email);
+  }
+  if (bloggerData.nickname !== undefined) {
+    updates.push("nickname = ?");
+    params.push(bloggerData.nickname);
   }
   if (bloggerData.bio !== undefined) {
     updates.push("bio = ?");
@@ -79,6 +84,13 @@ const changePassword = async (id, newPassword) => {
   return result.affectedRows > 0;
 };
 
+const getPublicProfile = async () => {
+  const [rows] = await pool.query(
+    "SELECT id, nickname, avatar, bio, created_at AS createdAt FROM blogger ORDER BY id ASC LIMIT 1",
+  );
+  return rows[0] || null;
+};
+
 module.exports = {
   getBloggerByUsername,
   getBloggerById,
@@ -86,4 +98,5 @@ module.exports = {
   verifyPassword,
   updateBlogger,
   changePassword,
+  getPublicProfile,
 };

@@ -108,44 +108,44 @@ usePageSeo({
 
 .breadcrumb {
   margin-bottom: 20px;
-  color: #666;
+  color: var(--text-secondary);
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
 .breadcrumb a {
-  color: #666;
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
 .breadcrumb a:hover {
-  color: #007bff;
+  color: var(--color-link);
 }
 
 .category-detail h1 {
   font-size: 32px;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
 }
 
 .stats {
   text-align: center;
-  color: #64748b;
+  color: var(--text-muted);
   margin-bottom: 26px;
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .no-articles {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .articles-grid {

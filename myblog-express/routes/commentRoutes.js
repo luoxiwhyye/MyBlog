@@ -6,6 +6,7 @@ const { requireRole } = require("../middleware/role");
 const {
   validatePagination,
   validateIntId,
+  validateComment,
   handleValidationErrors,
 } = require("../middleware/validator");
 
@@ -19,7 +20,12 @@ router.get(
 );
 
 // 发布评论（公开，但需要基本信息）
-router.post("/", commentController.createComment);
+router.post(
+  "/",
+  validateComment,
+  handleValidationErrors,
+  commentController.createComment,
+);
 
 // 删除评论（需认证）
 router.delete(

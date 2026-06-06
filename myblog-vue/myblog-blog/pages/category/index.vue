@@ -76,7 +76,7 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .home-btn {
@@ -88,7 +88,7 @@ usePageSeo({
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .categories-grid {
@@ -99,26 +99,27 @@ usePageSeo({
 
 .category-card {
   padding: 30px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
-  transition: box-shadow 0.3s;
-  background: #ffffff;
+  transition: box-shadow 0.3s, background-color 0.3s, border-color 0.3s;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
 }
 
 .category-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .category-card h3 {
   font-size: 24px;
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .category-card p {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {

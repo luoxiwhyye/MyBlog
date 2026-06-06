@@ -21,17 +21,18 @@
 
 <script setup lang="ts">
 const settingsStore = useSettingsStore();
+const bloggerStore = useBloggerStore();
 
-await settingsStore.ensureSettings();
+await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
 const siteDescription = computed(
   () => settingsStore.getSetting("site_description") || "一个个人博客",
 );
-const authorName = computed(() => settingsStore.getSetting("site_author") || "博主");
-const bio = computed(() => settingsStore.getSetting("site_bio") || "");
+const authorName = computed(() => bloggerStore.nickname());
+const bio = computed(() => bloggerStore.bio());
 const avatar = computed(
-  () => settingsStore.getSetting("avatar") || settingsStore.getSetting("site_logo") || "",
+  () => bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "",
 );
 
 usePageSeo({
@@ -51,7 +52,7 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin-bottom: 40px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .about-content {
@@ -78,28 +79,30 @@ usePageSeo({
 .author-info h2 {
   font-size: 24px;
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .bio {
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .site-info {
   padding: 30px;
-  background: #f8f8f8;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
+  backdrop-filter: blur(12px);
 }
 
 .site-info h3 {
   font-size: 20px;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .site-info p {
   margin-bottom: 10px;
-  color: #666;
+  color: var(--text-secondary);
 }
 </style>

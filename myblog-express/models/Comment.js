@@ -18,7 +18,8 @@ const getComments = async (
   let query = `
     SELECT c.id, c.article_id AS articleId, c.parent_id AS parentId,
            c.author_name AS authorName, c.author_email AS authorEmail,
-           c.author_ip AS authorIp, c.content, c.like_count AS likeCount,
+           c.author_url AS authorUrl, c.author_ip AS authorIp,
+           c.content, c.like_count AS likeCount,
            c.status, c.create_at AS createdAt
     FROM comment c
     WHERE 1=1
@@ -98,7 +99,8 @@ const getReplies = async (parentId) => {
   const [rows] = await pool.query(
     `SELECT id, article_id AS articleId, parent_id AS parentId,
             author_name AS authorName, author_email AS authorEmail,
-            author_ip AS authorIp, content, like_count AS likeCount,
+            author_url AS authorUrl, author_ip AS authorIp,
+            content, like_count AS likeCount,
             status, create_at AS createdAt
      FROM comment WHERE parent_id = ? AND status = ?
      ORDER BY create_at ASC`,
@@ -110,13 +112,14 @@ const getReplies = async (parentId) => {
 const createComment = async (commentData) => {
   const [result] = await pool.query(
     `INSERT INTO comment
-     (article_id, parent_id, author_name, author_email, author_ip, content, status, create_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+     (article_id, parent_id, author_name, author_email, author_url, author_ip, content, status, create_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       commentData.articleId,
       commentData.parentId || null,
       commentData.authorName,
       commentData.authorEmail,
+      commentData.authorUrl || null,
       commentData.authorIp || "",
       commentData.content,
       "pending",
@@ -259,7 +262,8 @@ const getCommentsWithReplies = async (articleId, isAdmin = false) => {
   let query = `
     SELECT id, article_id AS articleId, parent_id AS parentId,
            author_name AS authorName, author_email AS authorEmail,
-           author_ip AS authorIp, content, like_count AS likeCount,
+           author_url AS authorUrl, author_ip AS authorIp,
+           content, like_count AS likeCount,
            status, create_at AS createdAt
     FROM comment WHERE article_id = ? AND parent_id IS NULL
   `;

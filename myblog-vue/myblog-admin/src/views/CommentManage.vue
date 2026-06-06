@@ -49,6 +49,19 @@
       >
         <el-table-column label="ID" prop="id" width="80" />
         <el-table-column label="作者" prop="authorName" width="120" />
+        <el-table-column label="邮箱" prop="authorEmail" width="180" show-overflow-tooltip />
+        <el-table-column label="网站" width="160">
+          <template #default="scope">
+            <a
+              v-if="scope.row.authorUrl"
+              :href="scope.row.authorUrl"
+              target="_blank"
+              rel="noopener noreferrer ugc"
+              class="author-url-link"
+            >{{ scope.row.authorUrl }}</a>
+            <span v-else>—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="内容" prop="content" min-width="200" show-overflow-tooltip />
         <el-table-column label="文章ID" prop="articleId" width="100" />
         <el-table-column label="点赞数" prop="likeCount" width="80" />
@@ -358,5 +371,19 @@ onMounted(() => {
 .pagination {
   margin-top: 20px;
   text-align: center;
+}
+
+.author-url-link {
+  color: #409eff;
+  text-decoration: none;
+  display: inline-block;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author-url-link:hover {
+  text-decoration: underline;
 }
 </style>

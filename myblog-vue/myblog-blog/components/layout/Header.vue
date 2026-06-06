@@ -28,6 +28,7 @@
           </template>
         </el-input>
       </div>
+      <ThemeToggle />
     </div>
   </header>
 </template>
@@ -62,13 +63,14 @@ watch(
 
 <style scoped>
 .header {
-  background: #ffffff;
-  border-bottom: 1px solid #eef1f5;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
   padding: 12px 0;
   position: sticky;
   top: 0;
   z-index: 100;
   backdrop-filter: blur(8px);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .container {
@@ -110,9 +112,10 @@ watch(
 }
 
 .logo-text {
-  color: #16213e;
+  color: var(--text-primary);
   font-size: 20px;
   font-weight: 700;
+  transition: color 0.3s;
 }
 
 .nav {
@@ -122,21 +125,21 @@ watch(
 
 .nav-link {
   text-decoration: none;
-  color: #44506b;
+  color: var(--text-secondary);
   padding: 7px 12px;
   border-radius: 999px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  background-color: #edf6f5;
-  color: #0f766e;
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
 }
 
 .search {
   margin-left: auto;
-  width: 320px;
+  width: 280px;
 }
 
 @media (max-width: 992px) {

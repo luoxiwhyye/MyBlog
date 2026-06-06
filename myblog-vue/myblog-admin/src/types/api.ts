@@ -80,6 +80,7 @@ export interface Comment {
   parentId: number | null
   authorName: string
   authorEmail: string
+  authorUrl?: string
   content: string
   likeCount: number
   status: 'pending' | 'approved' | 'spam' | 'deleted'

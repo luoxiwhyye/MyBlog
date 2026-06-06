@@ -61,11 +61,21 @@ const getComments = async (req, res, next) => {
  */
 const createComment = async (req, res, next) => {
   try {
-    const { articleId, parentId, authorName, authorEmail, content } = req.body;
+    const { articleId, parentId, authorName, authorEmail, authorUrl, content } =
+      req.body;
 
     // 验证必填字段
     if (!articleId || !authorName || !authorEmail || !content) {
       return error(res, "必填字段不能为空", 400);
+    }
+
+    // 验证 authorUrl 格式（如果提供）
+    if (authorUrl) {
+      const urlPattern =
+        /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
+      if (!urlPattern.test(authorUrl)) {
+        return error(res, "网址格式不正确", 400);
+      }
     }
 
     // 检查文章是否存在
@@ -79,6 +89,7 @@ const createComment = async (req, res, next) => {
       parentId: parentId || null,
       authorName,
       authorEmail,
+      authorUrl: authorUrl || null,
       content,
     };
 

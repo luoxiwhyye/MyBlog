@@ -4,6 +4,7 @@ import type {
   Category,
   Tag,
   Comment,
+  BloggerProfile,
   ArticleListParams,
   CommentListParams,
   ApiResponse,
@@ -12,7 +13,9 @@ import type {
 } from "~/types";
 
 const toRequestParams = <T extends object>(params?: T) => {
-  return params as Record<string, string | number | boolean | undefined> | undefined;
+  return params as
+    | Record<string, string | number | boolean | undefined>
+    | undefined;
 };
 
 export const articleApi = {
@@ -52,6 +55,7 @@ export const commentApi = {
     parentId?: number;
     authorName: string;
     authorEmail: string;
+    authorUrl?: string;
     content: string;
   }): Promise<ApiResponse<Comment>> => request.post("/comments", data),
 
@@ -61,4 +65,9 @@ export const commentApi = {
 
 export const settingsApi = {
   getAll: (): Promise<ApiResponse<Settings>> => request.get("/settings"),
+};
+
+export const bloggerApi = {
+  getPublicProfile: (): Promise<ApiResponse<BloggerProfile>> =>
+    request.get("/blogger/public-profile"),
 };

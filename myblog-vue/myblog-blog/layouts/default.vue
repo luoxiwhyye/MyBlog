@@ -14,9 +14,10 @@ import Footer from "~/components/layout/Footer.vue";
 import { normalizeUrl } from "~/utils/seo";
 
 const settingsStore = useSettingsStore();
+const bloggerStore = useBloggerStore();
 const runtimeConfig = useRuntimeConfig();
 
-await settingsStore.ensureSettings();
+await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
 const siteDescription = computed(
@@ -24,7 +25,7 @@ const siteDescription = computed(
     settingsStore.getSetting("site_description") ||
     "一个专注于技术内容、笔记与生活记录的个人博客。",
 );
-const siteAuthor = computed(() => settingsStore.getSetting("site_author") || "博主");
+const siteAuthor = computed(() => bloggerStore.nickname());
 const siteLogo = computed(() =>
   normalizeUrl(
     settingsStore.getSetting("site_logo") ||
@@ -40,6 +41,23 @@ const siteFavicon = computed(
       runtimeConfig.public.siteUrl,
     ) || "/favicon.svg",
 );
+
+// 将背景图写入 CSS 变量，配合全局样式实现主题切换
+const bgLight = computed(() => settingsStore.getSetting("site_bg_light"));
+const bgDark = computed(() => settingsStore.getSetting("site_bg_dark"));
+
+const setBgVar = (name: string, url: string) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.style.setProperty(
+    name,
+    url ? `url(${url})` : "none",
+  );
+};
+
+watchEffect(() => {
+  setBgVar("--site-bg-light", bgLight.value);
+  setBgVar("--site-bg-dark", bgDark.value);
+});
 
 useHead(() => ({
   titleTemplate: (titleChunk) =>
@@ -67,6 +85,8 @@ useHead(() => ({
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s;
 }
 
 .main-content {
@@ -75,5 +95,24 @@ useHead(() => ({
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+}
+</style>
+
+<style>
+/* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
+.layout {
+  background-image: var(--site-bg-light);
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+
+html.dark .layout {
+  background-image: var(--site-bg-dark, var(--site-bg-light));
+}
+
+/* 暗色模式下 hero 使用冷色调 */
+html.dark .hero {
+  background: rgba(37, 52, 80, 0.55);
 }
 </style>

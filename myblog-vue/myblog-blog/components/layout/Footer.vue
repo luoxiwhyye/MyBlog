@@ -18,19 +18,21 @@
 
 <script setup lang="ts">
 const settingsStore = useSettingsStore();
+const bloggerStore = useBloggerStore();
 
-await settingsStore.ensureSettings();
+await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
-const siteAuthor = computed(() => settingsStore.getSetting("site_author"));
+const siteAuthor = computed(() => bloggerStore.nickname());
 const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 </script>
 
 <style scoped>
 .footer {
-  background: #f4f7fb;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
   padding: 20px 0;
   margin-top: 40px;
-  border-top: 1px solid #e4ebf4;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .container {
@@ -44,13 +46,15 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 }
 
 .copyright {
-  color: #23324a;
+  color: var(--text-primary);
   margin-bottom: 4px;
+  transition: color 0.3s;
 }
 
 .icp {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 13px;
+  transition: color 0.3s;
 }
 
 .links {
@@ -60,7 +64,8 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 
 .links a {
   text-decoration: none;
-  color: #4b5563;
+  color: var(--text-secondary);
+  transition: color 0.3s;
 }
 
 @media (max-width: 768px) {

@@ -1,4 +1,4 @@
-const { query, param, validationResult } = require("express-validator");
+const { query, param, body, validationResult } = require("express-validator");
 const { error } = require("../utils/response");
 
 // 验证分页参数
@@ -18,6 +18,33 @@ const validateIntId = [
   param("id").isInt({ min: 1 }).withMessage("id 必须是正整数"),
 ];
 
+// URL 格式校验正则
+const urlPattern =
+  /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
+
+// 验证评论提交
+const validateComment = [
+  body("articleId").isInt({ min: 1 }).withMessage("articleId 必须是正整数"),
+  body("authorName")
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("昵称长度应在2-50字符之间"),
+  body("authorEmail").trim().isEmail().withMessage("邮箱格式不正确"),
+  body("authorUrl")
+    .optional({ values: "falsy" })
+    .trim()
+    .matches(urlPattern)
+    .withMessage("网址格式不正确"),
+  body("content")
+    .trim()
+    .isLength({ min: 1, max: 1000 })
+    .withMessage("评论内容长度应在1-1000字符之间"),
+  body("parentId")
+    .optional({ values: "falsy" })
+    .isInt({ min: 1 })
+    .withMessage("parentId 必须是正整数"),
+];
+
 // 验证结果中间件
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -30,5 +57,6 @@ const handleValidationErrors = (req, res, next) => {
 module.exports = {
   validatePagination,
   validateIntId,
+  validateComment,
   handleValidationErrors,
 };

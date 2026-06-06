@@ -63,6 +63,9 @@
               <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" />
             </el-form-item>
             <el-form-item>
+              <el-input v-model="commentForm.authorUrl" placeholder="https://yourblog.com（选填）" />
+            </el-form-item>
+            <el-form-item>
               <el-input
                 v-model="commentForm.content"
                 type="textarea"
@@ -145,8 +148,45 @@ const commentPagination = ref({
 const commentForm = ref({
   authorName: "",
   authorEmail: "",
+  authorUrl: "",
   content: "",
 });
+
+// localStorage key for remembering visitor comment info
+const COMMENT_STORAGE_KEY = "blog_comment_author";
+
+// Load saved comment author info from localStorage
+const loadSavedCommentInfo = () => {
+  if (!process.client) return;
+  try {
+    const saved = localStorage.getItem(COMMENT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      commentForm.value.authorName = parsed.name || "";
+      commentForm.value.authorEmail = parsed.email || "";
+      commentForm.value.authorUrl = parsed.url || "";
+    }
+  } catch {
+    // ignore parse errors
+  }
+};
+
+// Save comment author info to localStorage
+const saveCommentInfo = () => {
+  if (!process.client) return;
+  try {
+    localStorage.setItem(
+      COMMENT_STORAGE_KEY,
+      JSON.stringify({
+        name: commentForm.value.authorName,
+        email: commentForm.value.authorEmail,
+        url: commentForm.value.authorUrl,
+      }),
+    );
+  } catch {
+    // ignore storage errors
+  }
+};
 
 const emptyCommentPage = (): PaginatedResponse<CommentType> => ({
   list: [],
@@ -259,11 +299,11 @@ const handleComment = async () => {
       articleId: articleId.value,
       authorName: commentForm.value.authorName,
       authorEmail: commentForm.value.authorEmail,
+      authorUrl: commentForm.value.authorUrl || undefined,
       content: commentForm.value.content,
     });
     ElMessage.success("评论已提交，感谢您的分享。经审核通过后即可显示。");
-    commentForm.value.authorName = "";
-    commentForm.value.authorEmail = "";
+    saveCommentInfo();
     commentForm.value.content = "";
     await refreshComments();
   } catch {
@@ -305,6 +345,7 @@ watch(
 );
 
 onMounted(async () => {
+  loadSavedCommentInfo();
   await refreshArticleEnhancements();
 });
 
@@ -335,30 +376,30 @@ usePageSeo({
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .not-found {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .breadcrumb {
   margin-bottom: 20px;
-  color: #666;
+  color: var(--text-secondary);
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
 .breadcrumb a {
-  color: #666;
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
 .breadcrumb a:hover {
-  color: #007bff;
+  color: var(--color-link);
 }
 
 .article-header {
@@ -367,7 +408,7 @@ usePageSeo({
 
 .article-header h1 {
   font-size: 32px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 15px;
 }
 
@@ -376,7 +417,7 @@ usePageSeo({
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 15px;
 }
 
@@ -399,10 +440,11 @@ usePageSeo({
 
 .article-summary {
   margin: 0 0 15px;
-  color: #475569;
+  color: var(--text-secondary);
   line-height: 1.8;
-  background: #f8fafc;
-  border-left: 4px solid #38bdf8;
+  background: var(--bg-card);
+  backdrop-filter: blur(8px);
+  border-left: 4px solid var(--color-accent);
   padding: 10px 12px;
   border-radius: 6px;
 }
@@ -414,17 +456,18 @@ usePageSeo({
 }
 
 .category {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--color-accent);
   padding: 4px 12px;
   border-radius: 4px;
 }
 
 .tag {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   padding: 4px 12px;
   border-radius: 4px;
+  opacity: 0.8;
 }
 
 .cover-image {
@@ -440,13 +483,13 @@ usePageSeo({
 
 .article-body {
   line-height: 1.8;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 40px;
 }
 
 .article-body :deep(pre) {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--bg-code);
+  color: var(--text-primary);
   border-radius: 8px;
   overflow: auto;
   padding: 14px;
@@ -458,7 +501,7 @@ usePageSeo({
 }
 
 .comments-section {
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid var(--border-color);
   padding-top: 40px;
 }
 
@@ -489,11 +532,12 @@ usePageSeo({
 }
 
 .toc {
-  border: 1px solid #e5e7eb;
-  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light);
+  background: var(--bg-backdrop);
+  backdrop-filter: blur(16px);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .toc h4 {
@@ -509,7 +553,7 @@ usePageSeo({
 .toc button {
   border: none;
   background: transparent;
-  color: #334155;
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
 }

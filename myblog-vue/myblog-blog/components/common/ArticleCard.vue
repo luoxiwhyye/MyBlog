@@ -36,15 +36,16 @@ defineProps<{
 
 <style scoped>
 .article-card {
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
-  transition: box-shadow 0.3s;
-  background: #ffffff;
+  transition: box-shadow 0.3s, background-color 0.3s, border-color 0.3s;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
 }
 
 .article-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .cover {
@@ -64,8 +65,8 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: var(--text-muted);
+  background: var(--bg-code);
   font-size: 15px;
 }
 
@@ -79,17 +80,17 @@ defineProps<{
 
 .title a {
   text-decoration: none;
-  color: #333;
+  color: var(--text-primary);
   font-size: 18px;
   font-weight: 600;
 }
 
 .title a:hover {
-  color: #007bff;
+  color: var(--color-link);
 }
 
 .summary {
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 15px;
 }
@@ -99,7 +100,7 @@ defineProps<{
   flex-direction: column;
   gap: 10px;
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .meta-top {
@@ -116,7 +117,7 @@ defineProps<{
   align-items: center;
   min-height: 24px;
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .meta-item {
@@ -127,22 +128,23 @@ defineProps<{
 }
 
 .category {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--color-accent);
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .tag {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   padding: 2px 8px;
   border-radius: 4px;
+  opacity: 0.8;
 }
 
 .date,
 .views {
-  color: #999;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 </style>

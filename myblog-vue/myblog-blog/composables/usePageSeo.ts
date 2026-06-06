@@ -16,17 +16,23 @@ export const usePageSeo = (options: PageSeoOptions = {}) => {
   const route = useRoute();
   const runtimeConfig = useRuntimeConfig();
   const settingsStore = useSettingsStore();
+  const bloggerStore = useBloggerStore();
+
+  // 触发加载（不阻塞），computed 会随数据到达自动更新
+  bloggerStore.ensureProfile();
 
   const siteUrl = computed(
     () => runtimeConfig.public.siteUrl || "http://localhost:3001",
   );
-  const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
+  const siteName = computed(
+    () => settingsStore.getSetting("site_name") || "MyBlog",
+  );
   const defaultDescription = computed(
     () =>
       settingsStore.getSetting("site_description") ||
       "一个专注于技术内容、笔记与生活记录的个人博客。",
   );
-  const author = computed(() => settingsStore.getSetting("site_author") || "博主");
+  const author = computed(() => bloggerStore.nickname());
   const favicon = computed(
     () =>
       normalizeUrl(

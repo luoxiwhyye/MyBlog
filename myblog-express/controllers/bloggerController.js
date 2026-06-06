@@ -33,6 +33,7 @@ const login = async (req, res, next) => {
       {
         id: blogger.id,
         username: blogger.username,
+        nickname: blogger.nickname,
         role: blogger.role || "admin",
       },
       secret,
@@ -44,6 +45,7 @@ const login = async (req, res, next) => {
       blogger: {
         id: blogger.id,
         username: blogger.username,
+        nickname: blogger.nickname,
         email: blogger.email,
         avatar: blogger.avatar,
         bio: blogger.bio,
@@ -77,10 +79,11 @@ const getProfile = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { email, bio, avatarUrl } = req.body;
+    const { email, nickname, bio, avatarUrl } = req.body;
 
     const bloggerData = {};
     if (email !== undefined) bloggerData.email = email;
+    if (nickname !== undefined) bloggerData.nickname = nickname;
     if (bio !== undefined) bloggerData.bio = bio;
 
     if (req.file) {
@@ -94,7 +97,7 @@ const updateProfile = async (req, res, next) => {
       // 如果没有更新任何字段但传了值，可能是数据库错误
     }
 
-    success(res, null, "头像已更新");
+    success(res, null, "信息已更新");
   } catch (err) {
     next(err);
   }
@@ -135,9 +138,26 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+/**
+ * 获取博主公开信息（无需认证，供前台页面使用）
+ */
+const getPublicProfile = async (req, res, next) => {
+  try {
+    const profile = await bloggerModel.getPublicProfile();
+    if (!profile) {
+      return error(res, "博主信息不存在", 404);
+    }
+
+    success(res, profile);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   login,
   getProfile,
+  getPublicProfile,
   updateProfile,
   changePassword,
 };

@@ -5,51 +5,62 @@
         <h3>网站配置</h3>
       </template>
 
-      <el-form
-        ref="formRef"
-        :model="formData"
-        label-width="150px"
+      <el-table
+        :data="settingRows"
+        stripe
+        style="width: 100%"
       >
-        <el-form-item
-          v-for="(config, key) in settings"
-          :key="key"
-          :label="config.description || key"
-        >
-          <!-- 文本类型 -->
-          <el-input
-            v-if="config.type === 'text'"
-            v-model="formData[key]"
-            :placeholder="`请输入${config.description || key}`"
-          />
+        <el-table-column label="配置键名" prop="key" width="200" />
+        <el-table-column label="配置值" min-width="280">
+          <template #default="scope">
+            <!-- 文本类型 -->
+            <el-input
+              v-if="scope.row.type === 'text'"
+              v-model="formData[scope.row.key]"
+              :placeholder="`请输入${scope.row.description || scope.row.key}`"
+              clearable
+            />
 
-          <!-- 图片类型 -->
-          <div v-else-if="config.type === 'image'">
-            <el-upload
-              :ref="(el: any) => setUploadRef(key, el)"
-              :action="''"
-              :auto-upload="false"
-              :show-file-list="false"
-              :on-change="(file: any) => handleImageChange(key, file)"
-              accept="image/*"
-            >
-              <div v-if="formData[key]" class="image-preview">
+            <!-- 图片类型 -->
+            <div v-else-if="scope.row.type === 'image'" class="image-cell">
+              <div v-if="formData[scope.row.key]" class="image-preview">
                 <el-image
-                  :src="formData[key]"
-                  style="width: 200px; height: 120px; object-fit: cover;"
+                  :src="formData[scope.row.key]"
+                  style="width: 160px; height: 96px; object-fit: cover;"
                 />
                 <div class="image-actions">
-                  <el-button type="primary" size="small">更换图片</el-button>
-                  <el-button type="danger" size="small" @click.stop="removeImage(key)">删除</el-button>
+                  <el-upload
+                    :ref="(el: any) => setUploadRef(scope.row.key, el)"
+                    :action="''"
+                    :auto-upload="false"
+                    :show-file-list="false"
+                    :on-change="(file: any) => handleImageChange(scope.row.key, file)"
+                    accept="image/*"
+                  >
+                    <el-button type="primary" size="small">更换</el-button>
+                  </el-upload>
+                  <el-button type="danger" size="small" @click="removeImage(scope.row.key)">清除</el-button>
                 </div>
               </div>
-              <el-button v-else type="primary">上传图片</el-button>
-            </el-upload>
-          </div>
+              <el-upload
+                v-else
+                :ref="(el: any) => setUploadRef(scope.row.key, el)"
+                :action="''"
+                :auto-upload="false"
+                :show-file-list="false"
+                :on-change="(file: any) => handleImageChange(scope.row.key, file)"
+                accept="image/*"
+              >
+                <el-button type="primary">上传图片</el-button>
+              </el-upload>
+            </div>
 
-          <!-- 其他类型可以扩展 -->
-          <span v-else>{{ config.value }}</span>
-        </el-form-item>
-      </el-form>
+            <!-- 其他类型 -->
+            <span v-else>{{ formData[scope.row.key] }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="说明" prop="description" min-width="180" show-overflow-tooltip />
+      </el-table>
 
       <div class="actions">
         <el-button
@@ -65,15 +76,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { setting, upload } from '@/api'
 
-const formRef = ref()
 const saving = ref(false)
 const settings = ref<Record<string, any>>({})
 const formData = reactive<Record<string, any>>({})
 const uploadRefs = ref<Record<string, any>>({})
+
+// 将 settings 字典转为表格行数组
+const settingRows = computed(() =>
+  Object.entries(settings.value).map(([key, config]) => ({
+    key,
+    type: config.type || 'text',
+    description: config.description || key,
+  })),
+)
 
 // 设置上传引用
 const setUploadRef = (key: string, el: any) => {
@@ -156,15 +175,18 @@ onMounted(() => {
   padding: 20px;
 }
 
+.image-cell {
+  display: flex;
+  align-items: center;
+}
+
 .image-preview {
-  position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .image-actions {
-  position: absolute;
-  top: 5px;
-  right: 5px;
   display: flex;
   gap: 5px;
 }

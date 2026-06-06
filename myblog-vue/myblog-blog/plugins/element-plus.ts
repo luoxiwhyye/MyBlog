@@ -2,6 +2,7 @@ import ElementPlus, {
   ID_INJECTION_KEY,
   ZINDEX_INJECTION_KEY,
 } from "element-plus";
+import "element-plus/theme-chalk/dark/css-vars.css";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
