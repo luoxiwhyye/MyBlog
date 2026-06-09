@@ -42,22 +42,29 @@
       />
     </el-drawer>
 
-    <el-dialog v-model="commandVisible" title="快速切换工具" width="min(680px, 92vw)">
+    <el-dialog v-model="commandVisible" title="快速切换工具" width="min(680px, 92vw)" @opened="focusSearch">
       <el-input
+        ref="searchInputRef"
         v-model="search"
-        placeholder="输入工具名、描述或关键字"
+        placeholder="输入工具名、描述或关键字（支持拼音首字母匹配）"
         clearable
         size="large"
         class="command-search"
+        @keydown.arrow-up.prevent="selectPrev"
+        @keydown.arrow-down.prevent="selectNext"
+        @keyup.enter.prevent="activateSelection"
       />
 
       <div class="command-list">
         <NuxtLink
-          v-for="tool in matchedTools"
+          v-for="(tool, index) in matchedTools"
           :key="tool.id"
+          :ref="(el) => setItemRef(el, index)"
           :to="getToolPath(tool)"
           class="command-item"
+          :class="{ 'command-item--selected': selectedIndex === index }"
           @click="commandVisible = false"
+          @mouseenter="selectedIndex = index"
         >
           <div>
             <strong>{{ tool.name }}</strong>
@@ -86,6 +93,15 @@ const { title, description, currentToolId, currentCategoryId, categories } = toR
 const drawerVisible = ref(false);
 const commandVisible = ref(false);
 const search = ref("");
+const selectedIndex = ref(0);
+const searchInputRef = ref<InstanceType<typeof ElInput> | null>(null);
+const itemRefs = ref<Record<number, HTMLElement | null>>({});
+
+const setItemRef = (el: unknown, index: number) => {
+  if (el) {
+    itemRefs.value[index] = el as HTMLElement;
+  }
+};
 
 const categoryName = computed(() => {
   return getCategoryById(currentCategoryId.value ?? "")?.name ?? "导航";
@@ -120,6 +136,39 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
 });
+
+// 键盘导航
+const selectPrev = () => {
+  selectedIndex.value = Math.max(0, selectedIndex.value - 1);
+  scrollToSelected();
+};
+
+const selectNext = () => {
+  selectedIndex.value = Math.min(matchedTools.value.length - 1, selectedIndex.value + 1);
+  scrollToSelected();
+};
+
+const activateSelection = () => {
+  const tool = matchedTools.value[selectedIndex.value];
+  if (tool) {
+    navigateTo(getToolPath(tool));
+    commandVisible.value = false;
+  }
+};
+
+const focusSearch = () => {
+  selectedIndex.value = 0;
+  nextTick(() => {
+    const el = searchInputRef.value?.$el?.querySelector("input");
+    if (el) (el as HTMLInputElement).focus();
+  });
+};
+
+const scrollToSelected = () => {
+  nextTick(() => {
+    itemRefs.value[selectedIndex.value]?.scrollIntoView({ block: "nearest" });
+  });
+};
 </script>
 
 <style scoped>
@@ -134,24 +183,25 @@ onBeforeUnmount(() => {
   gap: 20px;
   padding: 28px;
   border-radius: 28px;
-  background: linear-gradient(135deg, #effcf9 0%, #f8fbff 100%);
-  border: 1px solid #d8f3eb;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  backdrop-filter: blur(12px);
 }
 
 .hero-eyebrow {
-  color: #0f766e;
+  color: var(--text-primary);
   font-weight: 700;
   margin-bottom: 8px;
 }
 
 .hero-card h1 {
   font-size: 34px;
-  color: #16213e;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
 .hero-card p {
-  color: #475569;
+  color: var(--text-secondary);
   line-height: 1.8;
   max-width: 720px;
 }
@@ -195,14 +245,15 @@ onBeforeUnmount(() => {
   padding: 14px 16px;
   border-radius: 16px;
   text-decoration: none;
-  color: #334155;
-  background: #f8fafc;
-  border: 1px solid #e6edf5;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
 }
 
-.command-item:hover {
-  border-color: #99f6e4;
-  background: #edfdf8;
+.command-item:hover,
+.command-item--selected {
+  border-color: var(--border-color);
+  background: var(--bg-hover);
 }
 
 .command-item div {
@@ -212,12 +263,12 @@ onBeforeUnmount(() => {
 }
 
 .command-item strong {
-  color: #16213e;
+  color: var(--text-primary);
 }
 
 .command-item small,
 .command-item span {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 @media (max-width: 1024px) {

@@ -190,7 +190,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  background: linear-gradient(135deg, #18233E, #F8FAFC);
   color: #fff;
   font-size: 12px;
   font-weight: 700;

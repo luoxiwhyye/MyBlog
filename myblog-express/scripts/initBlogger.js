@@ -1,55 +1,23 @@
-const pool = require("./config/database");
-const bloggerModel = require("./models/Blogger");
-require("dotenv").config();
-
 /**
- * 初始化数据库和默认账户
+ * 初始化博主账号 — 独立脚本入口
+ *
+ * 直接运行时调用 utils/initBlogger.js（唯一标准实现）。
+ * 用法：node scripts/initBlogger.js
  */
-async function initializeBlogger() {
-  try {
-    const username = process.env.BLOGGER_USERNAME || "admin";
-    const password = process.env.BLOGGER_PASSWORD || "admin123";
-    const nickname = process.env.BLOGGER_NICKNAME || "博主";
-    const email = process.env.BLOGGER_EMAIL || "admin@example.com";
+const { initBlogger } = require("../utils/initBlogger");
 
-    // 确保 role 字段存在（兼容旧版本数据表）
-    const [columns] = await pool.query("SHOW COLUMNS FROM blogger LIKE 'role'");
-    if (!columns || columns.length === 0) {
-      await pool.query(
-        "ALTER TABLE blogger ADD COLUMN role VARCHAR(50) DEFAULT 'admin' COMMENT '角色: admin/guest'",
-      );
-    }
-
-    // 检查是否已存在博主账户
-    const existingBlogger = await bloggerModel.getBloggerByUsername(username);
-
-    if (existingBlogger) {
-      console.log(`博主账户 '${username}' 已存在`);
-      return;
-    }
-
-    // 创建默认博主账户
-    const bloggerId = await bloggerModel.createBlogger({
-      username,
-      nickname,
-      password,
-      email,
-    });
-
-    console.log(`博主账户初始化成功! ID: ${bloggerId}`);
-    console.log(`用户名: ${username}`);
-    console.log(`昵称: ${nickname}`);
-    console.log(`邮箱: ${email}`);
-  } catch (err) {
-    console.error("博主账户初始化失败:", err);
-  }
-}
-
-// 如果直接运行此脚本
 if (require.main === module) {
-  initializeBlogger().then(() => {
-    process.exit(0);
-  });
+  initBlogger()
+    .then((initialized) => {
+      if (!initialized) {
+        console.log("ℹ️ 博主已存在，无需重复初始化");
+      }
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("❌ 初始化失败:", err.message || err);
+      process.exit(1);
+    });
 }
 
-module.exports = initializeBlogger;
+module.exports = initBlogger;

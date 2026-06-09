@@ -193,6 +193,7 @@ export const blogger = {
       blogger: {
         id: number
         username: string
+        nickname: string
         email: string
         avatar: string
         bio: string
@@ -205,6 +206,7 @@ export const blogger = {
     ApiResponse<{
       id: number
       username: string
+      nickname: string
       email: string
       avatar: string
       bio: string

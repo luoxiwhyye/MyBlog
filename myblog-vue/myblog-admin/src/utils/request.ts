@@ -3,8 +3,10 @@ import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
 // 创建 axios 实例
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api/v1'
+
 const request: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:3000/api/v1',
+  baseURL: API_BASE,
   timeout: 10000,
 })
 

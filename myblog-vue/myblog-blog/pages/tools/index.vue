@@ -70,17 +70,14 @@ definePageMeta({
   ssr: false,
 });
 
-useSeoMeta({
+const categories = TOOL_CATEGORIES;
+const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
+
+usePageSeo({
   title: "编程工具箱",
   description:
     "MyBlog 编程工具箱，提供 Base64、JSON、SQL、MD5、SHA、正则、时间戳、颜色转换等纯前端工具。",
-  ogTitle: "编程工具箱",
-  ogDescription:
-    "覆盖编解码、格式化、哈希与文本处理等开发者常用工具，全部在浏览器端运行。",
 });
-
-const categories = TOOL_CATEGORIES;
-const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
 </script>
 
 <style scoped>
@@ -100,7 +97,7 @@ const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "reg
 }
 
 .tools-eyebrow {
-  color: #0f766e;
+  color: #18233E;
   font-weight: 700;
   margin-bottom: 10px;
 }
@@ -122,7 +119,7 @@ const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "reg
   align-self: flex-start;
   padding: 12px 16px;
   border-radius: 999px;
-  background: #0f766e;
+  background: #18233E;
   color: #ffffff;
   text-decoration: none;
 }
@@ -170,7 +167,7 @@ const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "reg
 .tool-card__top {
   display: flex;
   justify-content: space-between;
-  color: #0f766e;
+  color: #18233E;
   font-weight: 600;
 }
 

@@ -124,7 +124,6 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
-import hljs from "highlight.js";
 import { articleApi, commentApi } from "~/api";
 import type { Article, Comment as CommentType, PaginatedResponse } from "~/types";
 import { formatDateTime } from "~/utils/format";
@@ -274,9 +273,15 @@ const buildToc = async () => {
 const highlightCodeBlocks = async () => {
   await nextTick();
   const blocks = document.querySelectorAll(".article-body pre code");
-  blocks.forEach((block) => {
-    hljs.highlightElement(block as HTMLElement);
-  });
+  if (!blocks.length) return;
+  try {
+    const hljs = (await import("highlight.js")).default;
+    blocks.forEach((block) => {
+      hljs.highlightElement(block as HTMLElement);
+    });
+  } catch {
+    // highlight.js 加载失败不影响页面渲染
+  }
 };
 
 const refreshArticleEnhancements = async () => {

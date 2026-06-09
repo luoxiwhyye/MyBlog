@@ -6,6 +6,7 @@ import router from '@/router'
 interface UserInfo {
   id: number
   username: string
+  nickname: string
   email: string
   avatar: string
   bio: string

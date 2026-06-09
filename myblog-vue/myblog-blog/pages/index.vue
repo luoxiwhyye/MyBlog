@@ -1,125 +1,121 @@
 <template>
-  <div class="home">
-    <div class="hero">
-      <h1>{{ siteName }}</h1>
-      <p>{{ siteDescription }}</p>
-      <div class="search-box">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索文章..."
-          size="large"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
-          </template>
-        </el-input>
-      </div>
-    </div>
-
-    <div class="home-grid">
-      <section class="articles-section">
-        <div class="section-header">
-          <h2>最新文章</h2>
+  <div class="home-page">
+    <!-- 全屏欢迎区 — 不受 max-width 约束，自然撑满视口 -->
+    <section class="welcome">
+      <div class="welcome-content">
+        <h1 class="welcome-title">{{ siteName }}</h1>
+        <p class="welcome-desc">{{ siteDescription }}</p>
+        <div class="welcome-arrow" @click="scrollToContent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </div>
-        <div class="articles-content">
-          <div v-if="loading" class="loading">
-            <el-icon class="is-loading">
-              <Loading />
-            </el-icon>
-            加载中...
+      </div>
+    </section>
+
+    <div class="home-body" ref="contentRef">
+      <div class="home-grid">
+        <section class="articles-section">
+          <div class="section-header">
+            <h2>{{ t('home.hero.latest') }}</h2>
           </div>
-          <div v-else-if="articles.length === 0" class="no-articles">暂无文章</div>
-          <div v-else class="articles-grid">
-            <ArticleCard
-              v-for="article in articles"
-              :key="article.id"
-              class="home-article-card"
-              :article="article"
+          <div class="articles-content">
+            <div v-if="loading" class="loading">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              {{ t('article.loading') }}
+            </div>
+            <div v-else-if="articles.length === 0" class="no-articles">{{ t('archive.noArticles') }}</div>
+            <div v-else class="articles-grid">
+              <ArticleCard
+                v-for="article in articles"
+                :key="article.id"
+                class="home-article-card"
+                :article="article"
+              />
+            </div>
+          </div>
+          <div class="pagination-wrap">
+            <Pagination
+              :total="total"
+              :page="currentPage"
+              :page-size="pageSize"
+              @update="handlePageUpdate"
             />
           </div>
-        </div>
-        <div class="pagination-wrap">
-          <Pagination
-            :total="total"
-            :page="currentPage"
-            :page-size="pageSize"
-            @update="handlePageUpdate"
-          />
-        </div>
-      </section>
-
-      <aside class="sidebar">
-        <section class="widget">
-          <h3>热门文章</h3>
-          <ul class="hot-list">
-            <li v-for="item in hotArticles" :key="item.id">
-              <NuxtLink :to="`/article/${item.id}`">{{ item.title }}</NuxtLink>
-              <span>{{ item.viewCount }} 阅读</span>
-            </li>
-          </ul>
         </section>
 
-        <section class="widget">
-          <h3>分类导航</h3>
-          <ul class="category-list">
-            <li v-for="category in visibleCategories" :key="category.id">
-              <NuxtLink :to="`/category/${category.id}`">{{ category.typeName }}</NuxtLink>
-              <span>{{ category.articleCount }}</span>
-            </li>
-          </ul>
-          <button
-            v-if="categories.length > categoryPreviewCount"
-            class="toggle-btn"
-            type="button"
-            @click="categoryExpanded = !categoryExpanded"
-          >
-            {{ categoryExpanded ? "收起分类" : "展开分类" }}
-          </button>
-        </section>
+        <aside class="sidebar">
+          <section class="widget">
+            <h3>{{ t('home.hero.hot') }}</h3>
+            <ul class="hot-list">
+              <li v-for="item in hotArticles" :key="item.id">
+                <NuxtLink :to="`/article/${item.id}`">{{ item.title }}</NuxtLink>
+                <span>{{ item.viewCount }} {{ t('home.reads') }}</span>
+              </li>
+            </ul>
+          </section>
 
-        <section class="widget">
-          <h3>标签云</h3>
-          <div class="tag-cloud">
-            <NuxtLink v-for="tag in visibleTags" :key="tag.id" :to="`/tag/${tag.id}`" class="tag-link">
-              {{ tag.labelName }}
-            </NuxtLink>
-          </div>
-          <button
-            v-if="tags.length > tagPreviewCount"
-            class="toggle-btn"
-            type="button"
-            @click="tagExpanded = !tagExpanded"
-          >
-            {{ tagExpanded ? "收起标签" : "展开标签" }}
-          </button>
-        </section>
+          <section class="widget">
+            <h3>{{ t('home.hero.categories') }}</h3>
+            <ul class="category-list">
+              <li v-for="category in visibleCategories" :key="category.id">
+                <NuxtLink :to="`/category/${category.id}`">{{ category.typeName }}</NuxtLink>
+                <span>{{ category.articleCount }}</span>
+              </li>
+            </ul>
+            <button
+              v-if="categories.length > categoryPreviewCount"
+              class="toggle-btn"
+              type="button"
+              @click="categoryExpanded = !categoryExpanded"
+            >
+              {{ categoryExpanded ? t('home.hero.collapseCategories') : t('home.hero.expandCategories') }}
+            </button>
+          </section>
 
-        <section class="widget">
-          <h3>友情链接</h3>
-          <ul class="friend-links">
-            <li v-for="link in friendLinks" :key="link.name">
-              <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>
-            </li>
-          </ul>
-        </section>
-      </aside>
+          <section class="widget">
+            <h3>{{ t('home.hero.tags') }}</h3>
+            <div class="tag-cloud">
+              <NuxtLink v-for="tag in visibleTags" :key="tag.id" :to="`/tag/${tag.id}`" class="tag-link">
+                {{ tag.labelName }}
+              </NuxtLink>
+            </div>
+            <button
+              v-if="tags.length > tagPreviewCount"
+              class="toggle-btn"
+              type="button"
+              @click="tagExpanded = !tagExpanded"
+            >
+              {{ tagExpanded ? t('home.hero.collapseTags') : t('home.hero.expandTags') }}
+            </button>
+          </section>
+
+          <section class="widget">
+            <h3>{{ t('home.hero.friends') }}</h3>
+            <ul class="friend-links">
+              <li v-for="link in friendLinks" :key="link.name">
+                <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>
+              </li>
+            </ul>
+          </section>
+        </aside>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { Loading, Search } from "@element-plus/icons-vue";
+import { Loading } from "@element-plus/icons-vue";
 import { articleApi, categoryApi, tagApi } from "~/api";
 import type { Article, Category, FriendLink, PaginatedResponse, Tag } from "~/types";
 
 const settingsStore = useSettingsStore();
-const router = useRouter();
+const bloggerStore = useBloggerStore();
+const { t } = useI18n();
 
-await settingsStore.ensureSettings();
+await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
-const searchQuery = ref("");
+const contentRef = ref<HTMLElement | null>(null);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const categoryExpanded = ref(false);
@@ -244,11 +240,8 @@ const friendLinks = computed<FriendLink[]>(() => {
   return [];
 });
 
-const handleSearch = () => {
-  const keyword = searchQuery.value.trim();
-  if (keyword) {
-    router.push({ path: "/search", query: { q: keyword } });
-  }
+const scrollToContent = () => {
+  contentRef.value?.scrollIntoView({ behavior: "smooth" });
 };
 
 const handlePageUpdate = (page: number, size: number) => {
@@ -257,41 +250,90 @@ const handlePageUpdate = (page: number, size: number) => {
 };
 
 usePageSeo({
-  title: "首页",
+  title: t('nav.home'),
   description: siteDescription,
 });
 </script>
 
 <style scoped>
-.home {
+.home-page {
+  /* 顶层容器仅用于满足 Vue 单根元素要求 */
+}
+
+/* ===== 全屏欢迎区 ===== */
+.welcome {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  margin-bottom: 40px;
+  overflow: hidden;
+}
+
+.welcome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(71, 85, 105, 0.15) 0%,
+    rgba(51, 65, 85, 0.10) 40%,
+    rgba(30, 41, 59, 0.15) 100%
+  );
+  backdrop-filter: blur(2px);
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.welcome-title {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.welcome-desc {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 560px;
+  margin: 0 auto 40px;
+  line-height: 1.8;
+}
+
+.welcome-arrow {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  animation: bounce 2s infinite;
+  transition: color 0.2s;
+}
+
+.welcome-arrow:hover {
+  color: #ffffff;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+  40% { transform: translateX(-50%) translateY(-8px); }
+  60% { transform: translateX(-50%) translateY(-4px); }
+}
+
+/* ===== 内容主体 ===== */
+.home-body {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.hero {
-  text-align: center;
-  padding: 56px 20px;
-  backdrop-filter: blur(16px);
-  color: #ffffff;
-  border-radius: 16px;
-  margin-bottom: 28px;
-}
-
-.hero h1 {
-  font-size: 44px;
-  margin-bottom: 12px;
-  letter-spacing: 1px;
-}
-
-.hero p {
-  font-size: 17px;
-  margin-bottom: 24px;
-  opacity: 0.92;
-}
-
-.search-box {
-  max-width: 540px;
-  margin: 0 auto;
+  padding-bottom: 32px;
 }
 
 .home-grid {
@@ -438,12 +480,12 @@ usePageSeo({
 }
 
 @media (max-width: 768px) {
-  .hero {
-    padding: 42px 18px;
+  .welcome-title {
+    font-size: 2rem;
   }
 
-  .hero h1 {
-    font-size: 34px;
+  .welcome-desc {
+    font-size: 1rem;
   }
 
   .articles-grid {

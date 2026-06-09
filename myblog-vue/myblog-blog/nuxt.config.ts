@@ -25,6 +25,18 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: ["dayjs"],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "element-plus": ["element-plus"],
+            "element-icons": ["@element-plus/icons-vue"],
+            "highlight-js": ["highlight.js"],
+            "tools-workers": ["~/utils/tools/processor.worker"],
+          },
+        },
+      },
+    },
   },
   runtimeConfig: {
     apiBase: process.env.NUXT_API_BASE || "http://localhost:3000/api/v1",
@@ -41,7 +53,6 @@ export default defineNuxtConfig({
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
       ],
-      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
     },
   },
 });

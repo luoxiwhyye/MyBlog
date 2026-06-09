@@ -29,10 +29,20 @@ app.use(
   }),
 );
 
-// CORS 中间件
+// CORS 中间件 — 显式白名单，生产环境避免反射任意源
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  process.env.ADMIN_ORIGIN,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || true,
+    origin:
+      allowedOrigins.length > 0
+        ? allowedOrigins
+        : process.env.NODE_ENV === "production"
+          ? false
+          : true,
     credentials: true,
   }),
 );
@@ -49,10 +59,10 @@ app.use(
   "/uploads",
   express.static("uploads", {
     setHeaders(res) {
-      res.setHeader(
-        "Access-Control-Allow-Origin",
-        process.env.FRONTEND_ORIGIN || "*",
-      );
+      const frontendOrigin = process.env.FRONTEND_ORIGIN;
+      if (frontendOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", frontendOrigin);
+      }
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     },
   }),
@@ -60,6 +70,30 @@ app.use(
 
 // 注册路由
 const apiPrefix = "/api/v1";
+
+// 健康检查端点 — 生产环境仅返回 status，开发环境保留诊断信息
+app.get("/health", (_req, res) => {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  const base = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  };
+
+  if (isProduction) {
+    res.json(base);
+    return;
+  }
+
+  const { secret: _, ...restConfig } = require("./config/jwt");
+  void _;
+  res.json({
+    ...base,
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || "development",
+    jwtConfigured: !!require("./config/jwt").secret,
+  });
+});
 
 app.use(`${apiPrefix}/types`, typeRoutes);
 app.use(`${apiPrefix}/labels`, labelRoutes);

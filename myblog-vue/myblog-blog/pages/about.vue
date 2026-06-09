@@ -1,19 +1,19 @@
 <template>
   <div class="about">
-    <h1>关于我</h1>
     <div class="about-content">
-      <div class="author-info">
-        <div v-if="avatar" class="avatar">
-          <img :src="avatar" :alt="authorName" />
-        </div>
-        <h2>{{ authorName }}</h2>
-        <p v-if="bio" class="bio">{{ bio }}</p>
-      </div>
       <div class="site-info">
-        <h3>网站信息</h3>
-        <p>网站名称：{{ siteName }}</p>
-        <p>网站描述：{{ siteDescription }}</p>
-        <p>建立时间：{{ new Date().getFullYear() }}</p>
+        <div class="author-row">
+          <div v-if="avatar" class="avatar">
+            <img :src="avatar" :alt="authorName" />
+          </div>
+          <h2>{{ authorName }}</h2>
+        </div>
+        <p v-if="bio" class="bio">{{ bio }}</p>
+        <hr class="divider" />
+        <h3>{{ t('about.siteInfo') }}</h3>
+        <p>{{ t('about.siteName') }}：{{ siteName }}</p>
+        <p>{{ t('about.siteDescription') }}：{{ siteDescription }}</p>
+        <p>{{ t('about.established') }}：{{ new Date().getFullYear() }}</p>
       </div>
     </div>
   </div>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
+const { t } = useI18n();
 
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
@@ -36,7 +37,7 @@ const avatar = computed(
 );
 
 usePageSeo({
-  title: "关于",
+  title: t('nav.about'),
   description: computed(() => bio.value || siteDescription.value),
   image: avatar,
 });
@@ -45,7 +46,7 @@ usePageSeo({
 <style scoped>
 .about {
   max-width: 800px;
-  margin: 0 auto;
+  margin: 20px auto;
 }
 
 .about h1 {
@@ -61,30 +62,40 @@ usePageSeo({
   gap: 40px;
 }
 
-.author-info {
-  text-align: center;
+.author-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
 }
 
 .avatar {
-  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .avatar img {
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.author-info h2 {
+.author-row h2 {
   font-size: 24px;
-  margin-bottom: 10px;
   color: var(--text-primary);
+  margin: 0;
 }
 
 .bio {
   color: var(--text-secondary);
   line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 20px 0;
 }
 
 .site-info {

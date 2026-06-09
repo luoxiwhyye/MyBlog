@@ -1,19 +1,19 @@
 <template>
   <div class="archive">
-    <h1>归档</h1>
+    <h1>{{ t('archive.title') }}</h1>
     <div v-if="pending" class="loading">
       <el-icon class="is-loading">
         <Loading />
       </el-icon>
-      加载中...
+      {{ t('archive.loading') }}
     </div>
-    <div v-else-if="articles.length === 0" class="no-articles">暂无文章</div>
+    <div v-else-if="articles.length === 0" class="no-articles">{{ t('archive.noArticles') }}</div>
     <div v-else class="archive-list">
       <div v-for="yearGroup in groupedArticles" :key="yearGroup.year" class="year-group">
-        <h2>{{ yearGroup.year }}年</h2>
+        <h2>{{ yearGroup.year }}{{ t('archive.year') }}</h2>
         <div class="month-groups">
           <div v-for="monthGroup in yearGroup.months" :key="monthGroup.month" class="month-group">
-            <h3>{{ monthGroup.month }}月</h3>
+            <h3>{{ monthGroup.month }}{{ t('archive.month') }}</h3>
             <ul class="article-list">
               <li v-for="article in monthGroup.articles" :key="article.id" class="article-item">
                 <NuxtLink :to="`/article/${article.id}`">{{ article.title }}</NuxtLink>
@@ -32,6 +32,8 @@ import { Loading } from "@element-plus/icons-vue";
 import { articleApi } from "~/api";
 import type { Article } from "~/types";
 import { formatDate } from "~/utils/format";
+
+const { t } = useI18n();
 
 const { data: articlePage, pending } = await useAsyncData(
   "archive-articles",
@@ -82,7 +84,7 @@ const groupedArticles = computed(() => {
 });
 
 usePageSeo({
-  title: "归档",
+  title: t('archive.title'),
   description: "按时间维度浏览博客文章归档。",
 });
 </script>

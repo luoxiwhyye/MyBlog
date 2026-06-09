@@ -37,6 +37,7 @@ CREATE TABLE `article`  (
   INDEX `idx_type_id`(`type_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_deleted_at`(`deleted_at` ASC) USING BTREE,
+  INDEX `idx_article_status_type_created`(`status` ASC, `type_id` ASC, `created_at` DESC) USING BTREE,--
   CONSTRAINT `fk_article_type` FOREIGN KEY (`type_id`) REFERENCES `type` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '文章表' ROW_FORMAT = Dynamic;
 
@@ -109,6 +110,7 @@ CREATE TABLE `comment`  (
   INDEX `idx_parent_id`(`parent_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,
   INDEX `idx_create_at`(`create_at` ASC) USING BTREE,
+  INDEX `idx_comment_article_status`(`article_id` ASC, `status` ASC, `create_at` DESC) USING BTREE,--
   -- UNIQUE INDEX `uk_delete_token` (`delete_token`),
   CONSTRAINT `fk_comment_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE ON UPDATE CASCADE

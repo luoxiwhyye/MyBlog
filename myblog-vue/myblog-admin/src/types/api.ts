@@ -89,11 +89,12 @@ export interface Comment {
 }
 
 // 网站配置类型
-export interface Setting {
+// 与 myblog-blog/types/index.ts 中的 Settings 保持一致
+export interface Settings {
   [key: string]: {
     value: string
     type: 'text' | 'image' | 'html' | 'boolean'
-    description?: string
+    description: string
   }
 }
 
@@ -224,7 +225,7 @@ export interface ApiEndpoints {
 
   // 网站配置管理
   settings: {
-    getList: () => Promise<ApiResponse<Setting>>
+    getList: () => Promise<ApiResponse<Settings>>
     update: (data: FormData) => Promise<ApiResponse>
     get: (key: string) => Promise<ApiResponse<{ value: string; type: string; description: string }>>
   }

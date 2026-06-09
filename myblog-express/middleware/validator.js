@@ -1,3 +1,15 @@
+/**
+ * 请求参数校验中间件
+ *
+ * 使用 express-validator v7.3.x 链式 API：
+ *   - query() / param() / body() 选择数据来源
+ *   - isInt / isLength / isEmail / matches 等校验链
+ *   - optional({ values: "falsy" }) 表示字段可选（空字符串、null、undefined 均跳过校验）
+ *   - validationResult(req) 收集所有错误
+ *
+ * 已审计确认与 v7 API 完全兼容（2026-06-07）。
+ */
+
 const { query, param, body, validationResult } = require("express-validator");
 const { error } = require("../utils/response");
 

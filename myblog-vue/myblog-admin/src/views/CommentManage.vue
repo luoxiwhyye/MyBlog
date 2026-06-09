@@ -332,8 +332,8 @@ const hardDeleteComment = async (id: number) => {
 
 // 查看文章
 const viewArticle = (articleId: number) => {
-  // 跳转到前端文章页面
-  window.open(`http://localhost:5174/article/${articleId}`, '_blank')
+  const blogUrl = import.meta.env.VITE_BLOG_URL || window.location.origin.replace(/:(\d+)$/, ':3001')
+  window.open(`${blogUrl}/article/${articleId}`, '_blank')
 }
 
 // 分页大小改变

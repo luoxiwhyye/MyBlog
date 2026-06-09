@@ -107,11 +107,11 @@ const filteredCategories = computed(() => {
 }
 
 .sidebar-group {
-  background: #ffffff;
-  border: 1px solid #e6edf5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 20px;
   padding: 16px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(12px);
 }
 
 .sidebar-group header {
@@ -119,7 +119,7 @@ const filteredCategories = computed(() => {
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  color: #16213e;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -129,7 +129,7 @@ const filteredCategories = computed(() => {
   padding: 12px;
   border-radius: 14px;
   text-decoration: none;
-  color: #334155;
+  color: var(--text-secondary);
   transition:
     transform 0.2s ease,
     background-color 0.2s ease,
@@ -142,8 +142,8 @@ const filteredCategories = computed(() => {
 
 .sidebar-link:hover,
 .sidebar-link--active {
-  background: #edf6f5;
-  color: #0f766e;
+  background: var(--bg-hover);
+  color: var(--text-primary);
   transform: translateY(-1px);
 }
 
@@ -154,7 +154,7 @@ const filteredCategories = computed(() => {
 }
 
 .sidebar-link small {
-  color: #64748b;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 </style>

@@ -109,6 +109,36 @@ const getReplies = async (parentId) => {
   return rows;
 };
 
+/**
+ * 批量获取多个父评论的所有回复 — 消除 N+1 查询
+ * @param {number[]} parentIds
+ * @returns {Promise<Record<number, Array>>} parentId → replies[] 映射
+ */
+const getRepliesBatch = async (parentIds) => {
+  if (!parentIds.length) return {};
+
+  const placeholders = parentIds.map(() => "?").join(", ");
+  const [rows] = await pool.query(
+    `SELECT id, article_id AS articleId, parent_id AS parentId,
+            author_name AS authorName, author_email AS authorEmail,
+            author_url AS authorUrl, author_ip AS authorIp,
+            content, like_count AS likeCount,
+            status, create_at AS createdAt
+     FROM comment
+     WHERE parent_id IN (${placeholders}) AND status = ?
+     ORDER BY create_at ASC`,
+    [...parentIds, "approved"],
+  );
+
+  const map = {};
+  for (const row of rows) {
+    const pid = row.parentId;
+    if (!map[pid]) map[pid] = [];
+    map[pid].push(row);
+  }
+  return map;
+};
+
 const createComment = async (commentData) => {
   const [result] = await pool.query(
     `INSERT INTO comment
@@ -279,8 +309,13 @@ const getCommentsWithReplies = async (articleId, isAdmin = false) => {
 
   const [topLevelComments] = await pool.query(query, params);
 
-  for (const comment of topLevelComments) {
-    comment.replies = await getReplies(comment.id);
+  // 批量加载回复 — 消除 N+1 查询
+  const parentIds = topLevelComments.map((c) => c.id);
+  if (parentIds.length > 0) {
+    const repliesMap = await getRepliesBatch(parentIds);
+    for (const comment of topLevelComments) {
+      comment.replies = repliesMap[comment.id] || [];
+    }
   }
 
   return topLevelComments;
@@ -292,6 +327,7 @@ module.exports = {
   getCommentsCount,
   getCommentById,
   getReplies,
+  getRepliesBatch,
   createComment,
   softDeleteComment,
   restoreComment,

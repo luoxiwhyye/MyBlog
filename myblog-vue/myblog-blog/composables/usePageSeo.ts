@@ -33,13 +33,6 @@ export const usePageSeo = (options: PageSeoOptions = {}) => {
       "一个专注于技术内容、笔记与生活记录的个人博客。",
   );
   const author = computed(() => bloggerStore.nickname());
-  const favicon = computed(
-    () =>
-      normalizeUrl(
-        settingsStore.getSetting("site_favicon") || "/favicon.svg",
-        siteUrl.value,
-      ) || `${siteUrl.value}/favicon.svg`,
-  );
   const canonical = computed(() =>
     buildCanonicalUrl(siteUrl.value, route.fullPath || "/"),
   );
@@ -63,10 +56,7 @@ export const usePageSeo = (options: PageSeoOptions = {}) => {
   const articleTags = computed(() => toValue(options.articleTags) || []);
 
   useHead(() => ({
-    link: [
-      { rel: "canonical", href: canonical.value },
-      { rel: "icon", type: "image/svg+xml", href: favicon.value },
-    ],
+    link: [{ rel: "canonical", href: canonical.value }],
     meta: [
       ...(publishedTime.value
         ? [

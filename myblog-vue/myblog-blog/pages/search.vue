@@ -1,13 +1,13 @@
 <template>
   <div class="search">
     <div class="page-header">
-      <el-button class="home-btn" plain @click="goHome">返回首页</el-button>
-      <h1>搜索结果</h1>
+      <el-button class="home-btn" plain @click="goHome">{{ t('search.backHome') }}</el-button>
+      <h1>{{ t('search.title') }}</h1>
     </div>
     <div class="search-input">
       <el-input
         v-model="query"
-        placeholder="搜索文章..."
+        :placeholder="t('search.placeholder')"
         size="large"
         clearable
         @keyup.enter="handleSearch"
@@ -22,15 +22,15 @@
       <el-icon class="is-loading">
         <Loading />
       </el-icon>
-      搜索中...
+      {{ t('search.searching') }}
     </div>
-    <div v-else-if="articles.length === 0 && query" class="no-results">没有找到相关文章</div>
+    <div v-else-if="articles.length === 0 && query" class="no-results">{{ t('search.noResults') }}</div>
     <div v-else-if="articles.length > 0" class="results">
       <div class="results-header">
-        <p class="results-count">找到 {{ total }} 篇文章</p>
+        <p class="results-count">{{ t('search.foundResults', { total }) }}</p>
         <el-select v-model="sortBy" class="sort-select" placeholder="排序方式">
-          <el-option label="按相关度" value="relevance" />
-          <el-option label="按发布时间" value="date" />
+          <el-option :label="t('search.sortRelevance')" value="relevance" />
+          <el-option :label="t('search.sortDate')" value="date" />
         </el-select>
       </div>
 
@@ -62,6 +62,8 @@ import { estimateReadTime, formatDate } from "~/utils/format";
 
 const route = useRoute();
 const router = useRouter();
+
+const { t } = useI18n();
 
 const query = ref(typeof route.query.q === "string" ? route.query.q : "");
 const currentPage = ref(1);

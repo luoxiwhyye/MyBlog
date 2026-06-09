@@ -55,7 +55,7 @@ useSeoMeta({
   align-items: center;
   padding: 12px 16px;
   border-radius: 999px;
-  background: #0f766e;
+  background: #18233E;
   color: #ffffff;
   text-decoration: none;
 }

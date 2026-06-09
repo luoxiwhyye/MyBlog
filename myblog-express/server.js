@@ -1,25 +1,36 @@
 const app = require("./app");
 const pool = require("./config/database");
 const { initBlogger } = require("./utils/initBlogger");
+const { assertSecret } = require("./config/jwt");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
 
 let server;
+let initError = null;
 
 const startServer = async () => {
   try {
+    // P0: JWT Secret 安全检查
+    assertSecret();
+
     console.log("✅ 数据库连接成功");
 
     await initBlogger();
 
     server = app.listen(PORT, () => {
-      console.log(`服务器启动成功，端口: ${PORT}`);
+      console.log(`✅ 服务器启动成功，端口: ${PORT}`);
     });
   } catch (err) {
-    console.error("❌ 启动时报错:", err);
+    initError = err;
+    console.error("❌ 初始化失败:", err.message);
+    // 开发环境继续启动方便调试；生产环境应中止
+    if (process.env.NODE_ENV === "production") {
+      console.error("❌ 生产环境初始化失败，服务不启动。");
+      process.exit(1);
+    }
     server = app.listen(PORT, () => {
-      console.log(`服务器启动成功（初始化失败），端口: ${PORT}`);
+      console.log(`⚠️ 服务器以降级模式启动（初始化失败），端口: ${PORT}`);
     });
   }
 };

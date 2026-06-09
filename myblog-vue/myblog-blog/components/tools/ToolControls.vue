@@ -155,11 +155,11 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 
 <style scoped>
 .tool-panel {
-  background: #ffffff;
-  border: 1px solid #e6edf5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
 }
 
 .panel-header {
@@ -171,11 +171,11 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 
 .panel-header h2 {
   font-size: 18px;
-  color: #16213e;
+  color: var(--text-primary);
 }
 
 .shortcut-tip {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -193,11 +193,11 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 
 .option-label {
   font-weight: 600;
-  color: #16213e;
+  color: var(--text-primary);
 }
 
 .option-help {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .action-list {

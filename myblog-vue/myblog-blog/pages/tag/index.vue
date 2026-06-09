@@ -1,7 +1,6 @@
 <template>
   <div class="tag">
     <div class="page-header">
-      <el-button class="home-btn" plain @click="goHome">返回首页</el-button>
       <h1>标签</h1>
     </div>
     <div v-if="pending" class="loading">
@@ -49,10 +48,6 @@ const goToTag = (id: number) => {
   router.push(`/tag/${id}`);
 };
 
-const goHome = () => {
-  router.push("/");
-};
-
 usePageSeo({
   title: "标签",
   description: "浏览博客标签云，按关键主题快速筛选相关文章。",
@@ -66,8 +61,6 @@ usePageSeo({
 }
 
 .page-header {
-  position: relative;
-  min-height: 40px;
   margin-bottom: 32px;
 }
 
@@ -76,12 +69,6 @@ usePageSeo({
   font-size: 32px;
   margin: 0;
   color: var(--text-primary);
-}
-
-.home-btn {
-  position: absolute;
-  left: 0;
-  top: 0;
 }
 
 .loading {
@@ -114,18 +101,7 @@ usePageSeo({
 
 @media (max-width: 768px) {
   .page-header {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     margin-bottom: 24px;
-  }
-
-  .home-btn {
-    position: static;
-  }
-
-  .tag h1 {
-    width: 100%;
   }
 }
 </style>

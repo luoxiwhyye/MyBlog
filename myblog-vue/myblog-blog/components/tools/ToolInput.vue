@@ -83,11 +83,11 @@ const totalBytesText = computed(() => {
 
 <style scoped>
 .tool-panel {
-  background: #ffffff;
-  border: 1px solid #e6edf5;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(12px);
 }
 
 .panel-header {
@@ -95,12 +95,12 @@ const totalBytesText = computed(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .panel-header h2 {
   font-size: 18px;
-  color: #16213e;
+  color: var(--text-primary);
 }
 
 .input-grid {
@@ -126,11 +126,11 @@ const totalBytesText = computed(() => {
 
 .field-header label {
   font-weight: 600;
-  color: #16213e;
+  color: var(--text-primary);
 }
 
 .field-header small {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .color-field {

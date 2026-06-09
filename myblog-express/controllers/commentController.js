@@ -43,10 +43,12 @@ const getComments = async (req, res, next) => {
       topLevelOnly,
     });
 
-    // 文章详情页按顶级评论分页时，额外附带该页评论的回复树
-    if (topLevelOnly) {
+    // 文章详情页按顶级评论分页时，批量加载该页所有顶级评论的回复树
+    if (topLevelOnly && comments.length > 0) {
+      const parentIds = comments.map((c) => c.id);
+      const repliesMap = await commentModel.getRepliesBatch(parentIds);
       for (const comment of comments) {
-        comment.replies = await commentModel.getReplies(comment.id);
+        comment.replies = repliesMap[comment.id] || [];
       }
     }
 

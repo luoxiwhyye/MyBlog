@@ -11,19 +11,47 @@ async function initBlogger() {
   try {
     const username = process.env.BLOGGER_USERNAME || "admin";
     const password = process.env.BLOGGER_PASSWORD || "admin123";
+    const nickname = process.env.BLOGGER_NICKNAME || "博主";
     const email = process.env.BLOGGER_EMAIL || "admin@blog.com";
 
-    // 确保 role 字段存在（兼容未升级的旧表结构）
-    const [columns] = await pool.query("SHOW COLUMNS FROM blogger LIKE 'role'");
-    if (!columns || columns.length === 0) {
+    // 检查 blogger 表是否存在
+    const [tables] = await pool.query(
+      "SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'blogger'",
+    );
+    if (!tables || tables.length === 0) {
+      const msg =
+        "blogger 表不存在，请先执行数据库迁移脚本（myblog.sql / myblog-1.1.sql）。";
+      console.error("❌ " + msg);
+      throw new Error(msg);
+    }
+
+    // 确保 role / nickname 字段存在（兼容未升级的旧表结构）
+    const [columns] = await pool.query("SHOW COLUMNS FROM blogger");
+    const columnNames = columns.map((c) => c.Field);
+    if (!columnNames.includes("role")) {
+      console.log("🔧 添加 blogger.role 列...");
       await pool.query(
-        "ALTER TABLE blogger ADD COLUMN role VARCHAR(50) DEFAULT 'admin' COMMENT '角色: admin/guest'",
+        "ALTER TABLE blogger ADD COLUMN role VARCHAR(50) DEFAULT 'admin' COMMENT '角色: admin'",
+      );
+    }
+    if (!columnNames.includes("nickname")) {
+      console.log("🔧 添加 blogger.nickname 列...");
+      await pool.query(
+        "ALTER TABLE blogger ADD COLUMN nickname VARCHAR(50) NOT NULL DEFAULT '' COMMENT '博主昵称（展示用）' AFTER username",
       );
     }
 
     const existingBlogger = await bloggerModel.getBloggerByUsername(username);
     if (existingBlogger) {
       console.log("✅ 博主账号已存在，跳过初始化");
+      // 若旧数据 nickname 为空则补上默认值
+      if (!existingBlogger.nickname) {
+        await pool.query("UPDATE blogger SET nickname = ? WHERE id = ?", [
+          nickname,
+          existingBlogger.id,
+        ]);
+        console.log("📝 已为现有博主补充默认昵称");
+      }
       return false;
     }
 
@@ -33,6 +61,7 @@ async function initBlogger() {
     try {
       createdId = await bloggerModel.createBlogger({
         username,
+        nickname,
         password,
         email,
       });
@@ -45,15 +74,18 @@ async function initBlogger() {
     }
 
     console.log("✅ 博主初始化成功");
-    console.log(`📝 默认账号: ${username}`);
-    console.log(`🔐 默认密码: ${password}`);
+    console.log("📝 账号信息:");
+    console.log(`   用户名: ${username}`);
+    console.log(`   昵  称: ${nickname}`);
+    console.log(`   邮  箱: ${email}`);
+    console.log(`   密  码: ${password}`);
     console.log("⚠️  请及时修改默认密码！");
-    console.log(`ℹ️ 博主ID: ${createdId}`);
+    console.log(`ℹ️  博主ID: ${createdId}`);
 
     return true;
   } catch (err) {
     console.error("❌ 博主初始化失败:", err.message || err);
-    return false;
+    throw err;
   }
 }
 

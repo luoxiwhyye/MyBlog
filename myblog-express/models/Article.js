@@ -74,14 +74,21 @@ const getArticles = async (offset, limit, filters = {}) => {
 
   query += " GROUP BY a.id";
 
-  const sortBy = filters.sortBy || "created_at";
-  const sortOrder = filters.sortOrder || "DESC";
+  // 排序白名单 — 避免 SQL 插值注入
+  const SORT_MAP = {
+    created_at: { column: "a.created_at", defaultOrder: "DESC" },
+    updated_at: { column: "a.updated_at", defaultOrder: "DESC" },
+    view_count: { column: "a.view_count", defaultOrder: "DESC" },
+    title: { column: "a.title", defaultOrder: "ASC" },
+  };
 
-  if (sortBy === "view_count") {
-    query += ` ORDER BY a.view_count ${sortOrder}`;
-  } else {
-    query += ` ORDER BY a.created_at ${sortOrder}`;
-  }
+  const validSort = SORT_MAP[filters.sortBy] || SORT_MAP["created_at"];
+  const sortOrder =
+    filters.sortOrder === "ASC" || filters.sortOrder === "DESC"
+      ? filters.sortOrder
+      : validSort.defaultOrder;
+
+  query += ` ORDER BY ${validSort.column} ${sortOrder}`;
 
   query += " LIMIT ? OFFSET ?";
   params.push(limit, offset);

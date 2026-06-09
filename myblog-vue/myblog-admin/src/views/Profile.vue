@@ -36,6 +36,13 @@
               </el-upload>
             </el-form-item>
 
+            <el-form-item label="昵称" prop="nickname">
+              <el-input
+                v-model="infoForm.nickname"
+                placeholder="请输入昵称"
+              />
+            </el-form-item>
+
             <el-form-item label="邮箱" prop="email">
               <el-input
                 v-model="infoForm.email"
@@ -127,6 +134,7 @@ const passwordFormRef = ref()
 const avatarUploadRef = ref()
 
 const infoForm = reactive({
+  nickname: '',
   email: '',
   bio: '',
   avatar: ''
@@ -172,6 +180,7 @@ const userStore = useUserStore()
 const fetchUserInfo = async () => {
   if (userStore.userInfo) {
     const data = userStore.userInfo
+    infoForm.nickname = data.nickname || ''
     infoForm.email = data.email
     infoForm.bio = data.bio || ''
     infoForm.avatar = data.avatar || ''
@@ -182,6 +191,7 @@ const fetchUserInfo = async () => {
     const response = await blogger.getProfile()
     if (response.code === 200) {
       const data = response.data
+      infoForm.nickname = data.nickname || ''
       infoForm.email = data.email
       infoForm.bio = data.bio || ''
       infoForm.avatar = data.avatar || ''
@@ -223,6 +233,7 @@ const updateProfile = async () => {
       updatingInfo.value = true
       try {
         const formData = new FormData()
+        formData.append('nickname', infoForm.nickname)
         formData.append('email', infoForm.email)
         formData.append('bio', infoForm.bio)
         if (infoForm.avatar) {
@@ -235,6 +246,7 @@ const updateProfile = async () => {
           // 更新 store 中的用户信息
           userStore.userInfo = {
             ...userStore.userInfo!,
+            nickname: infoForm.nickname,
             email: infoForm.email,
             bio: infoForm.bio,
             avatar: infoForm.avatar

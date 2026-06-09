@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="6bc543e3-3383-4e0b-a0ae-4f60019990c6" name="更改" comment="">
+      <change afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/OPTIMIZATION_PLAN.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/config/logger.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/test/api.test.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/uploads/blogger/avatar/1780856896262_7587.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/uploads/setting/image/site_bg_dark/1780741388889_7419.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/uploads/setting/image/site_bg_light/1780742737010_1033.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-express/uploads/setting/image/site_favicon/1780857453366_8488.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/.env.example" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/composables/useI18n.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/composables/useLayoutSeo.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/locales/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/utils/tools/encoding.test.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/vitest.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/.env.example" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/.env.example" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/config/jwt.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/config/jwt.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/config/upload.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/config/upload.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/controllers/commentController.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/controllers/commentController.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/middleware/validator.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/middleware/validator.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/models/Article.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/models/Article.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/models/Comment.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/models/Comment.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/myblog-1.1.sql" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/myblog-1.1.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/myblog.sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/scripts/initBlogger.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/scripts/initBlogger.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/server.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/uploads/setting/image/site_bg_dark/1780692195730_6494.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/uploads/setting/image/site_bg_light/1780693125558_7345.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-express/utils/initBlogger.js" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-express/utils/initBlogger.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/env.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/env.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/api/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/api/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/layouts/AdminLayout.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/layouts/AdminLayout.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/stores/user.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/stores/user.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/types/api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/types/api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/utils/request.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/utils/request.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/CommentManage.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/CommentManage.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/Login.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/Login.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/Profile.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-admin/src/views/Profile.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/dev/index.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/dev/index.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/imports.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/imports.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/nitro.json" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/nitro.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/types/imports.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/.nuxt/types/imports.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/app.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/app.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/assets/css/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/assets/css/main.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/common/Pagination.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/common/Pagination.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/layout/Footer.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/layout/Footer.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/layout/Header.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/layout/Header.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolControls.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolControls.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolInput.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolInput.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolLayout.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolLayout.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolOutput.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolOutput.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolSidebar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/components/tools/ToolSidebar.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/composables/usePageSeo.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/composables/usePageSeo.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/dist/assets/Home-BAplG47X.css" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/dist/assets/Home-BAplG47X.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/layouts/default.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/layouts/default.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/layouts/tools.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/layouts/tools.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/node_modules/.cache/jiti/myblog-blog-nuxt.config.5bfd97e9.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/node_modules/.cache/jiti/myblog-blog-nuxt.config.5bfd97e9.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/nuxt.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/nuxt.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/about.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/about.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/archive.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/archive.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/article/[id].vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/article/[id].vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/index.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/index.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/search.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/search.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/tools/[category]/[tool].vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/tools/[category]/[tool].vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/tools/index.vue" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/pages/tools/index.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/public/favicon.svg" beforeDir="false" afterPath="$PROJECT_DIR$/myblog-vue/myblog-blog/public/favicon.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/api/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/components/common/ArticleCard.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/components/common/Comment.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/components/common/Pagination.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/components/layout/Footer.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/components/layout/Header.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/layouts/DefaultLayout.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/stores/article.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/stores/category.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/stores/settings.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/stores/tag.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/types/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/utils/format.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/utils/request.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/About.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/Archive.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/Category.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/CategoryDetail.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/Home.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/Search.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/Tag.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/TagDetail.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/myblog-vue/myblog-blog/src/views/article/ArticleDetail.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/用户模块更新.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/项目优化更新计划.md" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="3EtPtnOuyPtR5FiyvWudIJsFknH" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "last_opened_file_path": "D:/myblog.worktrees/agents-nuxtjs-seo-optimization-restructure",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="6bc543e3-3383-4e0b-a0ae-4f60019990c6" name="更改" comment="" />
+      <created>1780995110100</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1780995110100</updated>
+      <workItem from="1780995117461" duration="8000" />
+    </task>
+    <servers />
+  </component>
+</project>

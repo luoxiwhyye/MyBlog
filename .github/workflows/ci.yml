@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "v2-*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Type check blog
+        working-directory: myblog-vue/myblog-blog
+        run: npm run type-check
+
+      - name: Install admin dependencies
+        working-directory: myblog-vue/myblog-admin
+        run: npm ci
+
+      - name: Type check admin
+        working-directory: myblog-vue/myblog-admin
+        run: npm run type-check
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Run toolbox unit tests
+        working-directory: myblog-vue/myblog-blog
+        run: npm run test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Build blog
+        working-directory: myblog-vue/myblog-blog
+        run: npm run build
+
+      - name: Install admin dependencies
+        working-directory: myblog-vue/myblog-admin
+        run: npm ci
+
+      - name: Build admin
+        working-directory: myblog-vue/myblog-admin
+        run: npm run build

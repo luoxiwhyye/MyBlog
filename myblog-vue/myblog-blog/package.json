@@ -9,7 +9,9 @@
     "preview": "nuxt preview",
     "type-check": "nuxt typecheck",
     "format": "prettier --write --experimental-cli .",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -25,7 +27,8 @@
     "@types/node": "^24.12.0",
     "nuxt": "^3.17.7",
     "prettier": "3.8.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

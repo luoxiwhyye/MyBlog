@@ -3,14 +3,14 @@
     <div class="container">
       <div>
         <p class="copyright">
-          &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. All rights reserved.
+          &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
         </p>
-        <p class="icp">{{ siteIcp || "备案号：待补充" }}</p>
+        <p class="icp">{{ siteIcp || t('footer.icp') }}</p>
       </div>
       <div class="links">
-        <NuxtLink to="/about">关于</NuxtLink>
-        <NuxtLink to="/archive">归档</NuxtLink>
-        <NuxtLink to="/tools">工具箱</NuxtLink>
+        <NuxtLink to="/about">{{ t('nav.about') }}</NuxtLink>
+        <NuxtLink to="/archive">{{ t('nav.archive') }}</NuxtLink>
+        <NuxtLink to="/tools">{{ t('nav.tools') }}</NuxtLink>
       </div>
     </div>
   </footer>
@@ -19,6 +19,7 @@
 <script setup lang="ts">
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
+const { t } = useI18n();
 
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 

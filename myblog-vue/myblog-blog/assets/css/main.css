@@ -16,9 +16,9 @@
   --border-color: rgba(229, 229, 229, 0.85);
   --border-light: rgba(238, 241, 245, 0.85);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
-  --color-accent: #0f766e;
-  --color-accent-light: rgba(237, 246, 245, 0.85);
-  --color-link: #409eff;
+  --color-accent: #475569;
+  --color-accent-light: rgba(241, 245, 249, 0.85);
+  --color-link: #475569;
   --bg-backdrop: rgba(248, 250, 252, 0.75);
 }
 
@@ -33,9 +33,9 @@ html.dark {
   --border-color: rgba(42, 58, 92, 0.85);
   --border-light: rgba(37, 52, 80, 0.85);
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.3);
-  --color-accent: #14b8a6;
-  --color-accent-light: rgba(26, 58, 58, 0.85);
-  --color-link: #5babff;
+  --color-accent: #cbd5e1;
+  --color-accent-light: rgba(51, 65, 85, 0.85);
+  --color-link: #94a3b8;
   --bg-backdrop: rgba(26, 26, 46, 0.75);
 }
 

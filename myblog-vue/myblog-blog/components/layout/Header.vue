@@ -9,17 +9,17 @@
         </NuxtLink>
       </div>
       <nav class="nav">
-        <NuxtLink to="/" class="nav-link">首页</NuxtLink>
-        <NuxtLink to="/category" class="nav-link">分类</NuxtLink>
-        <NuxtLink to="/tag" class="nav-link">标签</NuxtLink>
-        <NuxtLink to="/archive" class="nav-link">归档</NuxtLink>
-        <NuxtLink to="/tools" class="nav-link">工具箱</NuxtLink>
-        <NuxtLink to="/about" class="nav-link">关于</NuxtLink>
+        <NuxtLink to="/" class="nav-link">{{ t('nav.home') }}</NuxtLink>
+        <NuxtLink to="/category" class="nav-link">{{ t('nav.category') }}</NuxtLink>
+        <NuxtLink to="/tag" class="nav-link">{{ t('nav.tag') }}</NuxtLink>
+        <NuxtLink to="/archive" class="nav-link">{{ t('nav.archive') }}</NuxtLink>
+        <NuxtLink to="/tools" class="nav-link">{{ t('nav.tools') }}</NuxtLink>
+        <NuxtLink to="/about" class="nav-link">{{ t('nav.about') }}</NuxtLink>
       </nav>
       <div class="search">
         <el-input
           v-model="searchQuery"
-          placeholder="搜索文章..."
+          :placeholder="t('nav.search')"
           @keyup.enter="handleSearch"
           clearable
         >
@@ -40,6 +40,7 @@ const router = useRouter();
 const route = useRoute();
 const settingsStore = useSettingsStore();
 const searchQuery = ref(typeof route.query.q === "string" ? route.query.q : "");
+const { t } = useI18n();
 
 await settingsStore.ensureSettings();
 
@@ -93,7 +94,7 @@ watch(
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  background: linear-gradient(135deg, #18233E, #F8FAFC);
   color: #ffffff;
   display: inline-flex;
   align-items: center;

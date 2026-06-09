@@ -9,7 +9,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-blogger": "node scripts/initBlogger.js"
+    "init-blogger": "node scripts/initBlogger.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "backternity": "^0.5.2",
@@ -22,9 +24,12 @@
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
-    "mysql2": "^3.20.0"
+    "mysql2": "^3.20.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "vitest": "^3.2.4",
+    "supertest": "^7.2.0"
   }
 }
