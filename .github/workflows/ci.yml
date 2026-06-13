@@ -18,6 +18,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
 
       - name: Install blog dependencies
         working-directory: myblog-vue/myblog-blog
@@ -26,6 +27,12 @@ jobs:
       - name: Type check blog
         working-directory: myblog-vue/myblog-blog
         run: npm run type-check
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-admin/package-lock.json
 
       - name: Install admin dependencies
         working-directory: myblog-vue/myblog-admin
@@ -46,6 +53,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
 
       - name: Install blog dependencies
         working-directory: myblog-vue/myblog-blog
@@ -66,6 +74,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
 
       - name: Install blog dependencies
         working-directory: myblog-vue/myblog-blog
@@ -74,6 +83,12 @@ jobs:
       - name: Build blog
         working-directory: myblog-vue/myblog-blog
         run: npm run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-admin/package-lock.json
 
       - name: Install admin dependencies
         working-directory: myblog-vue/myblog-admin
