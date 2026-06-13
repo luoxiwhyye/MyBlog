@@ -4,6 +4,8 @@ import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.entity.Label;
 import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.repository.LabelRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +25,7 @@ public class LabelService {
         this.labelRepository = labelRepository;
     }
 
+    @Cacheable(value = "labels", key = "'list:' + #page + ':' + #pageSize", unless = "#result == null || #result.list.isEmpty()")
     public PageResponse<Map<String, Object>> getLabels(int page, int pageSize) {
         Page<Label> labelPage = labelRepository.findAll(
                 PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "id")));
@@ -39,6 +42,7 @@ public class LabelService {
     }
 
     @Transactional
+    @CacheEvict(value = "labels", allEntries = true)
     public Label createLabel(String labelName) {
         if (labelName == null || labelName.trim().isEmpty()) {
             throw new BusinessException(400, "标签名称不能为空");
@@ -50,6 +54,7 @@ public class LabelService {
     }
 
     @Transactional
+    @CacheEvict(value = "labels", allEntries = true)
     public Label updateLabel(Integer id, String labelName) {
         if (labelName == null || labelName.trim().isEmpty()) {
             throw new BusinessException(400, "标签名称不能为空");
@@ -62,6 +67,7 @@ public class LabelService {
     }
 
     @Transactional
+    @CacheEvict(value = "labels", allEntries = true)
     public void deleteLabel(Integer id) {
         Label label = labelRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "标签不存在"));

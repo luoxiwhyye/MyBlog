@@ -253,6 +253,9 @@ usePageSeo({
   title: t('nav.home'),
   description: siteDescription,
 });
+
+// JSON-LD 结构化数据（WebSite + SearchAction）
+useWebsiteJsonLd();
 </script>
 
 <style scoped>

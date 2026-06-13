@@ -4,6 +4,8 @@ import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.entity.Type;
 import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.repository.TypeRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +25,7 @@ public class TypeService {
         this.typeRepository = typeRepository;
     }
 
+    @Cacheable(value = "types", key = "'list:' + #page + ':' + #pageSize", unless = "#result == null || #result.list.isEmpty()")
     public PageResponse<Map<String, Object>> getTypes(int page, int pageSize) {
         Page<Type> typePage = typeRepository.findAll(
                 PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "id")));
@@ -39,6 +42,7 @@ public class TypeService {
     }
 
     @Transactional
+    @CacheEvict(value = "types", allEntries = true)
     public Type createType(String typeName) {
         if (typeName == null || typeName.trim().isEmpty()) {
             throw new BusinessException(400, "分类名称不能为空");
@@ -50,6 +54,7 @@ public class TypeService {
     }
 
     @Transactional
+    @CacheEvict(value = "types", allEntries = true)
     public Type updateType(Integer id, String typeName) {
         if (typeName == null || typeName.trim().isEmpty()) {
             throw new BusinessException(400, "分类名称不能为空");
@@ -62,6 +67,7 @@ public class TypeService {
     }
 
     @Transactional
+    @CacheEvict(value = "types", allEntries = true)
     public void deleteType(Integer id) {
         Type type = typeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "分类不存在"));

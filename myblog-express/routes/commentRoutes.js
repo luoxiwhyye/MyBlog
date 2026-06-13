@@ -3,6 +3,7 @@ const router = express.Router();
 const commentController = require("../controllers/commentController");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
+const { commentLimiter } = require("../middleware/rateLimiter");
 const {
   validatePagination,
   validateIntId,
@@ -19,9 +20,10 @@ router.get(
   commentController.getComments,
 );
 
-// 发布评论（公开，但需要基本信息）
+// 发布评论（公开）— 限流：15 分钟 30 次
 router.post(
   "/",
+  commentLimiter,
   validateComment,
   handleValidationErrors,
   commentController.createComment,

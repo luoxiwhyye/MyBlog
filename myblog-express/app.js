@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const morgan = require("morgan");
 require("dotenv").config();
 
@@ -16,43 +17,71 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // 导入中间件
 const errorHandler = require("./middleware/errorHandler");
+const { apiLimiter } = require("./middleware/rateLimiter");
 
 // 创建应用
 const app = express();
 
-// 安全中间件（允许跨源静态资源）
+// ── HTTP 压缩 ── 在所有静态/JSON 响应前启用 gzip/brotli
+app.use(compression());
+
+// ── 安全头 ── Helmet + CSP
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+  styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+  imgSrc: ["'self'", "data:", "https:", "http:"],
+  fontSrc: ["'self'", "https://fonts.gstatic.com"],
+  connectSrc: ["'self'"],
+  mediaSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'self'"],
+  formAction: ["'self'"],
+  upgradeInsecureRequests: [],
+};
+
 app.use(
   helmet({
     crossOriginResourcePolicy: {
       policy: "cross-origin",
     },
+    contentSecurityPolicy: {
+      directives: cspDirectives,
+    },
   }),
 );
 
-// CORS 中间件 — 显式白名单，生产环境避免反射任意源
+// ── CORS ── 始终使用显式白名单，受 .env 控制
 const allowedOrigins = [
   process.env.FRONTEND_ORIGIN,
   process.env.ADMIN_ORIGIN,
 ].filter(Boolean);
 
+// 开发环境未配置白名单时回退到 localhost 常用端口
+const devFallbackOrigins =
+  process.env.NODE_ENV !== "production"
+    ? ["http://localhost:3001", "http://localhost:5173"]
+    : [];
+
+const corsOrigins =
+  allowedOrigins.length > 0 ? allowedOrigins : devFallbackOrigins;
+
 app.use(
   cors({
-    origin:
-      allowedOrigins.length > 0
-        ? allowedOrigins
-        : process.env.NODE_ENV === "production"
-          ? false
-          : true,
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
     credentials: true,
   }),
 );
 
-// 日志中间件
+// ── 日志中间件
 app.use(morgan("combined"));
 
-// 请求体解析
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ── 全局限流（所有 /api 路由）
+app.use("/api", apiLimiter);
+
+// ── 请求体解析 ── 限制大小防止内存溢出
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // 静态文件服务（上传的文件）
 app.use(

@@ -74,6 +74,14 @@ export const zh = {
     rights: "All rights reserved.",
     icp: "备案号：待补充",
   },
+  notFound: {
+    title: "页面未找到",
+    desc: "你访问的页面不存在，或者已经被移动到其他位置。",
+    searchPlaceholder: "搜索你想找的内容...",
+    search: "搜索",
+    backHome: "返回首页",
+    suggestions: "热门推荐",
+  },
 };
 
 export const en: typeof zh = {
@@ -151,5 +159,13 @@ export const en: typeof zh = {
   footer: {
     rights: "All rights reserved.",
     icp: "ICP: Pending",
+  },
+  notFound: {
+    title: "Page Not Found",
+    desc: "The page you are looking for does not exist or has been moved.",
+    searchPlaceholder: "Search for content...",
+    search: "Search",
+    backHome: "Back to Home",
+    suggestions: "Popular Recommendations",
   },
 };

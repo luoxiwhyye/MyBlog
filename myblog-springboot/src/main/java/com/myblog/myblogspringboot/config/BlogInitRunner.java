@@ -38,6 +38,16 @@ public class BlogInitRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // ── 生产环境安全检查：禁止使用默认密码 ──
+        String activeProfile = System.getProperty("spring.profiles.active", "");
+        if ("production".equalsIgnoreCase(activeProfile)
+                && "admin123".equals(defaultPassword)) {
+            log.error("❌ 安全错误：生产环境禁止使用默认博主密码。请设置 BLOGGER_PASSWORD 环境变量。");
+            throw new IllegalStateException(
+                    "生产环境不允许使用默认博主密码，请通过 BLOGGER_PASSWORD 环境变量设置"
+            );
+        }
+
         if (bloggerRepository.findByUsername(defaultUsername).isEmpty()) {
             Blogger blogger = new Blogger();
             blogger.setUsername(defaultUsername);
@@ -51,8 +61,7 @@ public class BlogInitRunner implements CommandLineRunner {
 
             log.info("✅ 博主初始化成功");
             log.info("📝 账号: {}", defaultUsername);
-            log.info("📝 密码: {}", defaultPassword);
-            log.info("⚠️  请及时修改默认密码！");
+            log.info("⚠️  请及时登录后台修改默认密码！");
         } else {
             log.info("✅ 博主账号已存在，跳过初始化");
         }

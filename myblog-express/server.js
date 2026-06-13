@@ -2,6 +2,7 @@ const app = require("./app");
 const pool = require("./config/database");
 const { initBlogger } = require("./utils/initBlogger");
 const { assertSecret } = require("./config/jwt");
+const { connectRedis, closeRedis } = require("./config/redis");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,9 @@ const startServer = async () => {
     assertSecret();
 
     console.log("✅ 数据库连接成功");
+
+    // 初始化 Redis（失败不阻塞启动）
+    await connectRedis();
 
     await initBlogger();
 
@@ -48,8 +52,10 @@ const gracefulShutdown = async () => {
       // 关闭数据库连接池
       await pool.end();
       console.log("数据库连接已关闭");
+      // 关闭 Redis 连接
+      await closeRedis();
     } catch (err) {
-      console.error("关闭数据库连接时出错:", err);
+      console.error("关闭连接时出错:", err);
     }
 
     process.exit(0);

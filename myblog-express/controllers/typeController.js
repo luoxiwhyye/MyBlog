@@ -4,6 +4,7 @@ const {
   getPaginationParams,
   getPaginationData,
 } = require("../utils/pagination");
+const cache = require("../middleware/cache");
 
 /**
  * 获取分类列表
@@ -38,6 +39,7 @@ const createType = async (req, res, next) => {
     }
 
     const typeId = await typeModel.createType(typeName);
+    cache.invalidate("types");
     success(res, { id: typeId }, "分类创建成功", 201);
   } catch (err) {
     next(err);
@@ -66,6 +68,7 @@ const updateType = async (req, res, next) => {
       return error(res, "分类更新失败", 500);
     }
 
+    cache.invalidate("types");
     success(res, null, "分类更新成功");
   } catch (err) {
     next(err);
@@ -94,6 +97,7 @@ const deleteType = async (req, res, next) => {
       return error(res, "分类删除失败", 500);
     }
 
+    cache.invalidate("types");
     success(res, null, "分类删除成功");
   } catch (err) {
     next(err);

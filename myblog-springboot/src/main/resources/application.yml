@@ -5,7 +5,8 @@ spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:myblog}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: ${DB_USER:root}
-    password: ${DB_PASSWORD:root}
+    # ⚠️ 不再提供硬编码默认密码；生产环境必须通过环境变量 DB_PASSWORD 设置
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -37,8 +38,35 @@ spring:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
 
+  # ── Redis 缓存配置 ──
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+
 server:
   port: ${PORT:3000}
+  # ── HTTP 压缩（等价于 Express compression 中间件）──
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024
+  # ── 请求体大小限制 ──
+  tomcat:
+    max-http-form-post-size: 10MB
 
 app:
   jwt:

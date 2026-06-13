@@ -40,7 +40,15 @@
         </header>
 
         <div v-if="article.coverImage" class="cover-image">
-          <img :src="article.coverImage" :alt="article.title" />
+          <NuxtImg
+            :src="article.coverImage"
+            :alt="article.title"
+            loading="lazy"
+            decoding="async"
+            format="webp"
+            sizes="sm:100vw md:800px"
+            class="cover-img"
+          />
         </div>
 
         <div class="article-body" v-html="article.content"></div>
@@ -275,6 +283,8 @@ const highlightCodeBlocks = async () => {
   const blocks = document.querySelectorAll(".article-body pre code");
   if (!blocks.length) return;
   try {
+    // 动态加载 highlight.js CSS 和 JS
+    await import("highlight.js/styles/github.css");
     const hljs = (await import("highlight.js")).default;
     blocks.forEach((block) => {
       hljs.highlightElement(block as HTMLElement);
@@ -369,6 +379,9 @@ usePageSeo({
   modifiedTime: computed(() => article.value?.updatedAt || article.value?.createdAt),
   articleTags: computed(() => article.value?.labels.map((item) => item.labelName)),
 });
+
+// JSON-LD 结构化数据（BlogPosting）
+useArticleJsonLd(article as Ref<Article | null>);
 </script>
 
 <style scoped>
@@ -480,7 +493,7 @@ usePageSeo({
   text-align: center;
 }
 
-.cover-image img {
+.cover-img {
   max-width: 100%;
   height: auto;
   border-radius: 8px;

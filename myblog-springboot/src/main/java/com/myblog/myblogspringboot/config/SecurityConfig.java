@@ -2,6 +2,7 @@ package com.myblog.myblogspringboot.config;
 
 import com.myblog.myblogspringboot.security.JwtAuthenticationFilter;
 import com.myblog.myblogspringboot.security.JwtTokenProvider;
+import com.myblog.myblogspringboot.security.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
 
 @Configuration
 @EnableWebSecurity
@@ -31,6 +33,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // ── 安全头（等价于 Express helmet）──
+            .headers(headers -> headers
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives(
+                        "default-src 'self'; " +
+                        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                        "img-src 'self' data: https: http:; " +
+                        "font-src 'self' https://fonts.gstatic.com; " +
+                        "connect-src 'self'; " +
+                        "media-src 'self'; " +
+                        "object-src 'none'; " +
+                        "frame-ancestors 'self'; " +
+                        "form-action 'self'; " +
+                        "upgrade-insecure-requests"
+                    )
+                )
+                .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .frameOptions(frame -> frame.sameOrigin())
+            )
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
@@ -71,6 +93,9 @@ public class SecurityConfig {
                 // 其他需要认证
                 .anyRequest().authenticated()
             )
+            // ── 过滤器链：速率限制 → JWT 认证 → 业务处理 ──
+            .addFilterBefore(new RateLimitFilter(),
+                    UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
                     UsernamePasswordAuthenticationFilter.class);
 

@@ -3,7 +3,7 @@
     <div class="container">
       <div class="logo">
         <NuxtLink to="/">
-          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" />
+          <NuxtImg v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" width="40" height="40" />
           <span v-else class="logo-mark">MB</span>
           <span class="logo-text">{{ siteName }}</span>
         </NuxtLink>

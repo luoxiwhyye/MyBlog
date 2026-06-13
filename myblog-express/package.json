@@ -16,11 +16,14 @@
   "dependencies": {
     "backternity": "^0.5.2",
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
@@ -29,7 +32,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "vitest": "^3.2.4",
-    "supertest": "^7.2.0"
+    "supertest": "^7.2.0",
+    "vitest": "^3.2.4"
   }
 }

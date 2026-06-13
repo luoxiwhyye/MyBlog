@@ -3,15 +3,17 @@ const router = express.Router();
 const labelController = require("../controllers/labelController");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
+const cache = require("../middleware/cache");
 const {
   validatePagination,
   validateIntId,
   handleValidationErrors,
 } = require("../middleware/validator");
 
-// 获取标签列表（公开）
+// 获取标签列表（公开）— 缓存 10 分钟
 router.get(
   "/",
+  cache("labels", 600),
   validatePagination,
   handleValidationErrors,
   labelController.getLabels,

@@ -3,6 +3,8 @@ package com.myblog.myblogspringboot.service;
 import com.myblog.myblogspringboot.entity.Setting;
 import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.repository.SettingRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class SettingService {
         this.settingRepository = settingRepository;
     }
 
+    @Cacheable(value = "settings", key = "'all'", unless = "#result == null || #result.isEmpty()")
     public Map<String, Object> getAllSettings() {
         List<Setting> settings = settingRepository.findAll();
         Map<String, Object> result = new LinkedHashMap<>();
@@ -35,6 +38,7 @@ public class SettingService {
         return result;
     }
 
+    @Cacheable(value = "settings", key = "#key", unless = "#result == null")
     public Map<String, Object> getSettingByKey(String key) {
         Setting setting = settingRepository.findBySettingKey(key)
                 .orElseThrow(() -> new BusinessException(404, "配置不存在"));
@@ -46,6 +50,7 @@ public class SettingService {
     }
 
     @Transactional
+    @CacheEvict(value = "settings", allEntries = true)
     public void upsertSetting(String key, String value, String type, String description) {
         Optional<Setting> existing = settingRepository.findBySettingKey(key);
 
@@ -66,6 +71,7 @@ public class SettingService {
     }
 
     @Transactional
+    @CacheEvict(value = "settings", allEntries = true)
     public void updateSettings(Map<String, String> settings) {
         for (Map.Entry<String, String> entry : settings.entrySet()) {
             upsertSetting(entry.getKey(), entry.getValue(), "text", null);

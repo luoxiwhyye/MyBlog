@@ -3,15 +3,17 @@ const router = express.Router();
 const typeController = require("../controllers/typeController");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
+const cache = require("../middleware/cache");
 const {
   validatePagination,
   validateIntId,
   handleValidationErrors,
 } = require("../middleware/validator");
 
-// 获取分类列表（公开）
+// 获取分类列表（公开）— 缓存 10 分钟
 router.get(
   "/",
+  cache("types", 600),
   validatePagination,
   handleValidationErrors,
   typeController.getTypes,

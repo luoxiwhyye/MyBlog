@@ -3,10 +3,11 @@ const router = express.Router();
 const bloggerController = require("../controllers/bloggerController");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
+const { loginLimiter } = require("../middleware/rateLimiter");
 const uploadConfig = require("../config/upload");
 
-// 登录（公开）
-router.post("/login", bloggerController.login);
+// 登录（公开）— 严格限流：15 分钟 10 次
+router.post("/login", loginLimiter, bloggerController.login);
 
 // 获取博主公开信息（无需认证，供前台页面使用）
 router.get("/public-profile", bloggerController.getPublicProfile);

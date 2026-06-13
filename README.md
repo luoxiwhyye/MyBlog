@@ -73,10 +73,12 @@ graph TB
 | Web 框架   | Express                       | ^5.2.1          |
 | 数据库     | MySQL                         | —               |
 | 数据库驱动 | mysql2/promise                | ^3.20.0         |
+| 缓存       | Redis (ioredis)               | ^5.8.0          |
 | 认证       | JWT (jsonwebtoken + bcryptjs) | ^9.0.3 / ^3.0.3 |
 | 文件上传   | multer                        | ^2.1.1          |
-| 安全       | helmet                        | ^8.1.0          |
-| 跨域       | cors                          | ^2.8.6          |
+| 安全       | helmet + cors                 | ^8.1.0 / ^2.8.6 |
+| 限流       | express-rate-limit            | ^7.9.0          |
+| 压缩       | compression                   | ^1.8.1          |
 | HTTP 日志  | morgan                        | ^1.10.1         |
 | 结构化日志 | winston                       | ^3.19.0         |
 | 参数校验   | express-validator             | ^7.3.1          |
@@ -100,17 +102,18 @@ graph TB
 
 ### 博客前台 (`myblog-blog`)
 
-| 类别      | 方案                     | 版本    |
-| --------- | ------------------------ | ------- |
-| 框架      | Nuxt 3                   | ^3.17.7 |
-| 语言      | TypeScript               | —       |
-| UI 组件库 | Element Plus             | ^2.13.6 |
-| 状态管理  | Pinia                    | —       |
-| Markdown  | markdown-it              | ^14.1.0 |
-| 代码高亮  | highlight.js（按需加载） | ^11.9.0 |
-| 日期处理  | dayjs                    | —       |
-| 工具计算  | Web Worker               | —       |
-| 测试      | vitest                   | ^3.2.4  |
+| 类别      | 方案                            | 版本    |
+| --------- | ------------------------------- | ------- |
+| 框架      | Nuxt 3                          | ^3.17.7 |
+| 语言      | TypeScript                      | —       |
+| UI 组件库 | Element Plus（按需导入）        | ^2.13.6 |
+| 图片优化  | @nuxt/image (WebP / 响应式尺寸) | ^1.11.0 |
+| 状态管理  | Pinia                           | —       |
+| Markdown  | markdown-it                     | ^14.1.0 |
+| 代码高亮  | highlight.js（按需加载）        | ^11.9.0 |
+| 日期处理  | dayjs                           | —       |
+| 工具计算  | Web Worker                      | —       |
+| 测试      | vitest                          | ^3.2.4  |
 
 ### 管理后台 (`myblog-admin`)
 
@@ -133,7 +136,7 @@ graph TB
 myblog-express/                  # 后端 — Express (Node.js)
 ├── config/                      # 配置（数据库、JWT、上传、日志）
 ├── controllers/                 # 控制器
-├── middleware/                  # 中间件（认证、角色、校验、错误处理）
+├── middleware/                  # 中间件（认证、角色、限流、缓存、校验、错误处理）
 ├── models/                      # 数据模型
 ├── routes/                      # 路由
 ├── scripts/                     # 初始化脚本
@@ -162,7 +165,7 @@ myblog-vue/
 │   ├── api/                     # API 封装
 │   ├── assets/css/              # 全局样式与 CSS 变量
 │   ├── components/              # 组件（common / layout / tools）
-│   ├── composables/             # 组合式函数（SEO、i18n、工具）
+│   ├── composables/             # 组合式函数（SEO、JSON-LD、i18n、工具）
 │   ├── layouts/                 # 布局
 │   ├── locales/                 # i18n 词条（zh / en）
 │   ├── pages/                   # 页面
@@ -190,7 +193,7 @@ myblog-vue/
 - **评论嵌套**：支持回复、点赞、待审核机制
 - **分类 / 标签**：归档页按年月分组
 - **搜索**：全文关键词 + 相关度排序 + 高亮
-- **SEO**：Open Graph / Twitter Card / sitemap.xml / robots.txt / 结构化数据
+- **SEO**：Open Graph / Twitter Card / JSON-LD 结构化数据（BlogPosting + WebSite） / sitemap.xml / Canonical URL / 自定义 404 页面
 - **暗色模式**：一键切换 + 跟随系统 + CSS 变量 + Element Plus 自动适配
 - **自定义背景**：明/暗各自独立背景图（后台配置）
 - **毛玻璃效果**：所有卡片半透明 + `backdrop-filter: blur`
@@ -333,14 +336,16 @@ npm run dev
 
 ## SEO 实现
 
-| 功能                     | 实现                           |
-| ------------------------ | ------------------------------ | -------- |
-| Title                    | `titleTemplate: '%s            | 站点名'` |
-| Meta / OG / Twitter Card | `useHead()` + `usePageSeo()`   |
-| Canonical URL            | 自动生成                       |
-| Sitemap                  | `server/routes/sitemap.xml.ts` |
-| Robots                   | `public/robots.txt`            |
-| 结构化数据               | `application/ld+json`          |
+| 功能                     | 实现                                                                |
+| ------------------------ | ------------------------------------------------------------------- |
+| Title                    | `titleTemplate: '%s \| 站点名'`                                     |
+| Meta / OG / Twitter Card | `useHead()` + `usePageSeo()`                                        |
+| Canonical URL            | 自动生成                                                            |
+| JSON-LD 结构化数据       | `useArticleJsonLd()` (BlogPosting) + `useWebsiteJsonLd()` (WebSite) |
+| Sitemap                  | `server/routes/sitemap.xml.ts`（含 lastmod）                        |
+| Robots                   | `public/robots.txt`                                                 |
+| 404 页面                 | `pages/[...slug].vue`（搜索 + 热门推荐）                            |
+| 图片 SEO                 | `@nuxt/image` 自动 WebP 转换 + `loading="lazy"` + `alt` 属性        |
 
 ---
 

@@ -1,6 +1,7 @@
 const settingModel = require("../models/Setting");
 const { success, error } = require("../utils/response");
 const { uploadToCDN, deleteUploadedUrl } = require("../utils/upload");
+const cache = require("../middleware/cache");
 
 const extractTextSettings = (body) => {
   const result = {};
@@ -114,6 +115,9 @@ const updateSettings = async (req, res, next) => {
         await settingModel.upsertSetting(key, imageUrl, "image", description);
       }
     }
+
+    // 清除 settings 缓存
+    cache.invalidate("settings");
 
     success(res, null, "配置更新成功");
   } catch (err) {

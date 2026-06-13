@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   experimental: {
     appManifest: false,
   },
-  modules: ["@pinia/nuxt"],
+  modules: ["@pinia/nuxt", "@nuxt/image", "@element-plus/nuxt"],
   components: [
     {
       path: "~/components",
@@ -16,11 +16,7 @@ export default defineNuxtConfig({
   devServer: {
     port: 3001,
   },
-  css: [
-    "element-plus/dist/index.css",
-    "highlight.js/styles/github.css",
-    "~/assets/css/main.css",
-  ],
+  css: ["~/assets/css/main.css"],
   vite: {
     optimizeDeps: {
       include: ["dayjs"],
@@ -29,9 +25,6 @@ export default defineNuxtConfig({
       rollupOptions: {
         output: {
           manualChunks: {
-            "element-plus": ["element-plus"],
-            "element-icons": ["@element-plus/icons-vue"],
-            "highlight-js": ["highlight.js"],
             "tools-workers": ["~/utils/tools/processor.worker"],
           },
         },

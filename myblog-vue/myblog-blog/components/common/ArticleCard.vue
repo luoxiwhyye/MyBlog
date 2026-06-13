@@ -1,7 +1,16 @@
 <template>
   <article class="article-card">
     <div class="cover">
-      <img v-if="article.coverImage" :src="article.coverImage" :alt="article.title" />
+      <NuxtImg
+        v-if="article.coverImage"
+        :src="article.coverImage"
+        :alt="article.title"
+        loading="lazy"
+        decoding="async"
+        format="webp"
+        sizes="sm:100vw md:400px"
+        class="cover-image"
+      />
       <div v-else class="cover-placeholder">暂无图片</div>
     </div>
     <div class="content">
@@ -53,7 +62,7 @@ defineProps<{
   overflow: hidden;
 }
 
-.cover img {
+.cover-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
