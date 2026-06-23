@@ -13,7 +13,7 @@
           v-if="option.type === 'select'"
           :model-value="getOptionValue(option.key, option.defaultValue as string)"
           size="large"
-          @update:model-value="(val: string) => handleOptionChange(option.key, val)"
+          @update:model-value="(val: any) => handleOptionChange(option.key, val as string)"
         >
           <el-option
             v-for="choice in option.options"
@@ -26,7 +26,7 @@
         <el-radio-group
           v-else-if="option.type === 'radio'"
           :model-value="getOptionValue(option.key, option.defaultValue as string)"
-          @update:model-value="(val: string) => handleOptionChange(option.key, val)"
+          @update:model-value="(val: any) => handleOptionChange(option.key, val as string)"
         >
           <el-radio-button
             v-for="choice in option.options"
@@ -40,7 +40,7 @@
         <el-checkbox-group
           v-else-if="option.type === 'checkbox-group'"
           :model-value="getCheckboxValue(option.key, option.defaultValue)"
-          @update:model-value="(val: string[]) => handleOptionChange(option.key, val)"
+          @update:model-value="(val: any) => handleOptionChange(option.key, val as string[])"
         >
           <el-checkbox
             v-for="choice in option.options"
@@ -55,7 +55,7 @@
         <el-switch
           v-else-if="option.type === 'switch'"
           :model-value="Boolean(props.options[option.key] ?? option.defaultValue)"
-          @update:model-value="(val: boolean) => handleOptionChange(option.key, val)"
+          @update:model-value="(val: any) => handleOptionChange(option.key, Boolean(val))"
         />
 
         <el-input-number

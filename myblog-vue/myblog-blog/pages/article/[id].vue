@@ -78,7 +78,7 @@
                 v-model="commentForm.content"
                 type="textarea"
                 placeholder="写下您的评论..."
-                rows="4"
+                :rows="4"
               />
             </el-form-item>
             <el-form-item>

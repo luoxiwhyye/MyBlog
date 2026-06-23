@@ -272,6 +272,9 @@ useWebsiteJsonLd();
   min-height: calc(100vh - 80px);
   margin-bottom: 40px;
   overflow: hidden;
+  /* 突破父容器 max-width 限制，铺满整个视口 */
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
 }
 
 .welcome::before {
@@ -334,7 +337,7 @@ useWebsiteJsonLd();
 
 /* ===== 内容主体 ===== */
 .home-body {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding-bottom: 32px;
 }

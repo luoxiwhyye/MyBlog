@@ -45,7 +45,7 @@
             v-model="replyForm.content"
             type="textarea"
             placeholder="写下您的回复..."
-            rows="3"
+            :rows="3"
           />
         </el-form-item>
         <el-form-item>

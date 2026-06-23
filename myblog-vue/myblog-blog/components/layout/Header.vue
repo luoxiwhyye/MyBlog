@@ -28,7 +28,9 @@
           </template>
         </el-input>
       </div>
-      <ThemeToggle />
+      <div class="theme-toggle-wrapper">
+        <ThemeToggle />
+      </div>
     </div>
   </header>
 </template>
@@ -75,7 +77,7 @@ watch(
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -150,7 +152,7 @@ watch(
   }
 
   .nav {
-    order: 3;
+    order: 4;
     width: 100%;
     overflow-x: auto;
     white-space: nowrap;
@@ -158,8 +160,19 @@ watch(
   }
 
   .search {
+    order: 3;
     width: 100%;
     margin-left: 0;
+  }
+}
+
+.theme-toggle-wrapper {
+  flex-shrink: 0;
+}
+
+@media (max-width: 992px) {
+  .theme-toggle-wrapper {
+    margin-left: auto;
   }
 }
 </style>

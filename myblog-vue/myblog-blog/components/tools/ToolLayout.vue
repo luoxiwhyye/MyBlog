@@ -79,6 +79,7 @@
 
 <script setup lang="ts">
 import { TOOL_LIST, getCategoryById, getToolPath } from "~/config/tools";
+import type { ElInput } from "element-plus";
 import type { ToolCategoryMeta, ToolMeta } from "~/types/tool";
 
 const props = defineProps<{

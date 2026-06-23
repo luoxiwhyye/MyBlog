@@ -37,7 +37,7 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
