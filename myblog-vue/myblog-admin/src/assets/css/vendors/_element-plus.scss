@@ -1,0 +1,11 @@
+// ============================================
+// vendors/_element-plus.scss - Element Plus 定制
+// ============================================
+
+@use '../abstracts/variables' as *;
+
+:root {
+  --el-color-primary: #{$color-primary};
+  --el-font-family: #{$font-family-base};
+  --el-border-radius-base: #{$border-radius-base};
+}

@@ -47,12 +47,15 @@
         <aside class="sidebar">
           <section class="widget">
             <h3>{{ t('home.hero.hot') }}</h3>
-            <ul class="hot-list">
-              <li v-for="item in hotArticles" :key="item.id">
-                <NuxtLink :to="`/article/${item.id}`">{{ item.title }}</NuxtLink>
-                <span>{{ item.viewCount }} {{ t('home.reads') }}</span>
+            <ol class="hot-list">
+              <li v-for="(item, idx) in hotArticles" :key="item.id">
+                <span class="hot-rank" :class="{ 'top3': idx < 3 }">{{ idx + 1 }}</span>
+                <div class="hot-info">
+                  <NuxtLink :to="`/article/${item.id}`">{{ item.title }}</NuxtLink>
+                  <span class="hot-meta">{{ item.viewCount }} {{ t('home.reads') }} · {{ item.type.typeName }}</span>
+                </div>
               </li>
-            </ul>
+            </ol>
           </section>
 
           <section class="widget">
@@ -258,21 +261,17 @@ usePageSeo({
 useWebsiteJsonLd();
 </script>
 
-<style scoped>
-.home-page {
-  /* 顶层容器仅用于满足 Vue 单根元素要求 */
-}
-
+<style lang="scss" scoped>
 /* ===== 全屏欢迎区 ===== */
 .welcome {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 80px);
-  margin-bottom: 40px;
+  min-height: calc(100vh - 64px);
+  margin-bottom: 32px;
+  margin-top: -12px;
   overflow: hidden;
-  /* 突破父容器 max-width 限制，铺满整个视口 */
   width: 100vw;
   margin-left: calc(-50vw + 50%);
 }
@@ -283,11 +282,22 @@ useWebsiteJsonLd();
   inset: 0;
   background: linear-gradient(
     160deg,
-    rgba(71, 85, 105, 0.15) 0%,
-    rgba(51, 65, 85, 0.10) 40%,
-    rgba(30, 41, 59, 0.15) 100%
+    rgba(15, 23, 42, 0.55) 0%,
+    rgba(51, 65, 85, 0.3) 50%,
+    rgba(15, 23, 42, 0.55) 100%
   );
   backdrop-filter: blur(2px);
+}
+
+.welcome::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, var(--bg-primary) 0%, transparent 100%);
+  pointer-events: none;
 }
 
 .welcome-content {
@@ -346,7 +356,7 @@ useWebsiteJsonLd();
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 320px;
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .articles-section {
@@ -356,12 +366,28 @@ useWebsiteJsonLd();
 }
 
 .section-header {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  margin-top: 8px;
 }
 
 .section-header h2 {
-  font-size: 26px;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.5px;
+}
+
+.section-header h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--color-accent), rgba(71, 85, 105, 0.35));
+  flex-shrink: 0;
 }
 
 .loading,
@@ -396,6 +422,7 @@ useWebsiteJsonLd();
 
 .pagination-wrap {
   margin-top: auto;
+  padding: 16px 0 0;
 }
 
 .sidebar {
@@ -409,39 +436,138 @@ useWebsiteJsonLd();
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  padding: 16px;
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  padding: 20px;
 }
 
 .widget h3 {
-  font-size: 18px;
+  font-size: 17px;
+  font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.3px;
 }
 
-.hot-list,
+.widget h3::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--color-accent), rgba(71, 85, 105, 0.35));
+  flex-shrink: 0;
+}
+
+.hot-list {
+  list-style: none;
+  counter-reset: hot-rank;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hot-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.hot-list li:hover {
+  background: var(--bg-hover);
+}
+
+.hot-rank {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+}
+
+.hot-rank.top3 {
+  background: linear-gradient(135deg, var(--color-accent), rgba(71, 85, 105, 0.65));
+  color: #fff;
+}
+
+.hot-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hot-info a {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.hot-info a:hover {
+  color: var(--color-accent);
+}
+
+.hot-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .category-list,
 .friend-links {
   list-style: none;
 }
 
-.hot-list li,
 .category-list li,
 .friend-links li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
 }
 
-.hot-list a,
+.category-list li:hover,
+.friend-links li:hover {
+  background: var(--bg-hover);
+}
+
 .category-list a,
 .friend-links a {
   color: var(--text-primary);
   text-decoration: none;
+  transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
 }
 
-.hot-list span,
+.category-list a:hover,
+.friend-links a:hover {
+  color: var(--color-accent);
+}
+
 .category-list span {
   color: var(--text-muted);
   font-size: 13px;
@@ -457,13 +583,19 @@ useWebsiteJsonLd();
 .tag-link {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
   background: var(--color-accent-light);
   color: var(--color-accent);
   text-decoration: none;
   font-size: 13px;
-  opacity: 0.8;
+  opacity: 0.85;
+  transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
+}
+
+.tag-link:hover {
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 .toggle-btn {
@@ -472,6 +604,14 @@ useWebsiteJsonLd();
   background: transparent;
   color: var(--color-accent);
   cursor: pointer;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.toggle-btn:hover {
+  background: var(--bg-hover);
 }
 
 @media (max-width: 1080px) {

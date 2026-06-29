@@ -148,7 +148,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .admin-layout {
   height: 100vh;
 }

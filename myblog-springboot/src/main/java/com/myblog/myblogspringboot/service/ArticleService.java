@@ -1,14 +1,16 @@
 package com.myblog.myblogspringboot.service;
 
-import com.myblog.myblogspringboot.dto.ArticleDTO;
-import com.myblog.myblogspringboot.dto.PageResponse;
-import com.myblog.myblogspringboot.entity.Article;
-import com.myblog.myblogspringboot.entity.Label;
-import com.myblog.myblogspringboot.entity.Type;
-import com.myblog.myblogspringboot.exception.BusinessException;
-import com.myblog.myblogspringboot.repository.ArticleRepository;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,26 +19,55 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.myblog.myblogspringboot.dto.ArticleDTO;
+import com.myblog.myblogspringboot.dto.PageResponse;
+import com.myblog.myblogspringboot.entity.Article;
+import com.myblog.myblogspringboot.entity.Label;
+import com.myblog.myblogspringboot.exception.BusinessException;
+import com.myblog.myblogspringboot.repository.ArticleRepository;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 @Transactional(readOnly = true)
 public class ArticleService {
 
     private final ArticleRepository articleRepository;
+    private final MeilisearchService meilisearchService;
 
-    public ArticleService(ArticleRepository articleRepository) {
+    public ArticleService(ArticleRepository articleRepository, MeilisearchService meilisearchService) {
         this.articleRepository = articleRepository;
+        this.meilisearchService = meilisearchService;
     }
 
+    @Cacheable(value = "articles", key = "'list:' + #page + ':' + #pageSize + ':' + #typeId + ':' + #labelId + ':' + #keyword + ':' + #status + ':' + #sortBy + ':' + #sortOrder + ':' + #isAdmin", unless = "#result == null")
     public PageResponse<ArticleDTO> getArticles(int page, int pageSize, Integer typeId, Integer labelId,
                                                  String keyword, String status, String sortBy, String sortOrder,
                                                  boolean isAdmin) {
+        // F-01: 关键词搜索优先使用 Meilisearch
+        if (keyword != null && !keyword.isBlank() && "published".equals(status)) {
+            MeilisearchService.SearchHit hit = meilisearchService.search(keyword, page, pageSize, typeId);
+            if (hit != null) {
+                if (hit.getIds().isEmpty()) {
+                    return new PageResponse<>(List.of(), hit.getTotal(), page, pageSize);
+                }
+                List<Article> articles = articleRepository.findAllById(hit.getIds());
+                // 保持 Meilisearch 返回的顺序
+                Map<Integer, Article> articleMap = new HashMap<>();
+                for (Article a : articles) {
+                    articleMap.put(a.getId(), a);
+                }
+                List<ArticleDTO> dtos = hit.getIds().stream()
+                        .map(articleMap::get)
+                        .filter(Objects::nonNull)
+                        .map(this::toDTO)
+                        .collect(Collectors.toList());
+                return new PageResponse<>(dtos, hit.getTotal(), page, pageSize);
+            }
+            // Meilisearch 不可用，降级到 SQL LIKE（继续走下面逻辑）
+        }
+
         Pageable pageable = buildPageable(page, pageSize, sortBy, sortOrder);
 
         Specification<Article> spec = (root, query, cb) -> {
@@ -90,6 +121,7 @@ public class ArticleService {
         return new PageResponse<>(dtos, articlePage.getTotalElements(), page, pageSize);
     }
 
+    @Cacheable(value = "articles", key = "'detail:' + #id", unless = "#result == null")
     public ArticleDTO getArticleById(Integer id, boolean isAdmin) {
         Article article = articleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));
@@ -105,6 +137,7 @@ public class ArticleService {
     }
 
     @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO createArticle(String title, String content, String summary, Integer typeId,
                                      String coverImage, String status, List<Integer> labelIds) {
         if (title == null || title.isBlank() || content == null || content.isBlank() || typeId == null) {
@@ -125,10 +158,16 @@ public class ArticleService {
         }
 
         Article saved = articleRepository.save(article);
-        return toDTO(articleRepository.findByIdWithDetails(saved.getId()).orElse(saved));
+        ArticleDTO dto = toDTO(articleRepository.findByIdWithDetails(saved.getId()).orElse(saved));
+        // F-01: 同步到 Meilisearch（仅已发布文章）
+        if ("published".equals(dto.getStatus())) {
+            syncToMeilisearch(dto);
+        }
+        return dto;
     }
 
     @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO updateArticle(Integer id, String title, String content, String summary,
                                      Integer typeId, String coverImage, String status, List<Integer> labelIds) {
         Article article = articleRepository.findByIdWithDetails(id)
@@ -150,10 +189,18 @@ public class ArticleService {
         }
 
         Article saved = articleRepository.save(article);
-        return toDTO(saved);
+        ArticleDTO dto = toDTO(saved);
+        // F-01: 同步到 Meilisearch
+        if ("published".equals(dto.getStatus())) {
+            syncToMeilisearch(dto);
+        } else {
+            meilisearchService.deleteArticle(id);
+        }
+        return dto;
     }
 
     @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
     public void softDeleteArticle(Integer id) {
         Article article = articleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));
@@ -161,21 +208,49 @@ public class ArticleService {
             throw new BusinessException(400, "文章已在回收站中");
         }
         articleRepository.softDelete(id);
+        // F-01: 从 Meilisearch 移除
+        meilisearchService.deleteArticle(id);
     }
 
     @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
     public void restoreArticle(Integer id) {
         int updated = articleRepository.restore(id);
         if (updated == 0) {
             throw new BusinessException(404, "文章不存在或未被删除");
         }
+        // F-01: 检查恢复后状态，决定是否同步到 Meilisearch
+        ArticleDTO restoredDto = getArticleById(id, true);
+        if ("published".equals(restoredDto.getStatus())) {
+            syncToMeilisearch(restoredDto);
+        }
     }
 
     @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
     public void hardDeleteArticle(Integer id) {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));
         articleRepository.delete(article);
+        // F-01: 从 Meilisearch 移除
+        meilisearchService.deleteArticle(id);
+    }
+
+    /**
+     * 同步文章到 Meilisearch
+     */
+    private void syncToMeilisearch(ArticleDTO dto) {
+        Map<String, Object> doc = new LinkedHashMap<>();
+        doc.put("id", dto.getId());
+        doc.put("title", dto.getTitle());
+        doc.put("summary", dto.getSummary() != null ? dto.getSummary() : "");
+        doc.put("content", dto.getContent() != null ? dto.getContent() : "");
+        doc.put("status", dto.getStatus());
+        doc.put("typeId", dto.getTypeId());
+        doc.put("coverImage", dto.getCoverImage() != null ? dto.getCoverImage() : "");
+        doc.put("viewCount", dto.getViewCount());
+        doc.put("createdAt", dto.getCreatedAt() != null ? dto.getCreatedAt().toString() : "");
+        meilisearchService.syncArticle(doc);
     }
 
     public ArticleDTO toDTO(Article article) {
@@ -187,6 +262,8 @@ public class ArticleService {
         dto.setCoverImage(article.getCoverImage());
         dto.setViewCount(article.getViewCount());
         dto.setStatus(article.getStatus());
+        dto.setIsPinned(article.getIsPinned());
+        dto.setIsFeatured(article.getIsFeatured());
         dto.setCreatedAt(article.getCreatedAt());
         dto.setUpdatedAt(article.getUpdatedAt());
         dto.setDeletedAt(article.getDeletedAt());

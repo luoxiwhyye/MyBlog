@@ -6,7 +6,12 @@ export default defineNuxtConfig({
   experimental: {
     appManifest: false,
   },
-  modules: ["@pinia/nuxt", "@nuxt/image", "@element-plus/nuxt"],
+  modules: [
+    "@pinia/nuxt",
+    "@nuxt/image",
+    "@element-plus/nuxt",
+    "@vite-pwa/nuxt",
+  ],
   components: [
     {
       path: "~/components",
@@ -16,8 +21,91 @@ export default defineNuxtConfig({
   devServer: {
     port: 3001,
   },
-  css: ["~/assets/css/main.css"],
+  css: ["~/assets/css/main.scss"],
+  // S-05: ISR 预渲染配置 — 低频变化页面使用 ISR 降低服务端压力
+  routeRules: {
+    // 首页 ISR: 缓存 60 秒，过期后陈旧重验证
+    "/": { isr: 60 },
+    // 归档页 ISR: 缓存 300 秒
+    "/archive": { isr: 300 },
+    // 分类页 ISR
+    "/category": { isr: 300 },
+    "/category/**": { isr: 300 },
+    // 标签页 ISR
+    "/tag": { isr: 300 },
+    "/tag/**": { isr: 300 },
+    // 关于页 SWR: 5 分钟缓存 + 10 分钟陈旧重验证
+    "/about": { swr: 600 },
+    // 搜索页不缓存
+    "/search": { ssr: true },
+    // 文章详情页 SSR（实时内容）
+    "/article/**": { ssr: true },
+    // 工具箱页纯客户端渲染（各页面 definePageMeta 中已设 ssr: false）
+    "/tools/**": { ssr: false },
+    // Sitemap/RSS 走 Nitro handler，不缓存 Nuxt 侧
+  },
+  // S-06: PWA 配置
+  pwa: {
+    registerType: "autoUpdate",
+    workbox: {
+      globPatterns: ["**/*.{js,css,html,png,svg,ico,webp,woff2}"],
+      runtimeCaching: [
+        {
+          // API 请求: Network First（优先网络，失败回退缓存）
+          urlPattern: ({ url }: { url: URL }) =>
+            url.pathname.startsWith("/api/"),
+          handler: "NetworkFirst",
+          options: {
+            cacheName: "api-cache",
+            expiration: { maxEntries: 50, maxAgeSeconds: 300 },
+          },
+        },
+        {
+          // 图片: Cache First（优先缓存，后台更新）
+          urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/,
+          handler: "CacheFirst",
+          options: {
+            cacheName: "image-cache",
+            expiration: { maxEntries: 100, maxAgeSeconds: 86400 },
+          },
+        },
+        {
+          // 外部字体/图标: Stale While Revalidate
+          urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/,
+          handler: "StaleWhileRevalidate",
+          options: { cacheName: "font-cache" },
+        },
+      ],
+    },
+    manifest: {
+      name: "MyBlog",
+      short_name: "MyBlog",
+      description: "个人技术博客",
+      theme_color: "#1a1a2e",
+      background_color: "#ffffff",
+      display: "standalone",
+      orientation: "portrait-primary",
+      icons: [
+        { src: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
+        { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+        { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
+      ],
+    },
+  },
+  // ... rest unchanged
   vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `
+            @use "~/assets/css/abstracts/variables" as *;
+            @use "~/assets/css/abstracts/mixins" as *;
+            @use "~/assets/css/abstracts/functions" as *;
+          `,
+          api: "modern-compiler",
+        },
+      },
+    },
     optimizeDeps: {
       include: ["dayjs"],
     },
@@ -45,6 +133,16 @@ export default defineNuxtConfig({
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
+      ],
+      link: [
+        // S-04: Core Web Vitals — 预连接关键外部源
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        {
+          rel: "preconnect",
+          href: "https://fonts.gstatic.com",
+          crossorigin: "anonymous",
+        },
+        { rel: "dns-prefetch", href: "//cravatar.cn" },
       ],
     },
   },

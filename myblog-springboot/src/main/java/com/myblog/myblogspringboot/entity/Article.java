@@ -56,6 +56,12 @@ public class Article {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "is_pinned", nullable = false)
+    private Boolean isPinned = false;
+
+    @Column(name = "is_featured", nullable = false)
+    private Boolean isFeatured = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_id", insertable = false, updatable = false)
     private Type type;
@@ -112,6 +118,12 @@ public class Article {
 
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+    public Boolean getIsPinned() { return isPinned; }
+    public void setIsPinned(Boolean isPinned) { this.isPinned = isPinned; }
+
+    public Boolean getIsFeatured() { return isFeatured; }
+    public void setIsFeatured(Boolean isFeatured) { this.isFeatured = isFeatured; }
 
     public Type getType() { return type; }
     public void setType(Type type) { this.type = type; }

@@ -20,7 +20,7 @@ await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]
 useLayoutSeo();
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .layout {
   min-height: 100vh;
   display: flex;
@@ -38,7 +38,7 @@ useLayoutSeo();
 }
 </style>
 
-<style>
+<style lang="scss">
 /* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
 .layout {
   background-image: var(--site-bg-light);

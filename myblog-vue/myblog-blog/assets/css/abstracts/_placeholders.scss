@@ -1,0 +1,65 @@
+// ============================================
+// 占位符选择器（使用 @extend 继承）
+// ============================================
+
+@use "variables" as *;
+@use "mixins" as *;
+
+// -------------------- 卡片样式 --------------------
+%card {
+  padding: $spacing-6;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-md;
+  transition: box-shadow $transition-fast;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+}
+
+// -------------------- 毛玻璃卡片 --------------------
+%glass-card {
+  @include glass-effect;
+  border-radius: $border-radius-lg;
+  padding: $spacing-6;
+}
+
+%glass-card-dark {
+  @include glass-effect(true);
+  border-radius: $border-radius-lg;
+  padding: $spacing-6;
+}
+
+// -------------------- 容器 --------------------
+%container {
+  @include container;
+}
+
+// -------------------- 文本截断 --------------------
+%text-ellipsis {
+  @include text-ellipsis;
+}
+
+// -------------------- 居中 --------------------
+%flex-center {
+  @include flex-center;
+}
+
+%absolute-center {
+  @include absolute-center;
+}
+
+// -------------------- 滚动条 --------------------
+%scrollbar {
+  @include scrollbar;
+}
+
+// -------------------- 响应式图片 --------------------
+%responsive-image {
+  @include responsive-image;
+}
+
+// -------------------- 链接 --------------------
+%link {
+  @include link;
+}

@@ -8,100 +8,140 @@
     </div>
     <div v-else-if="article" class="article-content">
       <nav class="breadcrumb">
-        <NuxtLink to="/">首页</NuxtLink>
-        <span>&gt;</span>
+        <NuxtLink to="/">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          首页
+        </NuxtLink>
+        <span class="breadcrumb-sep">/</span>
         <NuxtLink :to="`/category/${article.type.id}`">{{ article.type.typeName }}</NuxtLink>
-        <span>&gt;</span>
-        <span>{{ article.title }}</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">{{ article.title }}</span>
       </nav>
 
-      <article class="article">
-        <header class="article-header">
-          <h1>{{ article.title }}</h1>
-          <div class="article-meta">
-            <span class="author meta-item">{{ siteAuthor }}</span>
-            <time class="meta-item">{{ formatDateTime(article.createdAt) }}</time>
-            <span class="views meta-item">{{ article.viewCount }} 阅读</span>
+      <!-- 统合卡片：文章 + 评论区 -->
+      <div class="article-card-wrap">
+        <article class="article">
+          <header class="article-header">
+            <h1>{{ article.title }}</h1>
+            <div class="article-meta">
+              <span class="author meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                {{ siteAuthor }}
+              </span>
+              <time class="meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                {{ formatDateTime(article.createdAt) }}
+              </time>
+              <span class="views meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                {{ article.viewCount }} 阅读
+              </span>
+              <span class="read-time meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {{ readTime }}
+              </span>
+            </div>
+            <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
+            <div class="article-tags">
+              <NuxtLink class="category" :to="`/category/${article.type.id}`">
+                {{ article.type.typeName }}
+              </NuxtLink>
+              <NuxtLink
+                v-for="tag in article.labels"
+                :key="tag.id"
+                class="tag"
+                :to="`/tag/${tag.id}`"
+              >
+                {{ tag.labelName }}
+              </NuxtLink>
+            </div>
+          </header>
+
+          <div v-if="article.coverImage" class="cover-image">
+            <NuxtImg
+              :src="article.coverImage"
+              :alt="article.title"
+              loading="lazy"
+              decoding="async"
+              format="webp"
+              sizes="sm:100vw md:800px"
+              class="cover-img"
+            />
           </div>
-          <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
-          <div class="article-tags">
-            <NuxtLink class="category" :to="`/category/${article.type.id}`">
-              {{ article.type.typeName }}
-            </NuxtLink>
-            <NuxtLink
-              v-for="tag in article.labels"
-              :key="tag.id"
-              class="tag"
-              :to="`/tag/${tag.id}`"
-            >
-              {{ tag.labelName }}
-            </NuxtLink>
+
+          <div class="article-body" v-html="article.content"></div>
+        </article>
+
+        <hr class="card-divider" />
+
+        <div class="comments-section">
+          <div class="comments-header">
+            <h3>评论 ({{ commentPagination.total }})</h3>
+            <el-radio-group v-model="commentSort" size="small" @change="handleSortChange">
+              <el-radio-button value="hottest">最热</el-radio-button>
+              <el-radio-button value="latest">最新</el-radio-button>
+            </el-radio-group>
           </div>
-        </header>
-
-        <div v-if="article.coverImage" class="cover-image">
-          <NuxtImg
-            :src="article.coverImage"
-            :alt="article.title"
-            loading="lazy"
-            decoding="async"
-            format="webp"
-            sizes="sm:100vw md:800px"
-            class="cover-img"
-          />
-        </div>
-
-        <div class="article-body" v-html="article.content"></div>
-      </article>
-
-      <div class="comments-section">
-        <div class="comments-header">
-          <h3>评论 ({{ commentPagination.total }})</h3>
-          <el-radio-group v-model="commentSort" size="small" @change="handleSortChange">
-            <el-radio-button label="hottest">最热</el-radio-button>
-            <el-radio-button label="latest">最新</el-radio-button>
-          </el-radio-group>
-        </div>
-        <div class="comment-form">
-          <el-form @submit.prevent="handleComment">
-            <el-form-item>
-              <el-input v-model="commentForm.authorName" placeholder="您的姓名 *" />
-            </el-form-item>
-            <el-form-item>
-              <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" />
-            </el-form-item>
-            <el-form-item>
-              <el-input v-model="commentForm.authorUrl" placeholder="https://yourblog.com（选填）" />
-            </el-form-item>
-            <el-form-item>
-              <el-input
-                v-model="commentForm.content"
-                type="textarea"
-                placeholder="写下您的评论..."
-                :rows="4"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" native-type="submit" :loading="submitting">
+          <div class="comment-form">
+            <el-form @submit.prevent="handleComment">
+              <div class="comment-form-row">
+                <el-input v-model="commentForm.authorName" placeholder="您的姓名 *" class="form-name" />
+                <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" class="form-email" />
+                <el-input v-model="commentForm.authorUrl" placeholder="https://（选填）" class="form-url" />
+              </div>
+              <div class="comment-textarea-wrap">
+                <el-input
+                  ref="commentTextareaRef"
+                  v-model="commentForm.content"
+                  type="textarea"
+                  placeholder="写下您的评论..."
+                  :rows="3"
+                />
+                <button type="button" class="emoji-btn" title="插入表情" @click="emojiOpen = !emojiOpen">😊</button>
+                <div v-if="emojiOpen" class="emoji-picker">
+                  <div class="emoji-tabs">
+                    <button :class="{ active: emojiTab === 'emoji' }" type="button" @click="emojiTab = 'emoji'">Emoji</button>
+                    <button :class="{ active: emojiTab === 'kaomoji' }" type="button" @click="emojiTab = 'kaomoji'">颜文字</button>
+                  </div>
+                  <div v-if="emojiTab === 'emoji'" class="emoji-grid">
+                    <button
+                      v-for="emoji in emojiList"
+                      :key="emoji"
+                      type="button"
+                      class="emoji-item"
+                      @click="insertEmoji(emoji)"
+                    >{{ emoji }}</button>
+                  </div>
+                  <div v-else class="kaomoji-grid">
+                    <button
+                      v-for="kao in kaomojiList"
+                      :key="kao"
+                      type="button"
+                      class="kaomoji-item"
+                      @click="insertEmoji(kao)"
+                    >{{ kao }}</button>
+                  </div>
+                </div>
+              </div>
+              <el-button type="primary" native-type="submit" :loading="submitting" class="submit-btn">
                 发表评论
               </el-button>
-            </el-form-item>
-          </el-form>
-        </div>
+            </el-form>
+          </div>
 
-        <div class="comments-list">
-          <BlogComment
-            v-for="comment in comments"
-            :key="comment.id"
-            :comment="comment"
-            @reply-submitted="refreshComments"
-          />
+          <div class="comments-list">
+            <BlogComment
+              v-for="comment in comments"
+              :key="comment.id"
+              :comment="comment"
+              @reply-submitted="refreshComments"
+            />
 
-          <el-empty v-if="!comments.length" description="暂无评论，欢迎留下第一条讨论" />
-        </div>
+            <el-empty v-if="!comments.length" description="暂无评论，欢迎留下第一条讨论" />
+          </div>
 
-        <div v-if="commentPagination.total > commentPagination.pageSize" class="comments-pagination">
-          <el-pagination
+          <div v-if="commentPagination.total > commentPagination.pageSize" class="comments-pagination">
+            <el-pagination
             v-model:current-page="commentPagination.page"
             v-model:page-size="commentPagination.pageSize"
             layout="prev, pager, next"
@@ -112,6 +152,7 @@
           />
         </div>
       </div>
+    </div>
     </div>
     <div v-else class="not-found">文章不存在</div>
 
@@ -134,17 +175,41 @@ import { ElMessage } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import { articleApi, commentApi } from "~/api";
 import type { Article, Comment as CommentType, PaginatedResponse } from "~/types";
-import { formatDateTime } from "~/utils/format";
+import { formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
 
 const route = useRoute();
 const settingsStore = useSettingsStore();
+const bloggerStore = useBloggerStore();
 
 await settingsStore.ensureSettings();
+await bloggerStore.ensureProfile();
 
 const articleId = computed(() => Number(route.params.id));
 const submitting = ref(false);
+const emojiOpen = ref(false);
+const emojiTab = ref<"emoji" | "kaomoji">("emoji");
+const commentTextareaRef = ref<any>(null);
 const tocItems = ref<Array<{ id: string; text: string; level: number }>>([]);
+
+const emojiList = [
+  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😋","😛","😜","🤪",
+  "😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
+  "👍","👎","👏","🙌","🤝","💪","👀","🧠","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💖","💗",
+  "🔥","⭐","✨","🎉","🎊","🙏","💯","✅","❌","❓","❗","💡","📌","🔗","💻","📱","🖥️","⌨️","🎵","🌈",
+];
+
+const kaomojiList = [
+  "(｡･ω･｡)","(◕‿◕)","(◠‿◠)","(≧◡≦)","(⌒‿⌒)","(＾▽＾)","(◍•ᴗ•◍)","(づ｡◕‿‿◕｡)づ",
+  "(╥_╥)","(╯︵╰,)","(╥﹏╥)","(个_个)","(¬_¬)","(ーー;)","(￣ω￣)","(＾～＾)",
+  "(╯°□°）╯︵ ┻━┻","┐(￣ヘ￣)┌","¯\\_(ツ)_/¯","( ´ ▽ ` )ﾉ","(☞ﾟヮﾟ)☞",
+  "( ͡° ͜ʖ ͡°)","(⌐■_■)","(＃￣0￣)","(˘▽˘)っ♨","(^_−)☆","(•̀ᴗ•́)و","ರ_ರ","(ᗒᗣᗕ)՞",
+];
+
+const insertEmoji = (text: string) => {
+  commentForm.value.content += text;
+  emojiOpen.value = false;
+};
 const commentSort = ref<"latest" | "hottest">("hottest");
 const commentPagination = ref({
   page: 1,
@@ -251,7 +316,8 @@ const normalizeCommentTree = (list: CommentType[]): CommentType[] => {
 };
 
 const comments = computed(() => normalizeCommentTree(commentPage.value.list));
-const siteAuthor = computed(() => settingsStore.getSetting("site_author") || "博主");
+const siteAuthor = computed(() => bloggerStore.nickname() || "博主");
+const readTime = computed(() => estimateReadTime(article.value?.content || ""));
 
 watchEffect(() => {
   commentPagination.value.total = commentPage.value.total;
@@ -384,7 +450,7 @@ usePageSeo({
 useArticleJsonLd(article as Ref<Article | null>);
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .article-detail {
   max-width: 800px;
   margin: 0 auto;
@@ -405,19 +471,62 @@ useArticleJsonLd(article as Ref<Article | null>);
 
 .breadcrumb {
   margin-bottom: 20px;
-  color: var(--text-secondary);
+  margin-top: 8px;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 14px;
 }
 
 .breadcrumb a {
   color: var(--text-secondary);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
 }
 
 .breadcrumb a:hover {
-  color: var(--color-link);
+  color: var(--color-accent);
+}
+
+.breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+/* ===== 统合卡片 ===== */
+.article-card-wrap {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 36px 40px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-divider {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 32px 0 24px;
 }
 
 .article-header {
@@ -428,6 +537,8 @@ useArticleJsonLd(article as Ref<Article | null>);
   font-size: 32px;
   color: var(--text-primary);
   margin-bottom: 15px;
+  line-height: 1.35;
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .article-meta {
@@ -442,11 +553,13 @@ useArticleJsonLd(article as Ref<Article | null>);
 .meta-item {
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   height: 24px;
   line-height: 24px;
 }
 
-.views {
+.views,
+.read-time {
   font-variant-numeric: tabular-nums;
 }
 
@@ -500,9 +613,45 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .article-body {
-  line-height: 1.8;
+  line-height: 1.9;
   color: var(--text-primary);
-  margin-bottom: 40px;
+  margin-bottom: 0;
+  font-size: 16px;
+}
+
+.article-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 20px auto;
+}
+
+.article-body :deep(p) {
+  margin-bottom: 1.2em;
+}
+
+.article-body :deep(blockquote) {
+  border-left: 4px solid var(--color-accent);
+  padding: 8px 16px;
+  margin: 16px 0;
+  background: var(--bg-hover);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-secondary);
+}
+
+.article-body :deep(a) {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.article-body :deep(h2),
+.article-body :deep(h3),
+.article-body :deep(h4) {
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+  line-height: 1.35;
 }
 
 .article-body :deep(pre) {
@@ -519,8 +668,8 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .comments-section {
-  border-top: 1px solid var(--border-color);
-  padding-top: 40px;
+  /* 已纳入统合卡片内部 */
+  position: static;
 }
 
 .comments-header {
@@ -531,8 +680,145 @@ useArticleJsonLd(article as Ref<Article | null>);
   margin-bottom: 20px;
 }
 
+.comments-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .comment-form {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
+}
+
+/* 表单三列布局 */
+.comment-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* 评论区文本域 + emoji 按钮 */
+.comment-textarea-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.comment-textarea-wrap :deep(.el-textarea__inner) {
+  padding-right: 40px;
+}
+
+.emoji-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg-hover);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 2;
+}
+
+.emoji-btn:hover {
+  background: var(--border-light);
+}
+
+/* Emoji 选择器 */
+.emoji-picker {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 320px;
+  max-height: 260px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-elevated);
+  overflow-y: auto;
+  z-index: 10;
+  padding: 12px;
+}
+
+.emoji-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+}
+
+.emoji-tabs button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emoji-tabs button.active,
+.emoji-tabs button:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.emoji-item:hover {
+  background: var(--bg-hover);
+}
+
+.kaomoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kaomoji-item {
+  border: 1px solid var(--border-light);
+  background: var(--bg-hover);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.kaomoji-item:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.submit-btn {
+  margin-top: 4px;
 }
 
 .quick-nav {
@@ -552,7 +838,8 @@ useArticleJsonLd(article as Ref<Article | null>);
 .toc {
   border: 1px solid var(--border-light);
   background: var(--bg-backdrop);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--shadow-card);
@@ -591,6 +878,24 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 @media (max-width: 768px) {
+  .article-card-wrap {
+    padding: 20px 16px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+
+  .comment-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .emoji-picker {
+    width: 260px;
+    right: -40px;
+  }
+
   .comments-header {
     flex-direction: column;
     align-items: flex-start;

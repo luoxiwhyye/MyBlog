@@ -24,36 +24,57 @@
     </div>
     <div class="comment-content" v-html="comment.content"></div>
     <div class="comment-actions">
-      <el-button type="text" size="small" :disabled="liked" @click="handleLike">
+      <el-button link size="small" :disabled="liked" @click="handleLike">
         👍 {{ likeCount }}
       </el-button>
-      <el-button type="text" size="small" @click="showReply = true">回复</el-button>
+      <el-button link size="small" @click="showReply = true">回复</el-button>
     </div>
     <div v-if="showReply" class="reply-form">
       <el-form @submit.prevent="handleReply">
-        <el-form-item>
-          <el-input v-model="replyForm.authorName" placeholder="您的姓名" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="replyForm.authorEmail" placeholder="您的邮箱" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="replyForm.authorUrl" placeholder="https://yourblog.com（选填）" />
-        </el-form-item>
-        <el-form-item>
+        <div class="reply-form-row">
+          <el-input v-model="replyForm.authorName" placeholder="您的姓名" class="form-name" />
+          <el-input v-model="replyForm.authorEmail" placeholder="您的邮箱" class="form-email" />
+          <el-input v-model="replyForm.authorUrl" placeholder="https://（选填）" class="form-url" />
+        </div>
+        <div class="reply-textarea-wrap">
           <el-input
             v-model="replyForm.content"
             type="textarea"
             placeholder="写下您的回复..."
             :rows="3"
           />
-        </el-form-item>
-        <el-form-item>
+          <button type="button" class="emoji-btn" title="插入表情" @click="replyEmojiOpen = !replyEmojiOpen">😊</button>
+          <div v-if="replyEmojiOpen" class="emoji-picker">
+            <div class="emoji-tabs">
+              <button :class="{ active: replyEmojiTab === 'emoji' }" type="button" @click="replyEmojiTab = 'emoji'">Emoji</button>
+              <button :class="{ active: replyEmojiTab === 'kaomoji' }" type="button" @click="replyEmojiTab = 'kaomoji'">颜文字</button>
+            </div>
+            <div v-if="replyEmojiTab === 'emoji'" class="emoji-grid">
+              <button
+                v-for="emoji in replyEmojiList"
+                :key="emoji"
+                type="button"
+                class="emoji-item"
+                @click="insertReplyEmoji(emoji)"
+              >{{ emoji }}</button>
+            </div>
+            <div v-else class="kaomoji-grid">
+              <button
+                v-for="kao in replyKaomojiList"
+                :key="kao"
+                type="button"
+                class="kaomoji-item"
+                @click="insertReplyEmoji(kao)"
+              >{{ kao }}</button>
+            </div>
+          </div>
+        </div>
+        <div class="reply-actions">
           <el-button type="primary" native-type="submit" :loading="submitting">
             提交回复
           </el-button>
           <el-button @click="showReply = false">取消</el-button>
-        </el-form-item>
+        </div>
       </el-form>
     </div>
     <div v-if="comment.replies" class="replies">
@@ -90,6 +111,27 @@ const showReply = ref(false);
 const liked = ref(false);
 const submitting = ref(false);
 const likeCount = ref(props.comment.likeCount);
+const replyEmojiOpen = ref(false);
+const replyEmojiTab = ref<"emoji" | "kaomoji">("emoji");
+
+const replyEmojiList = [
+  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😋","😛","😜","🤪",
+  "😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
+  "👍","👎","👏","🙌","🤝","💪","👀","🧠","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💖","💗",
+  "🔥","⭐","✨","🎉","🎊","🙏","💯","✅","❌","❓","❗","💡","📌","🔗","💻","📱","🖥️","⌨️","🎵","🌈",
+];
+
+const replyKaomojiList = [
+  "(｡･ω･｡)","(◕‿◕)","(◠‿◠)","(≧◡≦)","(⌒‿⌒)","(＾▽＾)","(◍•ᴗ•◍)","(づ｡◕‿‿◕｡)づ",
+  "(╥_╥)","(╯︵╰,)","(╥﹏╥)","(个_个)","(¬_¬)","(ーー;)","(￣ω￣)","(＾～＾)",
+  "(╯°□°）╯︵ ┻━┻","┐(￣ヘ￣)┌","¯\\_(ツ)_/¯","( ´ ▽ ` )ﾉ","(☞ﾟヮﾟ)☞",
+  "( ͡° ͜ʖ ͡°)","(⌐■_■)","(＃￣0￣)","(˘▽˘)っ♨","(^_−)☆","(•̀ᴗ•́)و","ರ_ರ","(ᗒᗣᗕ)՞",
+];
+
+const insertReplyEmoji = (text: string) => {
+  replyForm.content += text;
+  replyEmojiOpen.value = false;
+};
 
 const replyForm = reactive({
   authorName: "",
@@ -158,7 +200,7 @@ const handleReplySubmitted = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .comment {
   border-bottom: 1px solid var(--border-color);
   padding: 15px 0;
@@ -214,10 +256,150 @@ const handleReplySubmitted = () => {
 
 .reply-form {
   margin-top: 15px;
-  padding: 15px;
+  padding: 16px;
   background: var(--bg-hover);
   backdrop-filter: blur(8px);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+
+.reply-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.reply-textarea-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.reply-textarea-wrap :deep(.el-textarea__inner) {
+  padding-right: 40px;
+}
+
+.emoji-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg-card);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 2;
+}
+
+.emoji-btn:hover {
+  background: var(--border-light);
+}
+
+.emoji-picker {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 300px;
+  max-height: 250px;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-elevated);
+  overflow-y: auto;
+  z-index: 50;
+  padding: 12px;
+}
+
+.emoji-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+}
+
+.emoji-tabs button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emoji-tabs button.active,
+.emoji-tabs button:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.emoji-item {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px;
   border-radius: 4px;
+  transition: background 0.15s;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.emoji-item:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.kaomoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kaomoji-item {
+  border: 1px solid var(--border-light);
+  background: rgba(128, 128, 128, 0.06);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.15s;
+}
+
+.kaomoji-item:hover {
+  border-color: var(--color-accent);
+}
+
+.reply-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .reply-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .emoji-picker {
+    width: 250px;
+    right: -30px;
+  }
 }
 
 .replies {

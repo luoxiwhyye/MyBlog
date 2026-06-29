@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .dashboard {
   padding: 20px;
 }

@@ -27,7 +27,7 @@ const siteAuthor = computed(() => bloggerStore.nickname());
 const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .footer {
   background: var(--bg-card);
   border-top: 1px solid var(--border-light);

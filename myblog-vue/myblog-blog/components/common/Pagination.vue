@@ -153,7 +153,7 @@ const handleJump = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .pagination {
   display: flex;
   justify-content: center;

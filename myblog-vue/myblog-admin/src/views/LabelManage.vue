@@ -219,7 +219,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .label-manage {
   padding: 20px;
 }

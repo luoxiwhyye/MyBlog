@@ -29,7 +29,7 @@ const themeStore = useThemeStore();
 const isDark = computed(() => themeStore.isDark);
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .theme-toggle {
   display: flex;
   align-items: center;

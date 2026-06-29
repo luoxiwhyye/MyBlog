@@ -34,7 +34,7 @@ spring:
       max-request-size: 20MB
 
   jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
 
@@ -81,6 +81,10 @@ app:
     email: ${BLOGGER_EMAIL:admin@blog.com}
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3001}
   admin-origin: ${ADMIN_ORIGIN:http://localhost:5173}
+  meilisearch:
+    host: ${MEILI_HOST:127.0.0.1}
+    port: ${MEILI_PORT:7700}
+    master-key: ${MEILI_MASTER_KEY:}
 
 logging:
   level:

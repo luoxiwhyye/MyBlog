@@ -1,11 +1,14 @@
 <template>
   <div class="category-detail">
     <nav class="breadcrumb">
-      <NuxtLink to="/">首页</NuxtLink>
-      <span>&gt;</span>
+      <NuxtLink to="/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        首页
+      </NuxtLink>
+      <span class="breadcrumb-sep">/</span>
       <NuxtLink to="/category">分类</NuxtLink>
-      <span>&gt;</span>
-      <span>{{ categoryName }}</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">{{ categoryName }}</span>
     </nav>
 
     <h1>{{ categoryName }}</h1>
@@ -100,27 +103,53 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .category-detail {
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .breadcrumb {
-  margin-bottom: 20px;
-  color: var(--text-secondary);
+  margin-bottom: 24px;
+  margin-top: 8px;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 14px;
 }
 
 .breadcrumb a {
   color: var(--text-secondary);
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
 }
 
 .breadcrumb a:hover {
-  color: var(--color-link);
+  color: var(--color-accent);
+}
+
+.breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
 }
 
 .category-detail h1 {
@@ -128,6 +157,7 @@ usePageSeo({
   margin-bottom: 8px;
   color: var(--text-primary);
   text-align: center;
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .stats {

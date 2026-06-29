@@ -1,0 +1,31 @@
+// ============================================
+// main.scss - 全局样式入口
+// 使用 @use 导入所有模块
+// ============================================
+
+// 1. 抽象层（不输出 CSS）
+@use "abstracts/variables" as *;
+@use "abstracts/mixins" as *;
+@use "abstracts/functions" as *;
+@use "abstracts/placeholders" as *;
+
+// 2. 主题变量（输出 CSS 变量）
+@use "themes" as *;
+
+// 3. 基础样式
+@use "base/reset";
+@use "base/typography";
+@use "base/utilities";
+
+// 4. 布局
+@use "layouts/default";
+@use "layouts/blog";
+
+// 5. 组件
+@use "components/header";
+@use "components/footer";
+@use "components/sidebar";
+@use "components/article";
+
+// 6. 第三方库覆盖
+@use "vendors/element-plus";

@@ -11,6 +11,8 @@ public class ArticleDTO {
     private String coverImage;
     private Integer viewCount;
     private String status;
+    private Boolean isPinned;
+    private Boolean isFeatured;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -54,6 +56,10 @@ public class ArticleDTO {
     public void setViewCount(Integer viewCount) { this.viewCount = viewCount; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public Boolean getIsPinned() { return isPinned; }
+    public void setIsPinned(Boolean isPinned) { this.isPinned = isPinned; }
+    public Boolean getIsFeatured() { return isFeatured; }
+    public void setIsFeatured(Boolean isFeatured) { this.isFeatured = isFeatured; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

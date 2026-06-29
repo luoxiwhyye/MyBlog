@@ -353,7 +353,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .comment-manage {
   padding: 20px;
 }

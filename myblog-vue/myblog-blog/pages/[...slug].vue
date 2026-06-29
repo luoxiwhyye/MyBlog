@@ -85,7 +85,7 @@ const goHome = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .not-found-page {
   display: flex;
   align-items: center;

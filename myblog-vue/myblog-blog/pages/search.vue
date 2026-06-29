@@ -170,7 +170,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .search {
   max-width: 1400px;
   margin: 0 auto;
@@ -187,6 +187,7 @@ usePageSeo({
   font-size: 32px;
   margin: 0;
   color: var(--text-primary);
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .home-btn {
@@ -237,8 +238,15 @@ usePageSeo({
   border: 1px solid var(--border-light);
   border-radius: 10px;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
   padding: 16px;
+  transition: box-shadow 0.25s, border-color 0.25s;
+}
+
+.result-item:hover {
+  box-shadow: var(--shadow-elevated);
+  border-color: var(--color-accent);
 }
 
 .result-item h3 {

@@ -33,6 +33,8 @@ CREATE TABLE `article`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted_at` datetime NULL DEFAULT NULL COMMENT '删除时间（软删除）',
+  `is_pinned` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否置顶',
+  `is_featured` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否精选',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_type_id`(`type_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE,

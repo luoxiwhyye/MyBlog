@@ -64,7 +64,7 @@ watch(
 );
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .header {
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-light);
@@ -72,8 +72,10 @@ watch(
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
   transition: background-color 0.3s, border-color 0.3s;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
 }
 
 .container {

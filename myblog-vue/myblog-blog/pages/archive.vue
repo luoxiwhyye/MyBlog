@@ -89,7 +89,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .archive {
   max-width: 800px;
   margin: 0 auto;
@@ -99,7 +99,9 @@ usePageSeo({
   text-align: center;
   font-size: 32px;
   margin-bottom: 40px;
+  margin-top: 8px;
   color: var(--text-primary);
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .loading {

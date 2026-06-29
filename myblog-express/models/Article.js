@@ -24,6 +24,8 @@ const formatArticle = (row) => {
     coverImage: row.cover_image,
     viewCount: row.view_count,
     status: row.status,
+    isPinned: Boolean(row.is_pinned),
+    isFeatured: Boolean(row.is_featured),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -37,6 +39,7 @@ const formatArticle = (row) => {
 const getArticles = async (offset, limit, filters = {}) => {
   let query = `
     SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
+           a.is_pinned, a.is_featured,
            a.type_id, a.created_at, a.updated_at, a.deleted_at,
            t.type_name,
            GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
@@ -176,6 +179,7 @@ const getTypeArticleDistribution = async (scope = "published") => {
 const getArticleById = async (id) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
+            a.is_pinned, a.is_featured,
             a.type_id, a.created_at, a.updated_at, a.deleted_at,
             t.type_name,
             GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
@@ -239,6 +243,14 @@ const updateArticle = async (id, articleData) => {
     updates.push("status = ?");
     params.push(articleData.status);
   }
+  if (articleData.isPinned !== undefined) {
+    updates.push("is_pinned = ?");
+    params.push(articleData.isPinned);
+  }
+  if (articleData.isFeatured !== undefined) {
+    updates.push("is_featured = ?");
+    params.push(articleData.isFeatured);
+  }
 
   if (updates.length === 0) return false;
 
@@ -280,6 +292,7 @@ const hardDeleteArticle = async (id) => {
 const getTrashArticles = async (offset, limit) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.cover_image, a.view_count, a.status,
+            a.is_pinned, a.is_featured,
             a.type_id, a.created_at, a.deleted_at,
             t.type_name
      FROM article a
@@ -328,10 +341,39 @@ const clearArticleLabels = async (articleId) => {
   return true;
 };
 
+/**
+ * 按 ID 列表查询文章（供 Meilisearch 搜索结果使用）
+ */
+const getArticlesByIds = async (ids) => {
+  if (!ids || ids.length === 0) return [];
+
+  const placeholders = ids.map(() => "?").join(",");
+  const [rows] = await pool.query(
+    `SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
+            a.is_pinned, a.is_featured,
+            a.type_id, a.created_at, a.updated_at, a.deleted_at,
+            t.type_name,
+            GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
+            GROUP_CONCAT(l.label_name ORDER BY l.id) AS label_names
+     FROM article a
+     LEFT JOIN \`type\` t ON a.type_id = t.id
+     LEFT JOIN article_label al ON a.id = al.article_id
+     LEFT JOIN \`label\` l ON al.label_id = l.id
+     WHERE a.id IN (${placeholders}) AND a.deleted_at IS NULL
+     GROUP BY a.id`,
+    ids,
+  );
+
+  // 保持原输入 ID 的顺序
+  const rowMap = new Map(rows.map((r) => [r.id, formatArticle(r)]));
+  return ids.map((id) => rowMap.get(id)).filter(Boolean);
+};
+
 module.exports = {
   getArticles,
   getArticlesCount,
   getArticleById,
+  getArticlesByIds,
   createArticle,
   updateArticle,
   softDeleteArticle,

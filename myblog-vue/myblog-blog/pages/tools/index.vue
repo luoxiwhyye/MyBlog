@@ -80,7 +80,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .tools-home {
   display: grid;
   gap: 28px;
@@ -197,6 +197,7 @@ usePageSeo({
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 @media (max-width: 768px) {

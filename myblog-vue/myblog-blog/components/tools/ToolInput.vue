@@ -81,7 +81,7 @@ const totalBytesText = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .tool-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-light);

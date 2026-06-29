@@ -45,7 +45,7 @@ useSeoMeta({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .not-found {
   padding: 40px 0;
 }

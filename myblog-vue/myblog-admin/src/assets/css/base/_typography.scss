@@ -1,0 +1,12 @@
+// ============================================
+// base/_typography.scss - 管理后台排版
+// ============================================
+
+@use '../abstracts/variables' as *;
+
+body {
+  font-family: $font-family-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: $color-gray-800;
+}

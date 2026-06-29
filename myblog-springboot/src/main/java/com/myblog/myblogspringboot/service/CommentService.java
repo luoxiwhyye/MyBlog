@@ -1,12 +1,11 @@
 package com.myblog.myblogspringboot.service;
 
-import com.myblog.myblogspringboot.dto.CommentRequest;
-import com.myblog.myblogspringboot.dto.PageResponse;
-import com.myblog.myblogspringboot.entity.Comment;
-import com.myblog.myblogspringboot.exception.BusinessException;
-import com.myblog.myblogspringboot.repository.ArticleRepository;
-import com.myblog.myblogspringboot.repository.CommentRepository;
-import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,7 +14,14 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import com.myblog.myblogspringboot.dto.CommentRequest;
+import com.myblog.myblogspringboot.dto.PageResponse;
+import com.myblog.myblogspringboot.entity.Comment;
+import com.myblog.myblogspringboot.exception.BusinessException;
+import com.myblog.myblogspringboot.repository.ArticleRepository;
+import com.myblog.myblogspringboot.repository.CommentRepository;
+
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 public class CommentService {
@@ -32,8 +38,8 @@ public class CommentService {
                                                           String status, String sortBy, boolean topLevelOnly,
                                                           boolean isAdmin) {
         Sort sort = "hottest".equals(sortBy)
-                ? Sort.by(Sort.Direction.DESC, "likeCount", "createAt")
-                : Sort.by(Sort.Direction.DESC, "createAt");
+                ? Sort.by(Sort.Direction.DESC, "likeCount", "createdAt")
+                : Sort.by(Sort.Direction.DESC, "createdAt");
         Pageable pageable = PageRequest.of(page - 1, pageSize, sort);
 
         Specification<Comment> spec = (root, query, cb) -> {
@@ -61,7 +67,7 @@ public class CommentService {
         if (topLevelOnly && !commentPage.getContent().isEmpty()) {
             List<Integer> parentIds = commentPage.getContent().stream()
                     .map(Comment::getId).toList();
-            List<Comment> allReplies = commentRepository.findByParentIdInAndStatusOrderByCreateAtAsc(parentIds, "approved");
+            List<Comment> allReplies = commentRepository.findByParentIdInAndStatusOrderByCreatedAtAsc(parentIds, "approved");
             Map<Integer, List<Map<String, Object>>> repliesMap = new HashMap<>();
 
             for (Comment reply : allReplies) {
@@ -150,10 +156,14 @@ public class CommentService {
     }
 
     @Transactional
-    public void likeComment(Integer id) {
+    public int likeComment(Integer id) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "评论不存在"));
         commentRepository.incrementLikeCount(id);
+        // 刷新以获取更新后的值
+        commentRepository.flush();
+        Comment updated = commentRepository.findById(id).orElse(comment);
+        return updated.getLikeCount();
     }
 
     private Map<String, Object> toMap(Comment c) {
@@ -168,7 +178,7 @@ public class CommentService {
         map.put("content", c.getContent());
         map.put("likeCount", c.getLikeCount());
         map.put("status", c.getStatus());
-        map.put("createdAt", c.getCreateAt());
+        map.put("createdAt", c.getCreatedAt());
         return map;
     }
 }

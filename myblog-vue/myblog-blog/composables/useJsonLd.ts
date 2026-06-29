@@ -102,6 +102,42 @@ export const useArticleJsonLd = (article: Ref<Article | null>) => {
 };
 
 /**
+ * 面包屑导航 JSON-LD (BreadcrumbList)
+ * 在文章详情页调用，提供 Schema.org 结构化数据。
+ */
+export const useBreadcrumbJsonLd = (
+  items: Array<{ name: string; url: string }>,
+) => {
+  const { siteUrl } = useSiteMeta();
+
+  const jsonLd = computed(() => ({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      item: {
+        "@id": item.url.startsWith("http")
+          ? item.url
+          : `${siteUrl.value}${item.url}`,
+        name: item.name,
+      },
+    })),
+  }));
+
+  useHead(() => ({
+    script: jsonLd.value
+      ? [
+          {
+            type: "application/ld+json",
+            innerHTML: JSON.stringify(jsonLd.value),
+          },
+        ]
+      : [],
+  }));
+};
+
+/**
  * 首页 JSON-LD (WebSite + SearchAction)
  * 在首页 useHead 中调用
  */

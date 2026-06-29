@@ -170,7 +170,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .settings {
   padding: 20px;
 }

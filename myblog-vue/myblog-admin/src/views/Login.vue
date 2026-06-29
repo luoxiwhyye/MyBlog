@@ -126,7 +126,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .login-container {
   display: flex;
   justify-content: center;

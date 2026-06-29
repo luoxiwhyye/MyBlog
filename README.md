@@ -6,14 +6,32 @@
 
 ---
 
+## 🌟 亮点速览
+
+| 维度                   | 亮点                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| 🏗️ **双引擎后端**      | Express 与 Spring Boot 功能等价、可无缝切换                                        |
+| 🔒 **多层安全防护**    | CSP 策略 + 三级限流（全局/登录/评论/上传）+ CORS 白名单 + 生产密码强制校验         |
+| ⚡ **智能缓存**        | Redis stale-while-revalidate，缓存不可用时自动降级直查数据库                       |
+| 🔍 **深度 SEO**        | JSON-LD 结构化数据（BlogPosting + WebSite）+ OG/Twitter Card + Canonical + Sitemap |
+| 🧰 **内置工具箱**      | 15+ 编程工具，Web Worker 计算，不影响页面交互                                      |
+| 🐳 **Docker 一键部署** | 5 容器自动编排，含健康检查、数据持久化、自动库表初始化                             |
+| 🌓 **暗色模式**        | CSS 变量驱动，跟随系统 / 手动切换，Element Plus 全组件适配                         |
+| 📝 **访客评论系统**    | Gravatar 头像（国内镜像）、嵌套回复、点赞、审核/垃圾标记                           |
+
+---
+
 ## 📋 目录
 
 - [项目架构](#项目架构)
+- [亮点速览](#-亮点速览)
 - [技术栈](#技术栈)
 - [项目结构](#项目结构)
 - [功能特性](#功能特性)
 - [快速开始](#快速开始)
 - [环境变量](#环境变量)
+- [安全设计](#安全设计)
+- [Redis 缓存策略](#redis-缓存策略)
 - [API 接口](#api-接口)
 - [暗色模式与主题](#暗色模式与主题)
 - [SEO 实现](#seo-实现)
@@ -22,6 +40,9 @@
 - [测试](#测试)
 - [CI/CD](#cicd)
 - [部署](#部署)
+  - [Docker 部署（推荐）](#docker-部署推荐)
+  - [手动部署](#手动部署)
+- [版本记录](#版本记录)
 
 ---
 
@@ -142,10 +163,12 @@ myblog-express/                  # 后端 — Express (Node.js)
 ├── scripts/                     # 初始化脚本
 ├── test/                        # 集成测试
 ├── uploads/                     # 上传文件目录
+├── Dockerfile                   # Docker 镜像
 ├── .env.example                 # 环境变量模板
 └── package.json
 
 myblog-springboot/               # 后端 — Spring Boot (Java)
+├── Dockerfile                   # Docker 镜像（多阶段 Maven 构建）
 ├── pom.xml                      # Maven 依赖配置
 └── src/main/
     ├── java/com/myblog/myblogspringboot/
@@ -162,6 +185,7 @@ myblog-springboot/               # 后端 — Spring Boot (Java)
 
 myblog-vue/
 ├── myblog-blog/                 # 博客前台（Nuxt 3 SSR）
+│   ├── Dockerfile               # Docker 镜像（SSR 构建 + 运行）
 │   ├── api/                     # API 封装
 │   ├── assets/css/              # 全局样式与 CSS 变量
 │   ├── components/              # 组件（common / layout / tools）
@@ -176,10 +200,15 @@ myblog-vue/
 │   └── utils/                   # 工具函数、格式、SEO、Gravatar
 │
 └── myblog-admin/                # 后台管理（Vue 3 SPA）
+    ├── Dockerfile               # Docker 镜像（构建 + Nginx）
     ├── src/
-    │   ├── api/ / layouts/ / router/ / stores/ / types/ / utils/ / views/
-    ├── .env.example
+    │   └── api/ / layouts/ / router/ / stores/ / types/ / utils/ / views/
+    ├── nginx.conf                # Nginx 配置（SPA 路由）
     └── package.json
+├── docker-compose.yml              # Docker Compose 编排（一键部署）
+├── .env.docker.example             # Docker 环境变量模板
+├── DEPLOY.md                       # Docker 部署详细指南
+└── README.md
 ```
 
 ---
@@ -219,6 +248,7 @@ myblog-vue/
 - **Express 后端**：Node.js >= 20.19
 - **Spring Boot 后端**：JDK 17+、Maven 3.8+
 - MySQL >= 8.0
+- Redis >= 6.0（可选，不部署则缓存功能自动降级）
 
 ### 1. 初始化数据库
 
@@ -299,6 +329,44 @@ npm run dev
 | 变量            | 说明          | 默认值                         |
 | --------------- | ------------- | ------------------------------ |
 | `VITE_API_BASE` | 后端 API 地址 | `http://localhost:3000/api/v1` |
+
+> 各子项目均有 `.env.example` 模板文件，可直接复制为 `.env` 使用。
+
+---
+
+## 安全设计
+
+### 限流策略
+
+Express 后端实现了 **三层速率限制**，全部基于 `express-rate-limit`：
+
+| 层级 | 路由                      | 窗口    | 上限   | 说明                      |
+| ---- | ------------------------- | ------- | ------ | ------------------------- |
+| 全局 | `/api/*`                  | 15 分钟 | 300 次 | 返回标准 `RateLimit-*` 头 |
+| 登录 | `/api/v1/blogger/login`   | 15 分钟 | 10 次  | 成功后不计数，防暴力破解  |
+| 评论 | `/api/v1/comments` (POST) | 15 分钟 | 30 次  | 防评论灌水                |
+| 上传 | `/api/v1/upload`          | 15 分钟 | 50 次  | 防止滥用上传接口          |
+
+### 其他安全措施
+
+- **Helmet + CSP**：限制脚本/样式/图片来源，防御 XSS
+- **CORS 白名单**：仅允许配置的前端域名跨域访问
+- **生产密码强制**：生产环境禁止空密码或 `root` 默认密码
+- **JWT Bearer Token**：`auth` 中间件（强制）+ `optionalAuth` 中间件（可选认证，用于公开接口透传用户态）
+- **优雅关闭**：监听 SIGTERM/SIGINT，依次关闭 HTTP → 数据库 → Redis
+
+---
+
+## Redis 缓存策略
+
+| 特性          | 说明                                                           |
+| ------------- | -------------------------------------------------------------- |
+| 缓存对象      | 仅缓存 GET 请求的 JSON 响应                                    |
+| 缓存键        | `cache:{prefix}:{queryString}`                                 |
+| 默认 TTL      | 300 秒（5 分钟）                                               |
+| Cache-Control | `public, max-age=300, stale-while-revalidate=600`              |
+| 降级策略      | Redis 不可用时自动跳过缓存，直查数据库                         |
+| 写失效        | POST/PUT/DELETE 操作可调用 `cache.invalidate(prefix)` 主动清除 |
 
 ---
 
@@ -396,7 +464,43 @@ cd myblog-vue/myblog-blog && npm test
 
 ---
 
+## CI/CD
+
+通过 GitHub Actions 自动化 CI（`.github/workflows/ci.yml`）：
+
+| 阶段                  | 内容                           | 触发条件                |
+| --------------------- | ------------------------------ | ----------------------- |
+| **Lint & Type Check** | Nuxt 博客 + Vue Admin 类型检查 | `push` / `pull_request` |
+| **Tests**             | 博客工具箱单元测试（vitest）   | `push` / `pull_request` |
+| **Build**             | Nuxt 博客 SSR 构建验证         | `push` / `pull_request` |
+
+> 支持分支：`main`、`v2-*`
+
+---
+
 ## 部署
+
+> 🐳 **推荐使用 Docker Compose 一键部署**，5 个容器（MySQL + Redis + 后端 + 博客 + 管理后台）自动编排。
+
+### Docker 部署（推荐）
+
+```bash
+# 1. 配置环境变量
+cp .env.docker.example .env.docker
+# 编辑 .env.docker，修改 DB_PASSWORD 和 JWT_SECRET
+
+# 2. 一键构建并启动
+docker compose --env-file .env.docker up -d --build
+
+# 3. 访问
+#   博客前台: http://localhost:3001
+#   管理后台: http://localhost:3002
+#   API 接口: http://localhost:3000/api/v1
+```
+
+详细说明（环境变量、后端切换 Spring Boot、数据备份、生产建议等）请参阅 **[DEPLOY.md](./DEPLOY.md)**。
+
+### 手动部署
 
 ```bash
 # Express 后端
@@ -419,5 +523,6 @@ cd myblog-vue/myblog-admin && npm run build   # → dist/
 
 | 日期       | 版本 | 说明                                                                      |
 | ---------- | ---- | ------------------------------------------------------------------------- |
+| 2026-06-27 | v2.2 | Docker 容器化部署支持（docker-compose.yml + Dockerfile × 4 + DEPLOY.md）  |
 | 2026-06-10 | v2.1 | 新增 Spring Boot 后端实现（myblog-springboot），与 Express 功能等价       |
 | 2026-06-08 | v2.0 | 访客评论增强、暗色主题、SEO 优化、代码分隔、类型统一、测试/CI/CD 基础设施 |

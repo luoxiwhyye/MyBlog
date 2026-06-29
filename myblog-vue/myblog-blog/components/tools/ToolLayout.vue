@@ -172,7 +172,7 @@ const scrollToSelected = () => {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .tool-layout {
   display: grid;
   gap: 24px;

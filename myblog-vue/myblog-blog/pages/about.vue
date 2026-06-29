@@ -43,7 +43,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .about {
   max-width: 800px;
   margin: 20px auto;
@@ -102,8 +102,9 @@ usePageSeo({
   padding: 30px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
-  backdrop-filter: blur(12px);
+  border-radius: 10px;
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
 }
 
 .site-info h3 {

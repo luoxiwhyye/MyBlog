@@ -362,7 +362,7 @@ onMounted(async () => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .article-editor {
   padding: 20px;
 }

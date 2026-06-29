@@ -88,7 +88,7 @@ const filteredCategories = computed(() => {
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -96,8 +96,6 @@ const filteredCategories = computed(() => {
 }
 
 .sidebar-search {
-  position: sticky;
-  top: 88px;
   z-index: 1;
 }
 

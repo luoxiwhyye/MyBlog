@@ -218,7 +218,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .type-manage {
   padding: 20px;
 }

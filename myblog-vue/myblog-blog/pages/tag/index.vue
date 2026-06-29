@@ -54,7 +54,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .tag {
   max-width: 1400px;
   margin: 0 auto;
@@ -67,8 +67,9 @@ usePageSeo({
 .tag h1 {
   text-align: center;
   font-size: 32px;
-  margin: 0;
+  margin: 8px 0 0;
   color: var(--text-primary);
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .loading {
@@ -86,17 +87,18 @@ usePageSeo({
 
 .tag-item {
   display: inline-block;
-  padding: 8px 16px;
+  padding: 8px 18px;
   background: var(--color-accent-light);
   color: var(--color-accent);
   border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: opacity 0.2s, transform 0.2s;
   font-size: 14px;
 }
 
 .tag-item:hover {
-  opacity: 0.8;
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 @media (max-width: 768px) {

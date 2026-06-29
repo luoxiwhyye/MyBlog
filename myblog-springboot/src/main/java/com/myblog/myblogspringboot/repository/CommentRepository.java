@@ -14,9 +14,9 @@ import com.myblog.myblogspringboot.entity.Comment;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Integer>, JpaSpecificationExecutor<Comment> {
 
-    List<Comment> findByParentIdAndStatusOrderByCreateAtAsc(Integer parentId, String status);
+    List<Comment> findByParentIdAndStatusOrderByCreatedAtAsc(Integer parentId, String status);
 
-    List<Comment> findByParentIdInAndStatusOrderByCreateAtAsc(List<Integer> parentIds, String status);
+    List<Comment> findByParentIdInAndStatusOrderByCreatedAtAsc(List<Integer> parentIds, String status);
 
     @Modifying
     @Query("UPDATE Comment c SET c.status = :status WHERE c.id IN :ids")

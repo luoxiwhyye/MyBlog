@@ -100,28 +100,66 @@ app.use(
 // 注册路由
 const apiPrefix = "/api/v1";
 
-// 健康检查端点 — 生产环境仅返回 status，开发环境保留诊断信息
-app.get("/health", (_req, res) => {
+// O-04: 健康检查端点 — 返回数据库/Redis/Meilisearch 连接状态
+app.get("/health", async (_req, res) => {
   const isProduction = process.env.NODE_ENV === "production";
 
   const base = {
     status: "ok",
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   };
 
-  if (isProduction) {
-    res.json(base);
-    return;
+  // 数据库状态
+  let dbStatus = "not_checked";
+  try {
+    const pool = require("./config/database");
+    await pool.query("SELECT 1");
+    dbStatus = "ok";
+  } catch {
+    dbStatus = "error";
   }
 
-  const { secret: _, ...restConfig } = require("./config/jwt");
-  void _;
-  res.json({
+  // Redis 状态
+  let redisStatus = "not_configured";
+  try {
+    const { getRedis } = require("./config/redis");
+    const redis = getRedis();
+    if (redis && redis.status === "ready") {
+      await redis.ping();
+      redisStatus = "ok";
+    } else if (redis) {
+      redisStatus = redis.status || "error";
+    }
+  } catch {
+    redisStatus = "error";
+  }
+
+  // Meilisearch 状态
+  let meiliStatus = "not_configured";
+  try {
+    const meilisearch = require("./services/meilisearch");
+    const available = await meilisearch.isAvailable();
+    meiliStatus = available ? "ok" : "unavailable";
+  } catch {
+    meiliStatus = "not_configured";
+  }
+
+  const response = {
     ...base,
-    uptime: process.uptime(),
-    env: process.env.NODE_ENV || "development",
-    jwtConfigured: !!require("./config/jwt").secret,
-  });
+    database: { status: dbStatus },
+    redis: { status: redisStatus },
+    meilisearch: { status: meiliStatus },
+  };
+
+  if (!isProduction) {
+    const { secret: _, ...restConfig } = require("./config/jwt");
+    void _;
+    response.env = process.env.NODE_ENV || "development";
+    response.jwtConfigured = !!require("./config/jwt").secret;
+  }
+
+  res.json(response);
 });
 
 app.use(`${apiPrefix}/types`, typeRoutes);

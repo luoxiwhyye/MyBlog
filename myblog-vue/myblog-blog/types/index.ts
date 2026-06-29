@@ -6,6 +6,8 @@ export interface Article {
   coverImage?: string;
   viewCount: number;
   status: "published" | "draft";
+  isPinned?: boolean;
+  isFeatured?: boolean;
   type: Category;
   labels: Tag[];
   createdAt: string;

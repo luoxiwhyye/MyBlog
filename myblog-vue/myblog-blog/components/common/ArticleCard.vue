@@ -43,18 +43,21 @@ defineProps<{
 }>();
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .article-card {
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  transition: box-shadow 0.3s, background-color 0.3s, border-color 0.3s;
+  transition: box-shadow 0.3s, transform 0.25s, background-color 0.3s, border-color 0.3s;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
 }
 
 .article-card:hover {
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px);
+  border-color: transparent;
 }
 
 .cover {

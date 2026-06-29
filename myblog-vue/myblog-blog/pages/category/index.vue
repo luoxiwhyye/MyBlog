@@ -55,7 +55,7 @@ usePageSeo({
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .category {
   max-width: 1400px;
   margin: 0 auto;
@@ -68,8 +68,9 @@ usePageSeo({
 .category h1 {
   text-align: center;
   font-size: 32px;
-  margin: 0;
+  margin: 8px 0 0;
   color: var(--text-primary);
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .loading {
@@ -87,16 +88,19 @@ usePageSeo({
 .category-card {
   padding: 30px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   text-align: center;
   cursor: pointer;
-  transition: box-shadow 0.3s, background-color 0.3s, border-color 0.3s;
+  transition: box-shadow 0.25s, transform 0.2s, background-color 0.3s, border-color 0.3s;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
 }
 
 .category-card:hover {
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
 }
 
 .category-card h3 {
