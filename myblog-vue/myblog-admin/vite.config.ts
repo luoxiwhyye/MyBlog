@@ -19,7 +19,6 @@ export default defineConfig({
           @use "@/assets/css/abstracts/variables" as *;
           @use "@/assets/css/abstracts/mixins" as *;
         `,
-        api: 'modern-compiler',
       },
     },
   },

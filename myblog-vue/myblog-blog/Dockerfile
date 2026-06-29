@@ -4,7 +4,7 @@
 # ============================================================
 
 # ── 阶段一：构建 ──
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package.json ./
@@ -21,7 +21,7 @@ ENV NUXT_SITE_URL=${NUXT_SITE_URL}
 RUN npm run build
 
 # ── 阶段二：运行 ──
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
 
 RUN apk add --no-cache dumb-init

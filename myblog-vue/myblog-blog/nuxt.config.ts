@@ -102,7 +102,6 @@ export default defineNuxtConfig({
             @use "~/assets/css/abstracts/mixins" as *;
             @use "~/assets/css/abstracts/functions" as *;
           `,
-          api: "modern-compiler",
         },
       },
     },
