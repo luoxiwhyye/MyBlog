@@ -1,0 +1,35 @@
+// ============================================
+// base/_typography.scss - 字体排版
+// ============================================
+
+@use "../abstracts/variables" as *;
+
+body {
+  font-family: $font-family-base;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: $line-height-tight;
+  color: var(--text-primary);
+}
+
+p {
+  line-height: $line-height-relaxed;
+}
+
+::selection {
+  background: rgba($color-primary, 0.3);
+  color: var(--text-primary);
+}

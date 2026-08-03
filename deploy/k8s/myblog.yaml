@@ -1,0 +1,257 @@
+# ============================================================
+# O-05: Kubernetes 部署清单 (kustomize 风格)
+# 使用方式：kubectl apply -k deploy/k8s/
+# ============================================================
+
+---
+# ── Namespace ──
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myblog
+---
+# ── ConfigMap: 环境变量 ──
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myblog-config
+  namespace: myblog
+data:
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: "myblog"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  MEILI_HOST: "meilisearch"
+  MEILI_PORT: "7700"
+  FRONTEND_ORIGIN: "https://your-domain.com"
+  ADMIN_ORIGIN: "https://your-domain.com"
+  NUXT_SITE_URL: "https://your-domain.com"
+  NUXT_API_BASE: "http://backend:3000/api/v1"
+---
+# ── Secret: 敏感配置 ──
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myblog-secret
+  namespace: myblog
+type: Opaque
+stringData:
+  DB_PASSWORD: "your-db-password"
+  JWT_SECRET: "your-jwt-secret-change-me"
+  REDIS_PASSWORD: ""
+  MEILI_MASTER_KEY: "your-meili-key"
+---
+# ── Backend Deployment ──
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: myblog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myblog-backend
+  template:
+    metadata:
+      labels:
+        app: myblog-backend
+    spec:
+      containers:
+        - name: backend
+          image: myblog-backend:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: myblog-config
+            - secretRef:
+                name: myblog-secret
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# ── Backend Service ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: myblog
+spec:
+  selector:
+    app: myblog-backend
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+# ── Blog Deployment ──
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog
+  namespace: myblog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myblog-blog
+  template:
+    metadata:
+      labels:
+        app: myblog-blog
+    spec:
+      containers:
+        - name: blog
+          image: myblog-blog:latest
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: myblog-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# ── Blog Service ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog
+  namespace: myblog
+spec:
+  selector:
+    app: myblog-blog
+  ports:
+    - port: 3001
+      targetPort: 3001
+---
+# ── Admin Deployment ──
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: myblog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myblog-admin
+  template:
+    metadata:
+      labels:
+        app: myblog-admin
+    spec:
+      containers:
+        - name: admin
+          image: myblog-admin:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+# ── Admin Service ──
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+  namespace: myblog
+spec:
+  selector:
+    app: myblog-admin
+  ports:
+    - port: 80
+      targetPort: 80
+---
+# ── Ingress (需安装 ingress-nginx controller) ──
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myblog
+  namespace: myblog
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/gzip-types: "application/json text/css application/javascript"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - your-domain.com
+      secretName: myblog-tls
+  rules:
+    - host: your-domain.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blog
+                port:
+                  number: 3001

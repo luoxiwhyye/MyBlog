@@ -1,0 +1,163 @@
+// ============================================
+// 设计令牌 (Design Tokens) — 管理后台
+// 与 documents/design-system.md 保持一致
+// ============================================
+
+@use 'sass:color';
+
+// -------------------- 颜色系统 --------------------
+$color-primary: #475569;
+$color-primary-light: color.adjust($color-primary, $lightness: 10%);
+$color-primary-dark: color.adjust($color-primary, $lightness: -10%);
+$color-secondary: #2c3e50;
+
+$color-white: #ffffff;
+$color-gray-50: #f8f9fa;
+$color-gray-100: #f1f3f5;
+$color-gray-200: #e9ecef;
+$color-gray-300: #dee2e6;
+$color-gray-400: #ced4da;
+$color-gray-500: #adb5bd;
+$color-gray-600: #868e96;
+$color-gray-700: #495057;
+$color-gray-800: #343a40;
+$color-gray-900: #212529;
+
+$color-success: #52c41a;
+$color-warning: #faad14;
+$color-danger: #ff4d4f;
+$color-info: #1890ff;
+
+// -------------------- 字体系统 --------------------
+$font-family-base:
+  'Avenir',
+  Helvetica,
+  Arial,
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  'Noto Sans SC',
+  sans-serif;
+$font-family-code:
+  'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+$font-size-xs: 0.75rem; // 12px
+$font-size-sm: 0.875rem; // 14px
+$font-size-base: 1rem; // 16px
+$font-size-md: 1.125rem; // 18px
+$font-size-lg: 1.25rem; // 20px
+$font-size-xl: 1.5rem; // 24px
+$font-size-2xl: 1.875rem; // 30px
+$font-size-3xl: 2.25rem; // 36px
+
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// -------------------- 间距系统（4px 网格） --------------------
+$spacing-unit: 0.25rem;
+$spacing-1: $spacing-unit;
+$spacing-2: $spacing-unit * 2;
+$spacing-3: $spacing-unit * 3;
+$spacing-4: $spacing-unit * 4;
+$spacing-5: $spacing-unit * 5;
+$spacing-6: $spacing-unit * 6;
+$spacing-8: $spacing-unit * 8;
+$spacing-10: $spacing-unit * 10;
+$spacing-12: $spacing-unit * 12;
+$spacing-16: $spacing-unit * 16;
+$spacing-20: $spacing-unit * 20;
+$spacing-24: $spacing-unit * 24;
+
+// -------------------- 断点 --------------------
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+
+// -------------------- 圆角 --------------------
+$border-radius-sm: 0.25rem;
+$border-radius-base: 0.5rem;
+$border-radius-md: 0.75rem;
+$border-radius-lg: 1rem;
+$border-radius-xl: 1.5rem;
+$border-radius-full: 9999px;
+
+// -------------------- 阴影 --------------------
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-base:
+  0 1px 3px 0 rgba(0, 0, 0, 0.1),
+  0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$shadow-md:
+  0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg:
+  0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl:
+  0 20px 25px -5px rgba(0, 0, 0, 0.1),
+  0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// -------------------- 过渡动画 --------------------
+$transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+// -------------------- Z-index --------------------
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-tooltip: 1070;
+$z-index-toast: 1080;
+
+// -------------------- 毛玻璃 --------------------
+$glass-background-light: rgba(255, 255, 255, 0.85);
+$glass-background-dark: rgba(26, 26, 46, 0.85);
+$glass-border-light: rgba(229, 229, 229, 0.85);
+$glass-border-dark: rgba(42, 58, 92, 0.85);
+$glass-blur: 12px;
+
+// -------------------- 主题 CSS 变量 --------------------
+:root {
+  --bg-primary: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-hover: #f5f5f5;
+  --bg-sidebar: #ffffff;
+  --bg-header: rgba(241, 245, 249, 0.8);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: rgba(203, 213, 225, 0.7);
+  --border-light: rgba(226, 232, 240, 0.8);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --color-accent: #475569;
+  --color-accent-light: rgba(241, 245, 249, 0.9);
+  --color-accent-deep: #1e293b;
+}
+
+html.dark {
+  --bg-primary: #0f0f23;
+  --bg-card: #161f3e;
+  --bg-hover: #1f2f50;
+  --bg-sidebar: #121a33;
+  --bg-header: rgba(18, 26, 51, 0.85);
+  --text-primary: #e8e8ed;
+  --text-secondary: #b0b8c8;
+  --text-muted: #6b7388;
+  --border-color: rgba(55, 70, 100, 0.7);
+  --border-light: rgba(50, 65, 95, 0.8);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
+  --color-accent: #cbd5e1;
+  --color-accent-light: rgba(51, 65, 85, 0.9);
+  --color-accent-deep: #f1f5f9;
+}

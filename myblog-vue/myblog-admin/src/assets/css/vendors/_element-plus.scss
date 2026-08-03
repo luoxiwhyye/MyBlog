@@ -1,0 +1,35 @@
+// ============================================
+// vendors/_element-plus.scss - Element Plus 定制
+// 支持亮/暗双主题，覆盖变量与 design-system.md 一致
+// ============================================
+
+@use '../abstracts/variables' as *;
+
+:root {
+  --el-color-primary: #{$color-primary};
+  --el-color-primary-light-3: #6b7a8f;
+  --el-color-primary-light-5: #8b97a9;
+  --el-color-primary-light-7: #b9c2cf;
+  --el-color-primary-light-8: #d1d7e0;
+  --el-color-primary-light-9: #e8ebf0;
+  --el-color-primary-dark-2: #39444f;
+  --el-font-family: #{$font-family-base};
+  --el-border-radius-base: #{$border-radius-base};
+  --el-border-radius-small: #{$border-radius-sm};
+}
+
+html.dark {
+  // 覆盖 Element Plus 暗色背景与边框
+  --el-bg-color: #161f3e;
+  --el-bg-color-overlay: #1e2949;
+  --el-fill-color-blank: #161f3e;
+  --el-fill-color-light: #1f2f50;
+  --el-fill-color-lighter: #1a2540;
+  --el-border-color: rgba(55, 70, 100, 0.7);
+  --el-border-color-light: rgba(50, 65, 95, 0.8);
+  --el-border-color-lighter: rgba(50, 65, 95, 0.8);
+  --el-text-color-primary: #e8e8ed;
+  --el-text-color-regular: #b0b8c8;
+  --el-text-color-secondary: #6b7388;
+  --el-mask-color: rgba(15, 15, 35, 0.75);
+}

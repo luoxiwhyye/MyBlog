@@ -1,0 +1,126 @@
+spring:
+  application:
+    name: myblog-springboot
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:myblog}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USER:root}
+    # ⚠️ 不再提供硬编码默认密码；生产环境必须通过环境变量 DB_PASSWORD 设置
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+  # ── Redis 缓存配置 ──
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+
+  # ── 邮件通知（可选；未配置 SMTP 时 MailService 自动降级）──
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:465}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
+        mail.debug: false
+
+server:
+  port: ${PORT:3000}
+  # ── HTTP 压缩（等价于 Express compression 中间件）──
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+    min-response-size: 1024
+  # ── 请求体大小限制 ──
+  tomcat:
+    max-http-form-post-size: 10MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-do-not-use-in-production}
+    expiration-ms: ${JWT_EXPIRES_IN:604800000}
+  upload:
+    path: ${UPLOAD_PATH:uploads}
+  blogger:
+    username: ${BLOGGER_USERNAME:admin}
+    password: ${BLOGGER_PASSWORD:admin123}
+    nickname: ${BLOGGER_NICKNAME:博主}
+    email: ${BLOGGER_EMAIL:admin@blog.com}
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3001}
+  admin-origin: ${ADMIN_ORIGIN:http://localhost:5173}
+  # 站点信息（用于邮件通知中的链接与署名）
+  site-url: ${SITE_URL:http://localhost:3001}
+  site-name: ${SITE_NAME:MyBlog}
+  meilisearch:
+    host: ${MEILI_HOST:127.0.0.1}
+    port: ${MEILI_PORT:7700}
+    master-key: ${MEILI_MASTER_KEY:}
+
+# ── Actuator 监控（健康检查 + Prometheus 指标）──
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    root: INFO
+    com.myblog: DEBUG
+  file:
+    path: logs

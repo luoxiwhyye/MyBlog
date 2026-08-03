@@ -1,0 +1,53 @@
+// ============================================
+// Mixins 库 — 管理后台
+// ============================================
+
+@use 'variables' as *;
+
+// 响应式断点
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == md {
+    @media (min-width: 768px) {
+      @content;
+    }
+  } @else if $breakpoint == lg {
+    @media (min-width: 992px) {
+      @content;
+    }
+  } @else {
+    @media (min-width: $breakpoint) {
+      @content;
+    }
+  }
+}
+
+// 居中
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 文本截断
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 卡片
+@mixin card($padding: $spacing-6, $radius: $border-radius-lg) {
+  padding: $padding;
+  border-radius: $radius;
+  box-shadow: $shadow-md;
+  transition: box-shadow $transition-fast;
+  &:hover {
+    box-shadow: $shadow-lg;
+  }
+}

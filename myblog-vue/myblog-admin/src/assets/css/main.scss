@@ -1,0 +1,17 @@
+// ============================================
+// main.scss - 管理后台全局样式入口
+// ============================================
+
+// 1. 抽象层（不输出 CSS）
+@use 'abstracts/variables' as *;
+@use 'abstracts/mixins' as *;
+
+// 2. 基础样式
+@use 'base/reset';
+@use 'base/typography';
+
+// 3. 布局
+@use 'layouts/admin';
+
+// 4. 第三方库覆盖
+@use 'vendors/element-plus';

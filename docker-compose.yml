@@ -1,0 +1,251 @@
+# ============================================================
+# docker-compose.yml — myblog 全栈 Docker 部署
+# ============================================================
+#
+# 架构概览：
+#   myblog-backend   → Express 或 Spring Boot（API 服务，端口 3000）
+#   myblog-blog      → Nuxt 3 SSR 博客前台（端口 3001）
+#   myblog-admin     → Vue 3 SPA 管理后台（端口 3002）
+#   mysql            → MySQL 8.0 数据库
+#   redis            → Redis 7 缓存
+#
+# 使用方式：
+#   1. 复制 .env.docker.example 为 .env.docker 并修改配置
+#   2. 启动：docker compose --env-file .env.docker up -d
+#   3. 首次启动后需要初始化数据库，详见 DEPLOY.md
+# ============================================================
+
+services:
+  # ==========================================
+  # MySQL 数据库
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: myblog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-myblog}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动初始化数据库结构
+      - ./myblog-express/myblog-1.1.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${DB_PASSWORD:-root}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - myblog-net
+
+  # ==========================================
+  # Redis 缓存
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: myblog-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - myblog-net
+
+  # ==========================================
+  # Meilisearch 全文搜索引擎
+  # ==========================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.10
+    container_name: myblog-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
+      MEILI_ENV: ${MEILI_ENV:-production}
+      MEILI_NO_ANALYTICS: "true"
+    ports:
+      - "${MEILI_PORT:-7700}:7700"
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - myblog-net
+
+  # ==========================================
+  # 后端 API 服务
+  # 二选一：Express (Node.js) 或 Spring Boot (Java)
+  # ==========================================
+
+  # ── 选项 A：Express 后端 (默认) ──
+  myblog-backend:
+    build:
+      context: ./myblog-express
+      dockerfile: Dockerfile
+    container_name: myblog-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-myblog}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      MEILI_HOST: ${MEILI_HOST:-meilisearch}
+      MEILI_PORT: ${MEILI_PORT:-7700}
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3001}
+      ADMIN_ORIGIN: ${ADMIN_ORIGIN:-http://localhost:3002}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    volumes:
+      - uploads-data:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - myblog-net
+
+  # ── 选项 B：Spring Boot 后端（如果要使用，请注释掉上面的 Express 服务，取消下面的注释）──
+  # myblog-backend:
+  #   build:
+  #     context: ./myblog-springboot
+  #     dockerfile: Dockerfile
+  #   container_name: myblog-backend
+  #   restart: unless-stopped
+  #   environment:
+  #     DB_HOST: mysql
+  #     DB_PORT: 3306
+  #     DB_USER: root
+  #     DB_PASSWORD: ${DB_PASSWORD:-root}
+  #     DB_NAME: ${DB_NAME:-myblog}
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+  #     MEILI_HOST: ${MEILI_HOST:-meilisearch}
+  #     MEILI_PORT: ${MEILI_PORT:-7700}
+  #     MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
+  #     JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+  #     JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-604800000}
+  #     PORT: 3000
+  #     UPLOAD_PATH: uploads
+  #     BLOGGER_USERNAME: ${BLOGGER_USERNAME:-admin}
+  #     BLOGGER_PASSWORD: ${BLOGGER_PASSWORD:-admin123}
+  #     BLOGGER_NICKNAME: ${BLOGGER_NICKNAME:-博主}
+  #     BLOGGER_EMAIL: ${BLOGGER_EMAIL:-admin@example.com}
+  #     SITE_URL: ${SITE_URL:-http://localhost:3001}
+  #     SITE_NAME: ${SITE_NAME:-MyBlog}
+  #     # 邮件通知（可选，未配置则自动停用）
+  #     SMTP_HOST: ${SMTP_HOST:-}
+  #     SMTP_PORT: ${SMTP_PORT:-465}
+  #     SMTP_USER: ${SMTP_USER:-}
+  #     SMTP_PASS: ${SMTP_PASS:-}
+  #   ports:
+  #     - "${BACKEND_PORT:-3000}:3000"
+  #   volumes:
+  #     - uploads-data:/app/uploads
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - myblog-net
+
+  # ==========================================
+  # 博客前台 (Nuxt 3 SSR)
+  # ==========================================
+  myblog-blog:
+    build:
+      context: ./myblog-vue/myblog-blog
+      dockerfile: Dockerfile
+      args:
+        NUXT_API_BASE: ${NUXT_API_BASE:-http://myblog-backend:3000/api/v1}
+        NUXT_SITE_URL: ${NUXT_SITE_URL:-http://localhost:3001}
+    container_name: myblog-blog
+    restart: unless-stopped
+    environment:
+      NUXT_API_BASE: ${NUXT_API_BASE:-http://myblog-backend:3000/api/v1}
+      NUXT_SITE_URL: ${NUXT_SITE_URL:-http://localhost:3001}
+    ports:
+      - "${BLOG_PORT:-3001}:3001"
+    depends_on:
+      - myblog-backend
+    networks:
+      - myblog-net
+
+  # ==========================================
+  # 管理后台 (Vue 3 SPA + Nginx)
+  # ==========================================
+  myblog-admin:
+    build:
+      context: ./myblog-vue/myblog-admin
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-http://myblog-backend:3000/api/v1}
+    container_name: myblog-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-3002}:80"
+    depends_on:
+      - myblog-backend
+    networks:
+      - myblog-net
+
+# ==========================================
+# 数据卷
+# ==========================================
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  meili-data:
+    driver: local
+  uploads-data:
+    driver: local
+
+# ==========================================
+# 网络
+# ==========================================
+networks:
+  myblog-net:
+    driver: bridge

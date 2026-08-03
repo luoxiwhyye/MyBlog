@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# 上传文件：保留目录结构，忽略实际文件
+uploads/*
+!uploads/.gitkeep
+uploads/**/*
+!uploads/**/.gitkeep
+
+logs/
+*.log

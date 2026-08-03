@@ -1,0 +1,39 @@
+# ============================================
+# MyBlog 根目录 .gitignore
+# ============================================
+
+# ── 环境变量 ──
+# 忽略所有 .env 变体，但保留 *.example 模板
+.env
+.env.*
+!.env.example
+!.env.docker.example
+!**/.env.example
+!**/.env.docker.example
+
+# ── 操作系统 ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE / 编辑器 ──
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
+
+# ── 日志与临时文件 ──
+*.log
+logs/
+
+# ── 构建产物（子项目各自管理） ──
+dist/
+.output/
+target/
+
+# ── 敏感/个人文档 ──
+# 提示词与本地讨论文档不入库（设计规范等公共文档可显式保留）
+/documents/
+!/documents/design-system.md
+!/documents/refactor-plan.md
+!/documents/refactor-commit.md

@@ -1,0 +1,36 @@
+// ============================================
+// themes/_dark.scss - 暗色主题 CSS 变量
+// ============================================
+
+html.dark {
+  // 背景色 — bg-primary 透明以直接展示原图，卡片组件保持 opaque
+  --bg-primary: rgba(15, 15, 35, 0);
+  --bg-card: rgba(22, 33, 62, 0.85);
+  --bg-header: rgba(22, 33, 62, 0.8);
+  --bg-hover: rgba(31, 47, 80, 0.85);
+  --bg-code: rgba(30, 30, 50, 0.85);
+  --bg-backdrop: rgba(15, 15, 35, 0.75);
+
+  // 文字颜色
+  --text-primary: #e8e8ed;
+  --text-secondary: #b0b8c8;
+  --text-muted: #6b7388;
+
+  // 边框颜色
+  --border-color: rgba(55, 70, 100, 0.7);
+  --border-light: rgba(50, 65, 95, 0.8);
+
+  // 阴影 — 增强层次感
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-elevated:
+    0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
+
+  // 主题色
+  --color-accent: #cbd5e1;
+  --color-accent-light: rgba(51, 65, 85, 0.9);
+  --color-accent-deep: #f1f5f9;
+  --color-link: #94a3b8;
+
+  // 文字阴影 — 用于在图片背景上提升可读性
+  --text-shadow-on-bg: 0 1px 3px rgba(0, 0, 0, 0.5);
+}

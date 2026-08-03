@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "v2-*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Type check blog
+        working-directory: myblog-vue/myblog-blog
+        run: npm run type-check
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-admin/package-lock.json
+
+      - name: Install admin dependencies
+        working-directory: myblog-vue/myblog-admin
+        run: npm ci
+
+      - name: Type check admin
+        working-directory: myblog-vue/myblog-admin
+        run: npm run type-check
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Run toolbox unit tests
+        working-directory: myblog-vue/myblog-blog
+        run: npm run test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-blog/package-lock.json
+
+      - name: Install blog dependencies
+        working-directory: myblog-vue/myblog-blog
+        run: npm ci
+
+      - name: Build blog
+        working-directory: myblog-vue/myblog-blog
+        run: npm run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: myblog-vue/myblog-admin/package-lock.json
+
+      - name: Install admin dependencies
+        working-directory: myblog-vue/myblog-admin
+        run: npm ci
+
+      - name: Build admin
+        working-directory: myblog-vue/myblog-admin
+        run: npm run build
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Express image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myblog-express
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Spring Boot image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myblog-springboot
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Blog image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myblog-vue/myblog-blog
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./myblog-vue/myblog-admin
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

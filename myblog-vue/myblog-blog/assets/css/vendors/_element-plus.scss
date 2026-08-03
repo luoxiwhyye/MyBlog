@@ -1,0 +1,29 @@
+// ============================================
+// vendors/_element-plus.scss - Element Plus 主题定制
+// ============================================
+
+@use "sass:color";
+@use "../abstracts/variables" as *;
+
+// 覆盖 Element Plus 的 CSS 变量
+:root {
+  --el-color-primary: #{$color-primary};
+  --el-color-primary-light-3: #{color.adjust($color-primary, $lightness: 20%)};
+  --el-color-primary-light-5: #{color.adjust($color-primary, $lightness: 30%)};
+  --el-color-primary-light-7: #{color.adjust($color-primary, $lightness: 40%)};
+  --el-color-primary-light-8: #{color.adjust($color-primary, $lightness: 45%)};
+  --el-color-primary-light-9: #{color.adjust($color-primary, $lightness: 48%)};
+  --el-color-primary-dark-2: #{color.adjust($color-primary, $lightness: -10%)};
+  --el-border-radius-base: #{$border-radius-base};
+  --el-font-family: #{$font-family-base};
+}
+
+html.dark {
+  --el-bg-color: #1a1a2e;
+  --el-bg-color-page: #12121e;
+  --el-text-color-primary: #e8e8e8;
+  --el-text-color-regular: #c0c0c0;
+  --el-text-color-secondary: #9a9a9a;
+  --el-border-color: #2a2a4a;
+  --el-border-color-light: #3a3a5a;
+}
