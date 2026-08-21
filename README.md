@@ -8,16 +8,18 @@
 
 ## 🌟 亮点速览
 
-| 维度                   | 亮点                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| 🏗️ **双引擎后端**      | Express 与 Spring Boot 功能等价、可无缝切换                                        |
-| 🔒 **多层安全防护**    | CSP 策略 + 三级限流（全局/登录/评论/上传）+ CORS 白名单 + 生产密码强制校验         |
-| ⚡ **智能缓存**        | Redis stale-while-revalidate，缓存不可用时自动降级直查数据库                       |
-| 🔍 **深度 SEO**        | JSON-LD 结构化数据（BlogPosting + WebSite）+ OG/Twitter Card + Canonical + Sitemap |
-| 🧰 **内置工具箱**      | 15+ 编程工具，Web Worker 计算，不影响页面交互                                      |
-| 🐳 **Docker 一键部署** | 5 容器自动编排，含健康检查、数据持久化、自动库表初始化                             |
-| 🌓 **暗色模式**        | CSS 变量驱动，跟随系统 / 手动切换，Element Plus 全组件适配                         |
-| 📝 **访客评论系统**    | Gravatar 头像（国内镜像）、嵌套回复、点赞、审核/垃圾标记                           |
+| 维度                   | 亮点                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| 🏗️ **双引擎后端**      | Express 与 Spring Boot 功能等价、可无缝切换                                                      |
+| 🔒 **多层安全防护**    | CSP 策略 + 四层限流（全局/登录/评论/上传）+ CORS 白名单 + 生产密码强制校验                       |
+| ⚡ **智能缓存**        | Redis stale-while-revalidate + 命中率统计 + 启动/手动预热 + 一键清空，不可用时自动降级直查数据库 |
+| 🌓 **暗色模式**        | 博客前台 + 管理后台均支持，CSS 变量驱动，跟随系统 / 手动切换，Element Plus 全组件适配            |
+| 🧰 **内置工具箱**      | 15+ 编程工具，Web Worker 计算，支持一键收藏，不影响页面交互                                      |
+| 📝 **访客评论系统**    | Gravatar 头像（国内镜像）、嵌套回复、@提及、点赞、审核/垃圾标记、邮件通知                        |
+| ⚙️ **系统设置可视化**  | 分组表单配置（基本/外观/社交），含校验与 JSON 导出/导入，保存即生效                              |
+| 📈 **运维监控**        | 缓存命中率、响应时间、错误率、慢请求追踪，后台一键查看与清空                                     |
+| 📱 **局域网联调**      | 开发服务器监听 0.0.0.0，同 WiFi 手机即可访问测试                                                 |
+| 🐳 **Docker 一键部署** | 5 容器自动编排，含健康检查、数据持久化、自动库表初始化                                           |
 
 ---
 
@@ -94,11 +96,14 @@ graph TB
 | Web 框架   | Express                       | ^5.2.1          |
 | 数据库     | MySQL                         | —               |
 | 数据库驱动 | mysql2/promise                | ^3.20.0         |
-| 缓存       | Redis (ioredis)               | ^5.8.0          |
+| 缓存       | Redis (ioredis)               | ^5.11.1         |
 | 认证       | JWT (jsonwebtoken + bcryptjs) | ^9.0.3 / ^3.0.3 |
 | 文件上传   | multer                        | ^2.1.1          |
+| 图片处理   | sharp (WebP/缩略图)           | ^0.33.0         |
+| 全文搜索   | meilisearch                   | ^0.48.0         |
+| 邮件通知   | nodemailer                    | ^6.10.1         |
 | 安全       | helmet + cors                 | ^8.1.0 / ^2.8.6 |
-| 限流       | express-rate-limit            | ^7.9.0          |
+| 限流       | express-rate-limit            | ^8.5.2          |
 | 压缩       | compression                   | ^1.8.1          |
 | HTTP 日志  | morgan                        | ^1.10.1         |
 | 结构化日志 | winston                       | ^3.19.0         |
@@ -107,19 +112,23 @@ graph TB
 
 ### 后端 — Spring Boot (`myblog-springboot`)
 
-| 类别       | 方案                         | 版本   |
-| ---------- | ---------------------------- | ------ |
-| 运行时     | Java / JDK                   | 17+    |
-| Web 框架   | Spring Boot                  | 4.0.6  |
-| ORM        | Spring Data JPA / Hibernate  | —      |
-| 数据库     | MySQL                        | —      |
-| 数据库驱动 | mysql-connector-j            | —      |
-| 认证       | JWT (jjwt) + Spring Security | 0.12.6 |
-| 密码加密   | BCrypt (Spring Security)     | —      |
-| 文件上传   | Spring MultipartFile         | —      |
-| 跨域       | Spring WebMvcConfigurer      | —      |
-| 参数校验   | Jakarta Validation           | —      |
-| 测试       | Spring Boot Test             | —      |
+| 类别       | 方案                                      | 版本   |
+| ---------- | ----------------------------------------- | ------ |
+| 运行时     | Java / JDK                                | 17+    |
+| Web 框架   | Spring Boot                               | 4.0.6  |
+| ORM        | Spring Data JPA / Hibernate               | —      |
+| 数据库     | MySQL                                     | —      |
+| 数据库驱动 | mysql-connector-j                         | —      |
+| 认证       | JWT (jjwt) + Spring Security              | 0.12.6 |
+| 密码加密   | BCrypt (Spring Security)                  | —      |
+| 文件上传   | Spring MultipartFile                      | —      |
+| 图片处理   | webp-imageio (WebP 变体)                  | 0.1.6  |
+| 邮件通知   | spring-boot-starter-mail                  | —      |
+| 缓存       | spring-boot-starter-data-redis + 内存降级 | —      |
+| 监控       | Actuator + Micrometer/Prometheus          | —      |
+| 跨域       | Spring WebMvcConfigurer                   | —      |
+| 参数校验   | Jakarta Validation                        | —      |
+| 测试       | Spring Boot Test                          | —      |
 
 ### 博客前台 (`myblog-blog`)
 
@@ -155,12 +164,13 @@ graph TB
 
 ```
 myblog-express/                  # 后端 — Express (Node.js)
-├── config/                      # 配置（数据库、JWT、上传、日志）
+├── config/                      # 配置（数据库、JWT、上传、日志、Redis）
 ├── controllers/                 # 控制器
-├── middleware/                  # 中间件（认证、角色、限流、缓存、校验、错误处理）
+├── middleware/                  # 中间件（认证、角色、限流、缓存、校验、错误处理、性能监控）
 ├── models/                      # 数据模型
-├── routes/                      # 路由
+├── routes/                      # 路由（含 cache/metrics 运维接口）
 ├── scripts/                     # 初始化脚本
+├── services/                    # 服务（meilisearch、mailer、commentNotifier）
 ├── test/                        # 集成测试
 ├── uploads/                     # 上传文件目录
 ├── Dockerfile                   # Docker 镜像
@@ -172,14 +182,14 @@ myblog-springboot/               # 后端 — Spring Boot (Java)
 ├── pom.xml                      # Maven 依赖配置
 └── src/main/
     ├── java/com/myblog/myblogspringboot/
-    │   ├── config/              # 配置（Security、CORS、初始化）
-    │   ├── controller/          # 控制器（REST API）
+    │   ├── config/              # 配置（Security、CORS、缓存统计拦截器、初始化）
+    │   ├── controller/          # 控制器（REST API，含 cache 运维接口）
     │   ├── dto/                 # 请求/响应 DTO
     │   ├── entity/              # JPA 实体（Article、Comment 等）
     │   ├── exception/           # 全局异常处理
     │   ├── repository/          # Spring Data JPA Repository
     │   ├── security/            # JWT Token 认证
-    │   └── service/             # 业务逻辑层
+    │   └── service/             # 业务逻辑层（含 Mail/评论通知/缓存统计）
     └── resources/
         └── application.yml      # 应用配置
 
@@ -194,14 +204,15 @@ myblog-vue/
 │   ├── locales/                 # i18n 词条（zh / en）
 │   ├── pages/                   # 页面
 │   ├── plugins/                 # Element Plus 插件
-│   ├── server/                  # Nitro（API 代理、sitemap）
+│   ├── server/                  # Nitro（API 代理、sitemap、/uploads 代理）
 │   ├── stores/                  # Pinia（设置、博主、主题）
 │   ├── types/                   # TypeScript 类型
-│   └── utils/                   # 工具函数、格式、SEO、Gravatar
+│   └── utils/                   # 工具函数、格式、SEO、Gravatar、图片 URL 归一化
 │
 └── myblog-admin/                # 后台管理（Vue 3 SPA）
     ├── Dockerfile               # Docker 镜像（构建 + Nginx）
     ├── src/
+    │   ├── assets/css/          # 设计令牌 + Element Plus 暗色覆盖
     │   └── api/ / layouts/ / router/ / stores/ / types/ / utils/ / views/
     ├── nginx.conf                # Nginx 配置（SPA 路由）
     └── package.json
@@ -217,26 +228,30 @@ myblog-vue/
 
 ### 博客前台
 
-- **文章展示**：Markdown 渲染 + highlight.js 按需加载代码高亮
+- **文章展示**：Markdown 渲染 + highlight.js 按需加载代码高亮（暗色模式自动切换主题）
+- **首页 Hero**：装饰光斑动画 + 站点统计（文章/分类/标签）+ CTA 按钮
+- **文章卡片**：封面缩略图（WebP）+ hover 缩放、阅读时长、摘要截断
+- **阅读体验**：顶部阅读进度条 + 目录滚动高亮
 - **访客评论**：昵称 + 邮箱 + 网址，Gravatar 头像（cravatar.cn 国内镜像）
-- **评论嵌套**：支持回复、点赞、待审核机制
-- **分类 / 标签**：归档页按年月分组
-- **搜索**：全文关键词 + 相关度排序 + 高亮
+- **评论嵌套**：@提及自动填充与高亮、嵌套连线、点赞、待审核机制
+- **分类 / 标签**：归档页时间线布局（年份徽章 + 月份节点）+ 汇总卡片
+- **搜索**：全文关键词（Meilisearch，不可用自动降级）+ 相关度排序 + 高亮
 - **SEO**：Open Graph / Twitter Card / JSON-LD 结构化数据（BlogPosting + WebSite） / sitemap.xml / Canonical URL / 自定义 404 页面
 - **暗色模式**：一键切换 + 跟随系统 + CSS 变量 + Element Plus 自动适配
 - **自定义背景**：明/暗各自独立背景图（后台配置）
 - **毛玻璃效果**：所有卡片半透明 + `backdrop-filter: blur`
-- **分页组件**：纯自定义（总数徽章、页大小按钮组、页码导航、跳转输入）
-- **编程工具箱**：Base64、URL、JSON、SQL、MD5、时间戳等 15+ 工具（Web Worker）
+- **编程工具箱**：Base64、URL、JSON、SQL、MD5、时间戳等 15+ 工具（Web Worker + 一键收藏）
 - **i18n 预备**：中/英词条 + `useI18n()` composable
 
 ### 管理后台
 
-- **仪表盘**：文章/评论/浏览量统计 + 发布趋势图（ECharts）
-- **文章管理**：Quill 富文本、草稿/发布、软删除/恢复回收站
+- **仪表盘**：图标化统计卡片（文章/评论/浏览/待审核）+ 发布趋势图（ECharts，随主题重绘）+ 阅读排行
+- **文章管理**：Quill 富文本、草稿/发布、软删除/恢复回收站、localStorage 草稿自动保存、实时预览、一键生成摘要
 - **分类 / 标签**：CRUD
 - **评论管理**：审核/垃圾/删除/回收站，网站列
-- **网站配置**：表格布局，站点名/描述/Logo/背景图/友链等
+- **系统设置**：分组表单（基本/外观/社交），含校验、保存即生效、JSON 导出/导入
+- **运维监控**：缓存命中率、平均/最大响应时间、错误率、慢请求追踪，一键清空缓存与预热
+- **暗色模式**：顶栏一键切换，持久化 + 跟随系统
 - **博主管理**：资料、头像、密码修改
 
 ---
@@ -287,14 +302,20 @@ npm install
 npm run dev             # http://localhost:3001
 ```
 
+> 开发服务器监听 `0.0.0.0`，同一 WiFi 下手机可通过 `http://<电脑IP>:3001` 访问测试；
+> 图片/API 经 Nuxt 代理转发，手机端无需额外配置。
+
 ### 4. 启动管理后台
 
 ```bash
 cd myblog-vue/myblog-admin
 cp .env.example .env
 npm install
-npm run dev
+npm run dev             # http://localhost:5173
 ```
+
+> 开发环境 API 走 Vite 代理（相对路径 `/api/v1` 转发到本机 3000），
+> 手机通过 `http://<电脑IP>:5173` 访问同样可正常请求接口。
 
 ---
 
@@ -302,33 +323,39 @@ npm run dev
 
 ### Express 后端 (`myblog-express/.env`)
 
-| 变量                                                                           | 说明                     | 默认值                  |
-| ------------------------------------------------------------------------------ | ------------------------ | ----------------------- |
-| `NODE_ENV`                                                                     | 运行模式                 | `development`           |
-| `PORT`                                                                         | 服务端口                 | `3000`                  |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`                  | 数据库连接               | —                       |
-| **`JWT_SECRET`**                                                               | JWT 密钥（**生产必改**） | —                       |
-| `JWT_EXPIRES_IN`                                                               | Token 有效期             | `7d`                    |
-| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主                 | —                       |
-| `FRONTEND_ORIGIN`                                                              | 前端域名（CORS）         | `http://localhost:3001` |
+| 变量                                                                           | 说明                                  | 默认值                             |
+| ------------------------------------------------------------------------------ | ------------------------------------- | ---------------------------------- |
+| `NODE_ENV`                                                                     | 运行模式                              | `development`                      |
+| `PORT`                                                                         | 服务端口                              | `3000`                             |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`                  | 数据库连接                            | —                                  |
+| **`JWT_SECRET`**                                                               | JWT 密钥（**生产必改**）              | —                                  |
+| `JWT_EXPIRES_IN`                                                               | Token 有效期                          | `7d`                               |
+| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主                              | —                                  |
+| `FRONTEND_ORIGIN`                                                              | 前端域名（CORS）                      | `http://localhost:3001`            |
+| `TRUST_PROXY`                                                                  | 反向代理信任层级（限流按真实访客 IP） | `1`                                |
+| `SITE_URL` / `SITE_NAME`                                                       | 站点链接与名称（邮件通知用）          | `http://localhost:3001` / `MyBlog` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM`            | SMTP 邮件通知（可选，未配置自动停用） | —                                  |
 
 ### Spring Boot 后端 (`myblog-springboot/src/main/resources/application.yml` / 环境变量)
 
-| 环境变量                                                                       | application.yml 对应路径                   | 说明                     | 默认值             |
-| ------------------------------------------------------------------------------ | ------------------------------------------ | ------------------------ | ------------------ |
-| `PORT`                                                                         | `server.port`                              | 服务端口                 | `3000`             |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`                  | `spring.datasource.*`                      | 数据库连接               | —                  |
-| **`JWT_SECRET`**                                                               | `app.jwt.secret`                           | JWT 密钥（**生产必改**） | —                  |
-| `JWT_EXPIRES_IN`                                                               | `app.jwt.expiration-ms`                    | Token 有效期（毫秒）     | `604800000`（7天） |
-| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | `app.blogger.*`                            | 默认博主                 | —                  |
-| `FRONTEND_ORIGIN` / `ADMIN_ORIGIN`                                             | `app.frontend-origin` / `app.admin-origin` | CORS 白名单              | —                  |
-| `UPLOAD_PATH`                                                                  | `app.upload.path`                          | 上传文件目录             | `uploads`          |
+| 环境变量                                                                       | application.yml 对应路径                   | 说明                                  | 默认值             |
+| ------------------------------------------------------------------------------ | ------------------------------------------ | ------------------------------------- | ------------------ |
+| `PORT`                                                                         | `server.port`                              | 服务端口                              | `3000`             |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`                  | `spring.datasource.*`                      | 数据库连接                            | —                  |
+| **`JWT_SECRET`**                                                               | `app.jwt.secret`                           | JWT 密钥（**生产必改**）              | —                  |
+| `JWT_EXPIRES_IN`                                                               | `app.jwt.expiration-ms`                    | Token 有效期（毫秒）                  | `604800000`（7天） |
+| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | `app.blogger.*`                            | 默认博主                              | —                  |
+| `FRONTEND_ORIGIN` / `ADMIN_ORIGIN`                                             | `app.frontend-origin` / `app.admin-origin` | CORS 白名单                           | —                  |
+| `UPLOAD_PATH`                                                                  | `app.upload.path`                          | 上传文件目录                          | `uploads`          |
+| `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY`                               | `app.meilisearch.*`                        | Meilisearch 全文搜索                  | —                  |
+| `SITE_URL` / `SITE_NAME`                                                       | `app.site-url` / `app.site-name`           | 站点链接与名称（邮件通知用）          | —                  |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`                          | `spring.mail.*`                            | SMTP 邮件通知（可选，未配置自动停用） | —                  |
 
 ### 管理后台 (`myblog-admin/.env`)
 
-| 变量            | 说明          | 默认值                         |
-| --------------- | ------------- | ------------------------------ |
-| `VITE_API_BASE` | 后端 API 地址 | `http://localhost:3000/api/v1` |
+| 变量            | 说明          | 默认值                                                        |
+| --------------- | ------------- | ------------------------------------------------------------- |
+| `VITE_API_BASE` | 后端 API 地址 | `/api/v1`（开发走 Vite 代理；生产由 Dockerfile 注入绝对地址） |
 
 > 各子项目均有 `.env.example` 模板文件，可直接复制为 `.env` 使用。
 
@@ -338,14 +365,17 @@ npm run dev
 
 ### 限流策略
 
-Express 后端实现了 **三层速率限制**，全部基于 `express-rate-limit`：
+Express 后端实现了 **四层速率限制**，全部基于 `express-rate-limit`：
 
-| 层级 | 路由                      | 窗口    | 上限   | 说明                      |
-| ---- | ------------------------- | ------- | ------ | ------------------------- |
-| 全局 | `/api/*`                  | 15 分钟 | 300 次 | 返回标准 `RateLimit-*` 头 |
-| 登录 | `/api/v1/blogger/login`   | 15 分钟 | 10 次  | 成功后不计数，防暴力破解  |
-| 评论 | `/api/v1/comments` (POST) | 15 分钟 | 30 次  | 防评论灌水                |
-| 上传 | `/api/v1/upload`          | 15 分钟 | 50 次  | 防止滥用上传接口          |
+| 层级 | 路由                      | 窗口    | 上限    | 说明                                                               |
+| ---- | ------------------------- | ------- | ------- | ------------------------------------------------------------------ |
+| 全局 | `/api/*`                  | 15 分钟 | 1200 次 | 按真实访客 IP 独立计数（`trust proxy`），返回标准 `RateLimit-*` 头 |
+| 登录 | `/api/v1/blogger/login`   | 15 分钟 | 10 次   | 成功后不计数，防暴力破解                                           |
+| 评论 | `/api/v1/comments` (POST) | 15 分钟 | 30 次   | 防评论灌水                                                         |
+| 上传 | `/api/v1/upload`          | 15 分钟 | 50 次   | 防止滥用上传接口                                                   |
+
+> 请求经 Nuxt(3001) / Nginx 反代时，后端通过 `X-Forwarded-For` 取真实客户端 IP（`TRUST_PROXY` 配置层级），
+> 避免所有访客共享 `127.0.0.1` 配额导致误杀。Spring Boot 端由 `config/RateLimitFilter` 提供等价四层限流。
 
 ### 其他安全措施
 
@@ -354,19 +384,23 @@ Express 后端实现了 **三层速率限制**，全部基于 `express-rate-limi
 - **生产密码强制**：生产环境禁止空密码或 `root` 默认密码
 - **JWT Bearer Token**：`auth` 中间件（强制）+ `optionalAuth` 中间件（可选认证，用于公开接口透传用户态）
 - **优雅关闭**：监听 SIGTERM/SIGINT，依次关闭 HTTP → 数据库 → Redis
+- **健康检查**：`/health` 返回数据库/Redis/Meilisearch 真实探测状态（Spring Boot 另暴露 `/actuator/health` 与 `/actuator/prometheus`）
 
 ---
 
 ## Redis 缓存策略
 
-| 特性          | 说明                                                           |
-| ------------- | -------------------------------------------------------------- |
-| 缓存对象      | 仅缓存 GET 请求的 JSON 响应                                    |
-| 缓存键        | `cache:{prefix}:{queryString}`                                 |
-| 默认 TTL      | 300 秒（5 分钟）                                               |
-| Cache-Control | `public, max-age=300, stale-while-revalidate=600`              |
-| 降级策略      | Redis 不可用时自动跳过缓存，直查数据库                         |
-| 写失效        | POST/PUT/DELETE 操作可调用 `cache.invalidate(prefix)` 主动清除 |
+| 特性          | 说明                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| 缓存对象      | 仅缓存 GET 请求的 JSON 响应                                          |
+| 缓存键        | `cache:{prefix}:{queryString}`（Spring Boot 为 `分区名::key`）       |
+| 默认 TTL      | 300 秒（5 分钟）                                                     |
+| Cache-Control | `public, max-age=300, stale-while-revalidate=600`                    |
+| 命中统计      | 进程内记录 hits/misses，`GET /api/v1/cache/stats` 查看命中率         |
+| 缓存预热      | 启动时自动预取 settings/types/labels，后台可手动触发                 |
+| 一键清空      | `POST /api/v1/cache/clear`（管理后台"运维监控"页）                   |
+| 降级策略      | Redis 不可用时自动跳过缓存，直查数据库（Spring Boot 降级为内存缓存） |
+| 写失效        | POST/PUT/DELETE 操作可调用 `cache.invalidate(prefix)` 主动清除       |
 
 ---
 
@@ -374,31 +408,33 @@ Express 后端实现了 **三层速率限制**，全部基于 `express-rate-limi
 
 > 前缀 `/api/v1`，统一响应 `{ code, message, data }`。
 
-| 方法                  | 路径                                   | 说明                        | 认证     |
-| --------------------- | -------------------------------------- | --------------------------- | -------- |
-| `GET`                 | `/health`                              | 健康检查（含 JWT 配置状态） | 否       |
-| `GET/POST`            | `/articles`                            | 文章列表 / 创建             | 读写分离 |
-| `GET/PUT/DELETE`      | `/articles/:id`                        | 文章详情 / 更新 / 软删除    | —        |
-| `GET/POST`            | `/comments`                            | 评论列表 / 发布             | 否       |
-| `PUT/DELETE`          | `/comments/:id/...`                    | 审核 / 删除 / 点赞 / 恢复   | 混合     |
-| `POST`                | `/blogger/login`                       | 博主登录                    | 否       |
-| `GET`                 | `/blogger/public-profile`              | 博主公开信息                | 否       |
-| `GET/PUT`             | `/settings`                            | 网站配置读写                | 读公开   |
-| `GET/POST/PUT/DELETE` | `/types` `/labels`                     | 分类 / 标签 CRUD            | —        |
-| `POST`                | `/upload/image`                        | 上传图片                    | admin    |
-| `GET`                 | `/dashboard/stats` `/dashboard/charts` | 仪表盘                      | admin    |
+| 方法                  | 路径                                           | 说明                         | 认证     |
+| --------------------- | ---------------------------------------------- | ---------------------------- | -------- |
+| `GET`                 | `/health`                                      | 健康检查（DB/Redis/Meili）   | 否       |
+| `GET/POST`            | `/articles`                                    | 文章列表 / 创建              | 读写分离 |
+| `GET/PUT/DELETE`      | `/articles/:id`                                | 文章详情 / 更新 / 软删除     | —        |
+| `GET/POST`            | `/comments`                                    | 评论列表 / 发布              | 否       |
+| `PUT/DELETE`          | `/comments/:id/...`                            | 审核 / 删除 / 点赞 / 恢复    | 混合     |
+| `POST`                | `/blogger/login`                               | 博主登录                     | 否       |
+| `GET`                 | `/blogger/public-profile`                      | 博主公开信息                 | 否       |
+| `GET/PUT`             | `/settings`                                    | 网站配置读写                 | 读公开   |
+| `GET/POST/PUT/DELETE` | `/types` `/labels`                             | 分类 / 标签 CRUD             | —        |
+| `POST`                | `/upload/image`                                | 上传图片（自动生成 WebP）    | admin    |
+| `GET`                 | `/dashboard/stats` `/dashboard/charts`         | 仪表盘                       | admin    |
+| `GET/POST`            | `/cache/stats` `/cache/clear` `/cache/preheat` | 缓存运维（命中率/清空/预热） | admin    |
+| `GET`                 | `/metrics`                                     | 性能监控（响应时间/错误率）  | admin    |
 
 ---
 
 ## 暗色模式与主题
 
-- **切换**：Header 太阳/月亮按钮
-- **持久化**：`localStorage`
+- **切换**：博客前台 Header 太阳/月亮按钮；管理后台顶栏一键切换
+- **持久化**：`localStorage`（前台 `blog_theme`、后台 `admin_theme`）
 - **系统跟随**：首次加载检测 `prefers-color-scheme`
-- **CSS 变量**：`main.css` 定义两套变量（`--bg-*` / `--text-*` / `--color-accent` / `--border-*`）
+- **CSS 变量**：主题文件定义两套变量（`--bg-*` / `--text-*` / `--color-accent` / `--border-*`），规范见 `documents/design-system.md`
 - **Element Plus**：`element-plus/theme-chalk/dark/css-vars.css` 自动跟随 `html.dark`
-- **毛玻璃**：所有卡片 `backdrop-filter: blur` + 半透明
-- **背景图**：后台可上传明/暗独立背景图
+- **毛玻璃**：所有卡片 `backdrop-filter: blur` + 半透明（Header 使用独立 `--bg-header` 磨砂色，与背景相称）
+- **背景图**：后台可上传明/暗独立背景图，图片 URL 自动归一化（局域网/外链均可加载）
 
 ---
 
@@ -429,7 +465,8 @@ Express 后端实现了 **三层速率限制**，全部基于 `express-rate-limi
 | 时间   | 时间戳转换                      |
 | 正则   | 正则测试                        |
 
-命令面板 `Ctrl/Cmd + K`，支持键盘上下选择。
+- 命令面板 `Ctrl/Cmd + K`，支持键盘上下选择
+- 常用工具支持**一键收藏**（localStorage 持久化，首页「我的收藏」分区直达）
 
 ---
 
@@ -521,9 +558,9 @@ cd myblog-vue/myblog-admin && npm run build   # → dist/
 
 ## 📝 版本记录
 
-| 日期       | 版本 | 说明                                                                                                                                                                  |
-| ---------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-03 | v2.3 | 全面重构：统一设计系统、前台/后台视觉升级、系统设置分组化、工具箱收藏、评论@提及与邮件通知、编辑器自动保存/预览、缓存预热与统计、图片 WebP 落地、Spring Boot 功能对齐 |
-| 2026-06-27 | v2.2 | Docker 容器化部署支持（docker-compose.yml + Dockerfile × 4 + DEPLOY.md）                                                                                              |
-| 2026-06-10 | v2.1 | 新增 Spring Boot 后端实现（myblog-springboot），与 Express 功能等价                                                                                                   |
-| 2026-06-08 | v2.0 | 访客评论增强、暗色主题、SEO 优化、代码分隔、类型统一、测试/CI/CD 基础设施                                                                                             |
+| 日期       | 版本 | 说明                                                                                                                                                                                                                               |
+| ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-04 | v2.3 | 全面重构：统一设计系统、前台/后台视觉升级（含 Header 磨砂配色）、系统设置分组化、工具箱收藏、评论@提及与邮件通知、编辑器自动保存/预览、缓存预热与统计、图片 WebP 落地、Spring Boot 功能对齐、限流按真实访客 IP、局域网手机联调支持 |
+| 2026-06-27 | v2.2 | Docker 容器化部署支持（docker-compose.yml + Dockerfile × 4 + DEPLOY.md）                                                                                                                                                           |
+| 2026-06-10 | v2.1 | 新增 Spring Boot 后端实现（myblog-springboot），与 Express 功能等价                                                                                                                                                                |
+| 2026-06-08 | v2.0 | 访客评论增强、暗色主题、SEO 优化、代码分隔、类型统一、测试/CI/CD 基础设施                                                                                                                                                          |
