@@ -248,6 +248,61 @@ export const setting = {
   },
 }
 
+// 友链管理
+export interface FriendLinkItem {
+  id: number
+  name: string
+  url: string
+  avatar?: string
+  description?: string
+  email?: string
+  status: boolean
+  isSticky: boolean
+  clickCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export const friendLink = {
+  getList: (params?: {
+    page?: number
+    pageSize?: number
+  }): Promise<ApiResponse<PaginatedResponse<FriendLinkItem>>> => {
+    return request.get('/friend-links', { params })
+  },
+  getDetail: (id: number): Promise<ApiResponse<FriendLinkItem>> => {
+    return request.get(`/friend-links/${id}`)
+  },
+  create: (data: {
+    name: string
+    url: string
+    avatar?: string
+    description?: string
+    email?: string
+    status?: boolean
+    isSticky?: boolean
+  }): Promise<ApiResponse<{ id: number }>> => {
+    return request.post('/friend-links', data)
+  },
+  update: (
+    id: number,
+    data: Partial<{
+      name: string
+      url: string
+      avatar: string
+      description: string
+      email: string
+      status: boolean
+      isSticky: boolean
+    }>,
+  ): Promise<ApiResponse> => {
+    return request.put(`/friend-links/${id}`, data)
+  },
+  delete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/friend-links/${id}`)
+  },
+}
+
 // 文件上传
 export const upload = {
   image: (

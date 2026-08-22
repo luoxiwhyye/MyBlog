@@ -66,13 +66,13 @@ public class CommentService {
                 predicates.add(cb.equal(root.get("status"), "approved"));
             }
 
-            return cb.and(predicates.toArray(new Predicate[0]));
+            return cb.and(predicates.toArray(Predicate[]::new));
         };
 
         Page<Comment> commentPage = commentRepository.findAll(spec, pageable);
         List<Map<String, Object>> list = new ArrayList<>();
 
-        // Batch load replies for top-level comments
+        // Batch load replies for top-level comments (两级结构)
         if (topLevelOnly && !commentPage.getContent().isEmpty()) {
             List<Integer> parentIds = commentPage.getContent().stream()
                     .map(Comment::getId).toList();

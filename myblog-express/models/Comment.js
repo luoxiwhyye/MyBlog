@@ -309,7 +309,7 @@ const getCommentsWithReplies = async (articleId, isAdmin = false) => {
 
   const [topLevelComments] = await pool.query(query, params);
 
-  // 批量加载回复 — 消除 N+1 查询
+  // 批量加载回复 — 消除 N+1 查询（两级结构）
   const parentIds = topLevelComments.map((c) => c.id);
   if (parentIds.length > 0) {
     const repliesMap = await getRepliesBatch(parentIds);

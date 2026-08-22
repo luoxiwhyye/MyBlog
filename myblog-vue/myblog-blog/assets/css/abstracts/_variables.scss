@@ -32,6 +32,17 @@ $color-warning: #faad14;
 $color-danger: #ff4d4f;
 $color-info: #1890ff;
 
+// -------------------- 风格扩展颜色（Anime-lite） --------------------
+// 仅作装饰性辅助色，不用于正文/链接主色（主品牌色仍为上方 slate $color-primary）
+// 图A（天蓝·云白·青绿）日间 / 图B（深蓝·暖橙·冷蓝）夜间
+$color-category-teal: #0f766e;
+$color-category-teal-soft: rgba(15, 118, 110, 0.12);
+$color-fav-amber: #f59e0b;
+$deco-light-primary: rgba(143, 224, 232, 0.16); // 薄荷青
+$deco-light-secondary: rgba(74, 155, 232, 0.14); // 天蓝
+$deco-dark-amber: rgba(201, 138, 75, 0.18); // 暖橙台灯
+$deco-dark-blue: rgba(90, 140, 220, 0.2); // 冷蓝光
+
 // -------------------- 字体系统 --------------------
 $font-family-base:
   "Avenir",
@@ -103,6 +114,7 @@ $border-radius-md: 0.75rem; // 12px
 $border-radius-lg: 1rem; // 16px
 $border-radius-xl: 1.5rem; // 24px
 $border-radius-full: 9999px;
+$border-radius-card-lg: 1rem; // 16px（卡片圆角升级档，等同 $border-radius-lg，可单独调）
 
 // -------------------- 阴影 --------------------
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -125,6 +137,7 @@ $transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 $transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 $transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 $transition-slower: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
 // -------------------- Z-index 层级 --------------------
 $z-index-dropdown: 1000;

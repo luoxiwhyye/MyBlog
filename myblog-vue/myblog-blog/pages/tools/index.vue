@@ -11,6 +11,11 @@
       <NuxtLink to="/tools/formatter/json" class="hero-link">从 JSON 格式化开始 →</NuxtLink>
     </section>
 
+    <!-- 折叠式胶囊分类导航 -->
+    <nav class="category-caps" v-if="categories.length">
+      <a v-for="cat in categories" :key="cat.id" class="caps-pill" :href="`#cat-${cat.id}`">{{ cat.name }}</a>
+    </nav>
+
     <!-- 我的收藏 -->
     <section v-if="favoriteTools.length" class="favorite-section">
       <header class="section-header">
@@ -22,10 +27,10 @@
       </header>
       <div class="quick-grid">
         <NuxtLink
-          v-for="tool in favoriteTools"
+          v-for="(tool, i) in favoriteTools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          class="quick-card"
+          :class="['quick-card', `tool-span-${toolSpan(i)}`]"
         >
           <div class="quick-card-top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -46,10 +51,10 @@
 
     <section class="quick-grid">
       <NuxtLink
-        v-for="tool in hotTools"
+        v-for="(tool, i) in hotTools"
         :key="tool.id"
         :to="getToolPath(tool)"
-        class="quick-card"
+        :class="['quick-card', `tool-span-${toolSpan(i)}`]"
       >
         <div class="quick-card-top">
           <el-icon><component :is="tool.icon" /></el-icon>
@@ -68,21 +73,22 @@
       </NuxtLink>
     </section>
 
-    <section v-for="category in categories" :key="category.id" class="category-section">
-      <header class="section-header">
+    <section v-for="category in categories" :key="category.id" class="category-section" :id="`cat-${category.id}`">
+      <details class="category-block" open>
+      <summary class="section-header">
         <div>
           <p>{{ category.description }}</p>
           <h2>{{ category.name }}</h2>
         </div>
         <el-tag effect="plain">{{ category.tools.length }} 个工具</el-tag>
-      </header>
+      </summary>
 
       <div class="tool-grid">
         <NuxtLink
-          v-for="tool in category.tools"
+          v-for="(tool, i) in category.tools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          class="tool-card"
+          :class="['tool-card', `tool-span-${toolSpan(i)}`]"
         >
           <div class="tool-card__top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -102,6 +108,7 @@
           </div>
         </NuxtLink>
       </div>
+      </details>
     </section>
   </div>
 </template>
@@ -118,6 +125,9 @@ const FAVORITES_KEY = "myblog:tools:favorites";
 
 const categories = TOOL_CATEGORIES;
 const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
+
+// 非对称卡片 span：每 3 张抽一张加宽
+const toolSpan = (i: number) => (i % 3 === 1 ? 3 : 2);
 
 // 收藏功能（localStorage 持久化）
 const favoriteIds = ref<string[]>([]);
@@ -168,7 +178,7 @@ usePageSeo({
   justify-content: space-between;
   gap: 24px;
   padding: 30px;
-  border-radius: 28px;
+  border-radius: var(--radius-hero-xl);
   background: linear-gradient(
     135deg,
     var(--color-accent-light) 0%,
@@ -202,7 +212,7 @@ usePageSeo({
   align-self: flex-start;
   padding: 12px 16px;
   border-radius: 999px;
-  background: var(--color-accent-deep);
+  background: var(--color-accent-light);
   color: #ffffff;
   text-decoration: none;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -217,8 +227,12 @@ usePageSeo({
 .tool-grid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-flow: dense;
 }
+
+.tool-span-2 { grid-column: span 2; }
+.tool-span-3 { grid-column: span 3; }
 
 .quick-card,
 .tool-card {
@@ -227,7 +241,7 @@ usePageSeo({
   flex-direction: column;
   gap: 12px;
   padding: 22px;
-  border-radius: 22px;
+  border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-card);
@@ -235,15 +249,15 @@ usePageSeo({
   -webkit-backdrop-filter: blur(16px) saturate(130%);
   text-decoration: none;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
+    transform var(--transition-bounce),
+    box-shadow var(--transition-bounce),
     border-color 0.2s ease;
 }
 
 .quick-card:hover,
 .tool-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-elevated);
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
   border-color: transparent;
 }
 
@@ -269,13 +283,13 @@ usePageSeo({
 }
 
 .fav-btn:hover {
-  color: #f59e0b;
-  border-color: #f59e0b;
+  color: var(--color-fav);
+  border-color: var(--color-fav);
 }
 
 .fav-btn.active {
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.5);
+  color: var(--color-fav);
+  border-color: var(--color-fav-soft);
 }
 
 .quick-card strong,
@@ -304,6 +318,47 @@ usePageSeo({
 .category-section {
   display: grid;
   gap: 18px;
+  scroll-margin-top: 88px;
+}
+
+/* ===== 折叠式胶囊分类导航 ===== */
+.category-caps {
+  position: sticky;
+  top: 72px;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+}
+
+.category-caps .caps-pill {
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s, background-color 0.2s, box-shadow var(--transition-bounce);
+}
+
+.category-caps .caps-pill:hover {
+  color: var(--color-category);
+  box-shadow: var(--shadow-glow);
+}
+
+/* 分类折叠块：隐藏原生 marker */
+.category-block summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.category-block summary::-webkit-details-marker {
+  display: none;
 }
 
 .section-header {
@@ -334,11 +389,33 @@ usePageSeo({
   .tools-hero {
     flex-direction: column;
     padding: 24px;
-    border-radius: 20px;
+    border-radius: var(--radius-hero-xl);
   }
 
   .tools-hero h1 {
     font-size: 30px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .quick-grid,
+  .tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tool-span-2,
+  .tool-span-3 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .quick-grid,
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+  .tool-span-2,
+  .tool-span-3 {
+    grid-column: span 1;
   }
 }
 </style>

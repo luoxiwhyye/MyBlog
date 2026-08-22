@@ -99,6 +99,7 @@ usePageSeo({
 .tag-item:hover {
   opacity: 1;
   transform: scale(1.05);
+  box-shadow: var(--shadow-glow);
 }
 
 @media (max-width: 768px) {

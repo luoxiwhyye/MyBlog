@@ -37,7 +37,8 @@ export default defineEventHandler(async (event) => {
   ]);
 
   const entries: SitemapEntry[] = [
-    toUrlEntry(siteUrl, "/", { changefreq: "daily", priority: "1.0" }),
+    toUrlEntry(siteUrl, "/home", { changefreq: "daily", priority: "1.0" }),
+    toUrlEntry(siteUrl, "/", { changefreq: "monthly", priority: "0.4" }),
     toUrlEntry(siteUrl, "/category", { changefreq: "weekly", priority: "0.8" }),
     toUrlEntry(siteUrl, "/tag", { changefreq: "weekly", priority: "0.8" }),
     toUrlEntry(siteUrl, "/archive", { changefreq: "weekly", priority: "0.7" }),

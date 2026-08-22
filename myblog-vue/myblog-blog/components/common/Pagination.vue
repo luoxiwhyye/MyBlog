@@ -4,18 +4,20 @@
       <!-- 总数 + 每页条数选择器 -->
       <div class="pagination-left">
         <span class="total-badge">共 <strong>{{ total }}</strong> 条</span>
-        <div class="size-selector">
-          <button
+        <el-select
+          class="size-select"
+          :model-value="currentPageSize"
+          size="small"
+          :aria-label="'每页条数'"
+          @change="handleSizeSelect"
+        >
+          <el-option
             v-for="size in pageSizeOptions"
             :key="size"
-            class="size-btn"
-            :class="{ active: currentPageSize === size }"
-            type="button"
-            @click="handleSizeSelect(size)"
-          >
-            {{ size }}
-          </button>
-        </div>
+            :label="`${size} 条/页`"
+            :value="size"
+          />
+        </el-select>
       </div>
 
       <!-- 翻页 -->
@@ -87,7 +89,7 @@ const currentPage = ref(props.page);
 const currentPageSize = ref(props.pageSize);
 const jumpValue = ref(props.page);
 
-const pageSizeOptions = [5, 10, 20, 50];
+const pageSizeOptions = [4, 7, 10, 22];
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.total / currentPageSize.value)));
 
@@ -189,49 +191,29 @@ const handleJump = () => {
 }
 
 .total-badge strong {
-  color: #94a3b8;
+  color: var(--color-accent);
   font-weight: 700;
   margin: 0 2px;
 }
 
-.size-selector {
-  display: flex;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  line-height: 1;
+.size-select {
+  width: 110px;
 }
 
-.size-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.size-select :deep(.el-select__wrapper) {
   height: 36px;
-  min-width: 40px;
-  border: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--border-color) inset;
   background: var(--bg-card);
+}
+
+.size-select :deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--color-accent) inset;
+}
+
+.size-select :deep(.el-select__selected-item) {
   color: var(--text-muted);
-  cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
-  padding: 0 12px;
-  box-shadow: inset 1px 0 0 var(--border-color);
-  transition: all 0.2s;
-}
-
-.size-btn:first-child {
-  box-shadow: none;
-}
-
-.size-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.size-btn.active {
-  background: var(--color-accent);
-  color: #ffffff;
-  font-weight: 600;
 }
 
 /* ===== 翻页按钮 ===== */
@@ -291,15 +273,17 @@ const handleJump = () => {
 
 .pager-num.active {
   background: var(--bg-card);
-  color: #94a3b8;
+  color: var(--color-accent);
   border-color: var(--border-color);
   font-weight: 700;
+  box-shadow: var(--shadow-glow);
 }
 
 html.dark .pager-num.active {
   background: var(--bg-card);
-  color: #94a3b8;
+  color: var(--color-accent);
   border-color: var(--border-color);
+  box-shadow: var(--shadow-glow);
 }
 
 .pager-ellipsis {

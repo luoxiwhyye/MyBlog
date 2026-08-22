@@ -1,7 +1,7 @@
 <template>
   <div class="category-detail">
     <nav class="breadcrumb">
-      <NuxtLink to="/">
+      <NuxtLink to="/home">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         首页
       </NuxtLink>
@@ -20,7 +20,13 @@
       </el-icon>
       加载中...
     </div>
-    <div v-else-if="articles.length === 0" class="no-articles">该分类下暂无文章</div>
+    <EmptyState
+      v-else-if="articles.length === 0"
+      message="该分类下暂无文章"
+      description="换个分类看看吧，或者稍后回来。"
+      action-text="返回首页"
+      action-to="/home"
+    />
     <div v-else class="articles-grid">
       <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
     </div>
@@ -120,7 +126,7 @@ usePageSeo({
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius-card-lg);
   font-size: 14px;
 }
 
@@ -157,7 +163,7 @@ usePageSeo({
   margin-bottom: 8px;
   color: var(--text-primary);
   text-align: center;
-  text-shadow: var(--text-shadow-on-bg);
+  text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
 
 .stats {
@@ -170,12 +176,6 @@ usePageSeo({
   text-align: center;
   padding: 40px;
   color: var(--text-secondary);
-}
-
-.no-articles {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-muted);
 }
 
 .articles-grid {

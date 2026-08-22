@@ -3,17 +3,18 @@
     <div class="container">
       <div class="logo">
         <NuxtLink to="/">
-          <NuxtImg v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" width="40" height="40" />
+          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" width="40" height="40" />
           <span v-else class="logo-mark">MB</span>
           <span class="logo-text">{{ siteName }}</span>
         </NuxtLink>
       </div>
       <nav class="nav">
-        <NuxtLink to="/" class="nav-link">{{ t('nav.home') }}</NuxtLink>
+        <NuxtLink to="/home" class="nav-link">{{ t('nav.home') }}</NuxtLink>
         <NuxtLink to="/category" class="nav-link">{{ t('nav.category') }}</NuxtLink>
         <NuxtLink to="/tag" class="nav-link">{{ t('nav.tag') }}</NuxtLink>
         <NuxtLink to="/archive" class="nav-link">{{ t('nav.archive') }}</NuxtLink>
         <NuxtLink to="/tools" class="nav-link">{{ t('nav.tools') }}</NuxtLink>
+        <NuxtLink to="/friends" class="nav-link">{{ t('nav.friends') }}</NuxtLink>
         <NuxtLink to="/about" class="nav-link">{{ t('nav.about') }}</NuxtLink>
       </nav>
       <div class="search">
@@ -37,7 +38,7 @@
 
 <script setup lang="ts">
 import { Search } from "@element-plus/icons-vue";
-import { normalizeAssetUrl } from "~/utils/image";
+import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
 
 const router = useRouter();
 const route = useRoute();
@@ -48,8 +49,11 @@ const { t } = useI18n();
 await settingsStore.ensureSettings();
 
 const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
-// 归一化 localhost 前缀，保证手机/局域网访问时 Logo 可加载
-const siteLogo = computed(() => normalizeAssetUrl(settingsStore.getSetting("site_logo")));
+// Logo 使用缩略图（_thumb.webp，400px）；归一化 localhost 前缀，保证手机/局域网访问时 Logo 可加载
+const siteLogo = computed(() => {
+  const raw = normalizeAssetUrl(settingsStore.getSetting("site_logo"));
+  return raw ? getThumbWebpUrl(raw) : "";
+});
 
 const handleSearch = () => {
   const keyword = searchQuery.value.trim();
@@ -100,7 +104,7 @@ watch(
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #18233E, #F8FAFC);
+  background: var(--brand-logo-gradient);
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -135,13 +139,22 @@ watch(
   color: var(--text-secondary);
   padding: 7px 12px;
   border-radius: 999px;
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s,
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce);
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
   background-color: var(--color-accent-light);
   color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.nav-link:hover {
+  transform: translateY(-1px);
 }
 
 .search {

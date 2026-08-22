@@ -30,6 +30,10 @@
           <el-icon><PriceTag /></el-icon>
           <template #title>标签管理</template>
         </el-menu-item>
+        <el-menu-item index="/admin/friend-links">
+          <el-icon><Link /></el-icon>
+          <template #title>友链管理</template>
+        </el-menu-item>
         <el-menu-item index="/admin/comments">
           <el-icon><ChatDotRound /></el-icon>
           <template #title>评论管理</template>
@@ -120,6 +124,7 @@ import {
   Document,
   Folder,
   PriceTag,
+  Link,
   ChatDotRound,
   Odometer,
   User,
@@ -149,6 +154,7 @@ const routeTitles: Record<string, string> = {
   '/admin/articles/edit': '文章编辑',
   '/admin/types': '分类管理',
   '/admin/labels': '标签管理',
+  '/admin/friend-links': '友链管理',
   '/admin/comments': '评论管理',
   '/admin/cache': '运维监控',
   '/admin/profile': '个人资料',

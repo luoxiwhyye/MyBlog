@@ -13,7 +13,7 @@
     </div>
     <div v-else-if="article" class="article-content">
       <nav class="breadcrumb">
-        <NuxtLink to="/">
+        <NuxtLink to="/home">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           首页
         </NuxtLink>
@@ -33,9 +33,9 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 {{ siteAuthor }}
               </span>
-              <time class="meta-item">
+              <time class="meta-item" :title="formatDateTime(article.createdAt)">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                {{ formatDateTime(article.createdAt) }}
+                {{ formatDate(article.createdAt) }}
               </time>
               <span class="views meta-item">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -46,7 +46,7 @@
                 {{ readTime }}
               </span>
             </div>
-            <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
+            <p v-if="article.summary" class="article-summary">{{ markdownToPlain(article.summary) }}</p>
             <div class="article-tags">
               <NuxtLink class="category" :to="`/category/${article.type.id}`">
                 {{ article.type.typeName }}
@@ -63,7 +63,7 @@
           </header>
 
           <div v-if="article.coverImage" class="cover-image">
-            <NuxtImg
+            <img
               :src="detailCoverSrc"
               :alt="article.title"
               loading="lazy"
@@ -161,8 +161,8 @@
     </div>
     <div v-else class="not-found">文章不存在</div>
 
+    <!-- 目录侧栏（保留） -->
     <aside v-if="article" class="quick-nav">
-      <el-button class="quick-btn" type="primary" plain @click="scrollToTop">返回顶部</el-button>
       <div v-if="tocItems.length" class="toc">
         <h4>目录</h4>
         <ul>
@@ -176,6 +176,31 @@
         </ul>
       </div>
     </aside>
+
+    <!-- 可滚动区域可见时的圆形“返回顶部”方向按钮（悬浮，不挤压文章空间） -->
+    <button
+      v-if="article && showBackTop"
+      class="back-top-btn"
+      type="button"
+      aria-label="返回顶部"
+      title="返回顶部"
+      @click="scrollToTop"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="18 15 12 9 6 15" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -184,9 +209,10 @@ import { ElMessage } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import { articleApi, commentApi } from "~/api";
 import type { Article, Comment as CommentType, PaginatedResponse } from "~/types";
-import { formatDateTime, estimateReadTime } from "~/utils/format";
+import { formatDate, formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
-import { getWebpUrl, normalizeAssetUrl, normalizeContentUrls } from "~/utils/image";
+import { getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { markdownToPlain, renderArticleContent } from "~/utils/markdown";
 
 const route = useRoute();
 const settingsStore = useSettingsStore();
@@ -209,9 +235,9 @@ const handleDetailCoverError = () => {
   detailCoverFailed.value = true;
 };
 
-// 正文渲染：将开发环境的 localhost 图片 URL 归一化，手机/局域网访问可正常加载
+// 正文渲染：自动识别 Markdown/HTML 并渲染，同时归一化 localhost 图片 URL
 const renderContent = computed(() =>
-  normalizeContentUrls(article.value?.content || ""),
+  renderArticleContent(article.value?.content || ""),
 );
 
 const articleId = computed(() => Number(route.params.id));
@@ -440,9 +466,10 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
-// ===== 阅读进度 + 目录高亮 =====
+// ===== 阅读进度 + 目录高亮 + 返回顶部显隐 =====
 const readingProgress = ref(0);
 const activeTocId = ref("");
+const showBackTop = ref(false);
 let scrollHandler: (() => void) | null = null;
 
 const updateReadingProgress = () => {
@@ -451,6 +478,9 @@ const updateReadingProgress = () => {
   const doc = document.documentElement;
   const total = doc.scrollHeight - window.innerHeight;
   readingProgress.value = total > 0 ? Math.min(100, (window.scrollY / total) * 100) : 0;
+
+  // 滚动超过一定距离后显示返回顶部按钮
+  showBackTop.value = window.scrollY > 320;
 
   // 目录高亮：找到当前视口内的标题
   let current: string = "";
@@ -527,21 +557,28 @@ useArticleJsonLd(article as Ref<Article | null>);
 
 <style lang="scss" scoped>
 .article-detail {
-  max-width: 800px;
+  max-width: 1120px;
   margin: 0 auto;
   position: relative;
+  /* 非对称：左宽阅读 + 右粘性 TOC */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 28px;
+  align-items: start;
 }
 
 .loading {
   text-align: center;
   padding: 40px;
   color: var(--text-secondary);
+  grid-column: 1 / -1;
 }
 
 .not-found {
   text-align: center;
   padding: 40px;
   color: var(--text-muted);
+  grid-column: 1 / -1;
 }
 
 .breadcrumb {
@@ -555,7 +592,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius-card-lg);
   font-size: 14px;
 }
 
@@ -593,7 +630,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
   border: 1px solid var(--border-light);
-  border-radius: 14px;
+  border-radius: var(--radius-card-lg);
   padding: 36px 40px;
   box-shadow: var(--shadow-card);
 }
@@ -613,7 +650,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   color: var(--text-primary);
   margin-bottom: 15px;
   line-height: 1.35;
-  text-shadow: var(--text-shadow-on-bg);
+  text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
 
 .article-meta {
@@ -650,7 +687,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   line-height: 1.8;
   background: var(--bg-card);
   backdrop-filter: blur(8px);
-  border-left: 4px solid var(--color-accent);
+  border-left: 4px solid var(--color-category);
   padding: 10px 12px;
   border-radius: 6px;
 }
@@ -810,8 +847,8 @@ useArticleJsonLd(article as Ref<Article | null>);
   position: absolute;
   right: 0;
   bottom: calc(100% + 8px);
-  width: 320px;
-  max-height: 260px;
+  width: 380px;
+  max-height: 300px;
   background: var(--bg-card);
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
@@ -819,6 +856,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   border-radius: 12px;
   box-shadow: var(--shadow-elevated);
   overflow-y: auto;
+  overflow-x: hidden; /* 宽面板下内容完整显示，此规则仅作兜底 */
   z-index: 10;
   padding: 12px;
 }
@@ -885,6 +923,10 @@ useArticleJsonLd(article as Ref<Article | null>);
   cursor: pointer;
   color: var(--text-primary);
   transition: all 0.15s;
+  /* 限制单个长颜文字宽度并允许换行，避免撑破面板产生横向滚动 */
+  max-width: 100%;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .kaomoji-item:hover {
@@ -897,17 +939,50 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .quick-nav {
-  position: fixed;
-  right: 32px;
-  bottom: 32px;
-  width: 220px;
+  position: sticky;
+  top: 24px;
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-self: start;
 }
 
-.quick-btn {
-  align-self: flex-end;
+/* 悬浮圆形“返回顶部”方向按钮 — 不挤压文章空间 */
+.back-top-btn {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-backdrop);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-card);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  z-index: 100;
+}
+
+.back-top-btn:hover {
+  color: var(--color-category);
+  border-color: var(--color-category);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.back-top-btn:focus {
+  outline: none;
+}
+
+.back-top-btn svg {
+  pointer-events: none;
 }
 
 .toc {
@@ -915,7 +990,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   background: var(--bg-backdrop);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border-radius: 12px;
+  border-radius: var(--radius-card-lg);
   padding: 16px;
   box-shadow: var(--shadow-card);
 }
@@ -978,12 +1053,18 @@ useArticleJsonLd(article as Ref<Article | null>);
 .reading-progress-bar {
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, var(--color-accent), var(--color-info));
+  background: linear-gradient(90deg, var(--color-category), var(--color-info));
   border-radius: 0 2px 2px 0;
   transition: width 0.1s linear;
 }
 
 @media (max-width: 1200px) {
+  .article-detail {
+    grid-template-columns: 1fr;
+  }
+  .article-content {
+    grid-column: auto;
+  }
   .quick-nav {
     display: none;
   }
@@ -1004,7 +1085,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   }
 
   .emoji-picker {
-    width: 260px;
+    width: 320px;
     right: -40px;
   }
 

@@ -81,7 +81,7 @@ const goSearch = () => {
 };
 
 const goHome = () => {
-  router.push("/");
+  router.push("/home");
 };
 </script>
 

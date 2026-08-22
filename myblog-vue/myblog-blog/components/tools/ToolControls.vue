@@ -157,7 +157,7 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 .tool-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 20px;
+  border-radius: var(--radius-card-lg);
   padding: 20px;
   backdrop-filter: blur(12px);
 }

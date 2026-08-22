@@ -5,13 +5,19 @@ export const zh = {
     tag: "标签",
     archive: "归档",
     tools: "工具箱",
+    friends: "友情链接",
     about: "关于",
     search: "搜索文章...",
+  },
+  friends: {
+    title: "友情链接",
+    description: "收获的每一份友谊，都是旅途中的星光。",
   },
   home: {
     hero: {
       welcome: "欢迎来到我的博客",
       latest: "最新文章",
+      latestBadge: "最新",
       hot: "热门文章",
       categories: "分类导航",
       tags: "标签云",
@@ -31,6 +37,11 @@ export const zh = {
     siteName: "网站名称",
     siteDescription: "网站描述",
     established: "建立时间",
+    stats: {
+      articles: "文章",
+      categories: "分类",
+      tags: "标签",
+    },
   },
   article: {
     loading: "加载中...",
@@ -51,6 +62,7 @@ export const zh = {
     title: "归档",
     loading: "加载中...",
     noArticles: "暂无文章",
+    noArticlesDesc: "还没有发布任何文章，欢迎常回来看看。",
     year: "年",
     month: "月",
   },
@@ -94,13 +106,19 @@ export const en: typeof zh = {
     tag: "Tags",
     archive: "Archive",
     tools: "Tools",
+    friends: "Friends",
     about: "About",
     search: "Search articles...",
+  },
+  friends: {
+    title: "Friends",
+    description: "Friendship is the star that lights our journey.",
   },
   home: {
     hero: {
       welcome: "Welcome to My Blog",
       latest: "Latest Articles",
+      latestBadge: "New",
       hot: "Popular",
       categories: "Categories",
       tags: "Tag Cloud",
@@ -120,6 +138,11 @@ export const en: typeof zh = {
     siteName: "Site Name",
     siteDescription: "Description",
     established: "Established",
+    stats: {
+      articles: "Articles",
+      categories: "Categories",
+      tags: "Tags",
+    },
   },
   article: {
     loading: "Loading...",
@@ -140,6 +163,7 @@ export const en: typeof zh = {
     title: "Archive",
     loading: "Loading...",
     noArticles: "No articles",
+    noArticlesDesc: "No articles published yet. Please check back soon.",
     year: "",
     month: "",
   },

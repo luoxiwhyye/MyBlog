@@ -26,8 +26,10 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.scss"],
   // S-05: ISR 预渲染配置 — 低频变化页面使用 ISR 降低服务端压力
   routeRules: {
-    // 首页 ISR: 缓存 60 秒，过期后陈旧重验证
-    "/": { isr: 60 },
+    // 欢迎落地页（/）: SSR 渲染（静态落地，不缓存）
+    "/": { ssr: true },
+    // 主博客（/home）: ISR 缓存 60 秒，过期后陈旧重验证
+    "/home": { isr: 60 },
     // 归档页 ISR: 缓存 300 秒
     "/archive": { isr: 300 },
     // 分类页 ISR
@@ -72,6 +74,9 @@ export default defineNuxtConfig({
           handler: "CacheFirst",
           options: {
             cacheName: "image-cache",
+            // 只缓存 200 响应，避免把 404（如缺失的 _thumb.webp）也缓存，
+            // 否则 <img @error> 回退到原图的逻辑永远拿不到真实请求
+            cacheableResponse: { statuses: [0, 200] },
             expiration: { maxEntries: 100, maxAgeSeconds: 86400 },
           },
         },
@@ -131,6 +136,9 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    // 页面 / 布局切换过渡（fade + blur，respect prefers-reduced-motion）
+    pageTransition: { name: "page", mode: "out-in" },
+    layoutTransition: { name: "layout", mode: "out-in" },
     head: {
       htmlAttrs: {
         lang: "zh-CN",

@@ -88,17 +88,21 @@ usePageSeo({
 .category-card {
   padding: 30px;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-card-lg);
   text-align: center;
   cursor: pointer;
-  transition: box-shadow 0.25s, transform 0.2s, background-color 0.3s, border-color 0.3s;
+  transition:
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce),
+    background-color 0.3s,
+    border-color 0.3s;
   background: var(--bg-card);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
 }
 
 .category-card:hover {
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
   transform: translateY(-2px);
   border-color: var(--color-accent);
 }

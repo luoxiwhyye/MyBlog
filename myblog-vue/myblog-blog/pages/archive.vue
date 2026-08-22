@@ -7,7 +7,13 @@
       </el-icon>
       {{ t('archive.loading') }}
     </div>
-    <div v-else-if="articles.length === 0" class="no-articles">{{ t('archive.noArticles') }}</div>
+    <EmptyState
+      v-else-if="articles.length === 0"
+      :message="t('archive.noArticles')"
+      :description="t('archive.noArticlesDesc')"
+      action-text="返回首页"
+      action-to="/home"
+    />
     <div v-else class="archive-list">
       <!-- 年份汇总卡片 -->
       <div class="archive-summary">
@@ -139,12 +145,6 @@ usePageSeo({
   color: var(--text-secondary);
 }
 
-.no-articles {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-muted);
-}
-
 /* 汇总卡片 */
 .archive-summary {
   display: grid;
@@ -159,11 +159,17 @@ usePageSeo({
   align-items: center;
   gap: 6px;
   padding: 20px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
+  transition: box-shadow var(--transition-bounce), border-color 0.3s;
+}
+
+.summary-item:hover {
+  box-shadow: var(--shadow-glow);
+  border-color: transparent;
 }
 
 .summary-num {
@@ -199,8 +205,8 @@ usePageSeo({
   font-size: 17px;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--color-accent), rgba(71, 85, 105, 0.65));
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--color-category), rgba(71, 85, 105, 0.65));
+  box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .year-count {
@@ -214,6 +220,16 @@ usePageSeo({
   margin-bottom: 20px;
   position: relative;
   padding-left: 28px;
+  transition: transform 0.3s;
+}
+
+/* 时间轴"曲线/错位"感：相邻月份轻微左右错落 */
+.month-group:nth-child(odd) {
+  transform: translateX(8px);
+}
+
+.month-group:nth-child(even) {
+  transform: translateX(-4px);
 }
 
 .month-group::before {
@@ -223,7 +239,8 @@ usePageSeo({
   top: 24px;
   bottom: -8px;
   width: 2px;
-  background: linear-gradient(180deg, var(--border-color), transparent);
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--color-category), transparent);
 }
 
 .month-title {
@@ -243,8 +260,8 @@ usePageSeo({
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
+  background: var(--color-category);
+  box-shadow: 0 0 0 3px var(--color-category-soft);
 }
 
 .article-list {
@@ -290,7 +307,7 @@ usePageSeo({
 }
 
 .article-link:hover .dot {
-  background: var(--color-accent);
+  background: var(--color-category);
   transform: scale(1.4);
 }
 

@@ -97,7 +97,17 @@
         </el-form-item>
 
         <el-form-item label="内容" prop="content">
-          <div class="quill-wrapper">
+          <div class="editor-mode-bar">
+            <el-radio-group v-model="editorMode" size="small">
+              <el-radio-button value="richtext">富文本</el-radio-button>
+              <el-radio-button value="markdown">Markdown</el-radio-button>
+            </el-radio-group>
+            <span class="editor-mode-tip">
+              {{ editorMode === 'markdown' ? '左侧编写 Markdown，右侧实时预览' : '使用工具栏格式化，所见即所得' }}
+            </span>
+          </div>
+
+          <div v-if="editorMode === 'richtext'" class="quill-wrapper">
             <QuillEditor
               ref="quillRef"
               v-model:content="form.content"
@@ -105,6 +115,17 @@
               :options="editorOptions"
               class="quill-editor"
             />
+          </div>
+
+          <div v-else class="md-editor">
+            <el-input
+              v-model="form.content"
+              type="textarea"
+              class="md-editor-input"
+              :rows="18"
+              placeholder="使用 Markdown 语法编写内容...&#10;&#10;### 标题&#10;**加粗** *斜体*&#10;- 列表项&#10;&#96;&#96;&#96;代码块&#96;&#96;&#96;&#10;&#10;![图片](URL)"
+            />
+            <div class="md-editor-preview" v-html="markdownPreview"></div>
           </div>
         </el-form-item>
 
@@ -156,10 +177,28 @@ import { ElMessage } from 'element-plus'
 import { View } from '@element-plus/icons-vue'
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import MarkdownIt from 'markdown-it'
 import { article, type as typeApi, label as labelApi, upload } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
+
+// 编辑模式：richtext（富文本，默认） | markdown（Markdown）
+const editorMode = ref<'richtext' | 'markdown'>('richtext')
+
+// markdown-it 单例（html 关闭以规避 XSS；linkify 开启）
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+})
+
+// Markdown 模式实时预览
+const markdownPreview = computed(() => {
+  const content = form.content || ''
+  // Markdown 模式但内容看起来像富文本（如粘贴了 HTML）时，仍按 Markdown 处理
+  return md.render(content) || '<p style="color:#94a3b8">暂无内容</p>'
+})
 
 const formRef = ref()
 const uploadRef = ref()
@@ -544,6 +583,105 @@ onBeforeUnmount(() => {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+}
+
+/* 编辑模式切换栏 */
+.editor-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.editor-mode-tip {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Markdown 左右分屏编辑 */
+.md-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.md-editor-input :deep(.el-textarea__inner) {
+  height: 440px !important;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  word-break: break-word;
+}
+
+.md-editor-preview {
+  height: 440px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 12px 14px;
+  background: #fff;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.md-editor-preview h1,
+.md-editor-preview h2,
+.md-editor-preview h3 {
+  margin: 0.6em 0 0.4em;
+  line-height: 1.3;
+}
+
+.md-editor-preview p {
+  margin: 0.4em 0;
+}
+
+.md-editor-preview pre {
+  background: #f5f5f5;
+  padding: 10px 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.md-editor-preview code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
+.md-editor-preview pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.md-editor-preview blockquote {
+  border-left: 3px solid #d0d7de;
+  margin: 0.6em 0;
+  padding-left: 12px;
+  color: #57606a;
+}
+
+.md-editor-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-editor-preview a {
+  color: #0969da;
+}
+
+@media (max-width: 768px) {
+  .md-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .md-editor-preview {
+    height: auto;
+    max-height: 300px;
+  }
 }
 
 .quill-wrapper {

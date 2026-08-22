@@ -37,3 +37,7 @@ target/
 !/documents/design-system.md
 !/documents/refactor-plan.md
 !/documents/refactor-commit.md
+/images
+
+# ── agent相关配置 ──
+.claude

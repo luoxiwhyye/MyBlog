@@ -224,14 +224,14 @@ const scrollToSelected = () => {
   justify-content: space-between;
   gap: 20px;
   padding: 28px;
-  border-radius: 28px;
+  border-radius: var(--radius-hero-xl);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   backdrop-filter: blur(12px);
 }
 
 .hero-eyebrow {
-  color: var(--text-primary);
+  color: var(--color-category);
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -296,6 +296,7 @@ const scrollToSelected = () => {
 .command-item--selected {
   border-color: var(--border-color);
   background: var(--bg-hover);
+  box-shadow: var(--shadow-glow);
 }
 
 .command-item div {
@@ -331,7 +332,7 @@ const scrollToSelected = () => {
   .hero-card {
     flex-direction: column;
     padding: 22px;
-    border-radius: 20px;
+    border-radius: var(--radius-hero-xl);
   }
 
   .hero-card h1 {

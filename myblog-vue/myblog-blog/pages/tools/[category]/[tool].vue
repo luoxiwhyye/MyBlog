@@ -55,8 +55,8 @@ useSeoMeta({
   align-items: center;
   padding: 12px 16px;
   border-radius: 999px;
-  background: #18233E;
-  color: #ffffff;
+  background: var(--color-accent);
+  color: var(--bg-card);
   text-decoration: none;
 }
 </style>

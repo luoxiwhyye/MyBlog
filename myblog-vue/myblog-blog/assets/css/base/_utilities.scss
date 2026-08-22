@@ -30,3 +30,71 @@
   border: 1px solid var(--border-color);
   border-radius: $border-radius-lg;
 }
+
+// ============ 全局滚动条（主题感知） ============
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+// ============ 页面入场动效（一次性） ============
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body,
+#__nuxt {
+  animation: page-in 0.4s ease-out;
+}
+
+// ============ 页面 / 布局切换过渡（fade + blur，reduced-motion 由下方全局覆盖） ============
+.page-enter-active,
+.page-leave-active,
+.layout-enter-active,
+.layout-leave-active {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.page-enter-from,
+.page-leave-to,
+.layout-enter-from,
+.layout-leave-to {
+  opacity: 0;
+  filter: blur(4px);
+}
+
+// ============ 尊重系统减少动效偏好 ============
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

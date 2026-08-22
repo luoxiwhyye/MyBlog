@@ -5,13 +5,9 @@
         <p class="copyright">
           &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
         </p>
-        <p class="icp">{{ siteIcp || t('footer.icp') }}</p>
+        <p class="icp" v-if="siteIcp">{{ siteIcp }}</p>
       </div>
-      <div class="links">
-        <NuxtLink to="/about">{{ t('nav.about') }}</NuxtLink>
-        <NuxtLink to="/archive">{{ t('nav.archive') }}</NuxtLink>
-        <NuxtLink to="/tools">{{ t('nav.tools') }}</NuxtLink>
-      </div>
+      <p v-if="siteDescription" class="slogan">{{ siteDescription }}</p>
     </div>
   </footer>
 </template>
@@ -25,15 +21,51 @@ await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]
 
 const siteAuthor = computed(() => bloggerStore.nickname());
 const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
+const siteDescription = computed(
+  () => settingsStore.getSetting("site_description") || "",
+);
 </script>
 
 <style lang="scss" scoped>
 .footer {
   background: var(--bg-card);
-  border-top: 1px solid var(--border-light);
+  position: relative;
   padding: 20px 0;
   margin-top: 40px;
   transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* 顶部青光渐变细分隔（呼应图A天光） */
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-category),
+    var(--color-accent),
+    transparent
+  );
+  opacity: 0.7;
+}
+
+/* 居中柔光装饰（呼应背景，无溢出、不遮文字） */
+.footer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--deco-a), transparent 70%);
+  pointer-events: none;
+  opacity: 0.45;
 }
 
 .container {
@@ -58,15 +90,12 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
   transition: color 0.3s;
 }
 
-.links {
-  display: flex;
-  gap: 15px;
-}
-
-.links a {
-  text-decoration: none;
-  color: var(--text-secondary);
-  transition: color 0.3s;
+.slogan {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: right;
+  max-width: 360px;
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {

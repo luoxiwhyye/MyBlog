@@ -30,7 +30,7 @@
     "multer": "^2.1.1",
     "mysql2": "^3.20.0",
     "nodemailer": "^6.10.1",
-    "sharp": "^0.33.0",
+    "sharp": "^0.33.5",
     "winston": "^3.19.0"
   },
   "devDependencies": {

@@ -41,6 +41,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/LabelManage.vue'),
       },
       {
+        path: 'friend-links',
+        name: 'FriendLinkManage',
+        component: () => import('@/views/FriendLinkManage.vue'),
+      },
+      {
         path: 'comments',
         name: 'CommentManage',
         component: () => import('@/views/CommentManage.vue'),

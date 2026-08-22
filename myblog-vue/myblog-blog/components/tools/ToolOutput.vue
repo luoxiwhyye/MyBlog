@@ -142,7 +142,7 @@ const regexSegments = computed(() => {
 .tool-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 20px;
+  border-radius: var(--radius-card-lg);
   padding: 20px;
   backdrop-filter: blur(12px);
 }
@@ -197,7 +197,7 @@ const regexSegments = computed(() => {
 
 .kv-card--active {
   border-color: var(--border-light);
-  box-shadow: 0 8px 20px rgba(20, 184, 166, 0.12);
+  box-shadow: var(--shadow-glow);
 }
 
 .color-card {
@@ -211,7 +211,7 @@ const regexSegments = computed(() => {
 .color-swatch {
   min-height: 120px;
   border-radius: 18px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border-light);
 }
 
 .color-values {
@@ -230,13 +230,13 @@ const regexSegments = computed(() => {
   word-break: break-word;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid #e6edf5;
-  background: #f8fafc;
+  border: 1px solid var(--border-light);
+  background: var(--bg-hover);
   line-height: 1.7;
 }
 
 .highlight {
-  background: rgba(20, 184, 166, 0.18);
+  background: var(--color-category-soft);
   border-radius: 6px;
   padding: 1px 2px;
 }

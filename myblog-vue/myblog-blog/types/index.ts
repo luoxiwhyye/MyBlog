@@ -48,6 +48,8 @@ export interface ArticleListParams {
   labelId?: number;
   status?: "published";
   keyword?: string;
+  /** 排序字段：对应后端白名单键 created_at/updated_at/view_count/title */
+  sortBy?: "created_at" | "updated_at" | "view_count" | "title";
 }
 
 export interface CommentListParams {

@@ -156,9 +156,30 @@ INSERT INTO `setting` VALUES ('site_description', '一个专注于技术内容�
 INSERT INTO `setting` VALUES ('site_logo', '', 'image', '网站 Logo（用于 Open Graph、页头等）');
 INSERT INTO `setting` VALUES ('site_favicon', '', 'image', '网站 Favicon 图标');
 INSERT INTO `setting` VALUES ('site_icp', '', 'text', 'ICP 备案号');
-INSERT INTO `setting` VALUES ('friend_links', '[{\"name\":\"Nuxt\",\"url\":\"https://nuxt.com/\"},{\"name\":\"Element Plus\",\"url\":\"https://element-plus.org/\"},{\"name\":\"GitHub\",\"url\":\"https://github.com/\"}]', 'text', '友情链接（JSON 数组格式：[{"name":"名称","url":"链接"}]）');
 INSERT INTO `setting` VALUES ('site_bg_light', '', 'image', '亮色模式背景图片');
 INSERT INTO `setting` VALUES ('site_bg_dark', '', 'image', '暗色模式背景图片');
+
+-- ----------------------------
+-- Table structure for friend_link
+-- ----------------------------
+
+DROP TABLE IF EXISTS `friend_link`;
+CREATE TABLE `friend_link` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` VARCHAR(60) NOT NULL COMMENT '网站名称',
+  `url` VARCHAR(255) NOT NULL COMMENT '网站URL',
+  `avatar` VARCHAR(255) DEFAULT NULL COMMENT '网站头像/Logo地址',
+  `description` VARCHAR(200) DEFAULT NULL COMMENT '网站简介',
+  `email` VARCHAR(100) DEFAULT NULL COMMENT '站长邮箱',
+  `status` TINYINT(1) DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+  `is_sticky` TINYINT(1) DEFAULT 0 COMMENT '是否置顶 0-否 1-是',
+  `click_count` INT UNSIGNED DEFAULT 0 COMMENT '点击次数',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_url` (`url`) COMMENT '防止重复添加相同链接',
+  KEY `idx_status` (`status`) COMMENT '状态索引'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='个人博客友链表';
 
 -- ----------------------------
 -- Table structure for type

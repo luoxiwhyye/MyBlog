@@ -107,7 +107,7 @@ const filteredCategories = computed(() => {
 .sidebar-group {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: 20px;
+  border-radius: var(--radius-card-lg);
   padding: 16px;
   backdrop-filter: blur(12px);
 }
@@ -143,6 +143,7 @@ const filteredCategories = computed(() => {
   background: var(--bg-hover);
   color: var(--text-primary);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
 }
 
 .sidebar-link div {

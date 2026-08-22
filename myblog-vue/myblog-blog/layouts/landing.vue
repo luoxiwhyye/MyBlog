@@ -1,27 +1,16 @@
 <template>
-  <div class="layout">
-    <Header />
-    <main class="main-content">
-      <slot />
-    </main>
-    <Footer />
+  <div class="landing">
+    <slot />
   </div>
 </template>
 
 <script setup lang="ts">
-import Header from "~/components/layout/Header.vue";
-import Footer from "~/components/layout/Footer.vue";
-
-const settingsStore = useSettingsStore();
-const bloggerStore = useBloggerStore();
-
-await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
-
+// 布局级 SEO：注入 --site-bg-light/dark 等背景变量（无背景变量时欢迎页会空白）
 useLayoutSeo();
 </script>
 
 <style lang="scss" scoped>
-.layout {
+.landing {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -31,7 +20,8 @@ useLayoutSeo();
   isolation: isolate;
 }
 
-.layout::after {
+/* 背景图之上的文字可读性遮罩 — 亮/暗随 --bg-page-overlay 自适应 */
+.landing::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -39,26 +29,26 @@ useLayoutSeo();
   z-index: -1;
   pointer-events: none;
 }
-
-.main-content {
-  flex: 1;
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
 </style>
 
 <style lang="scss">
 /* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
-.layout {
+.landing {
   background-image: var(--site-bg-light);
   background-size: cover;
   background-attachment: fixed;
   background-position: center;
+  background-repeat: no-repeat;
 }
 
-html.dark .layout {
+html.dark .landing {
   background-image: var(--site-bg-dark, var(--site-bg-light));
+}
+
+@media (max-width: 768px) {
+  .landing {
+    background-attachment: scroll;
+    background-size: auto 100%;
+  }
 }
 </style>

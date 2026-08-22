@@ -146,7 +146,7 @@ const handleSearch = () => {
 };
 
 const goHome = () => {
-  router.push("/");
+  router.push("/home");
 };
 
 const handlePageUpdate = (page: number, size: number) => {
@@ -236,17 +236,21 @@ usePageSeo({
 
 .result-item {
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
   padding: 16px;
-  transition: box-shadow 0.25s, border-color 0.25s;
+  transition:
+    box-shadow var(--transition-bounce),
+    border-color 0.3s,
+    transform var(--transition-bounce);
 }
 
 .result-item:hover {
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
   border-color: var(--color-accent);
+  transform: translateY(-1px);
 }
 
 .result-item h3 {
@@ -280,7 +284,7 @@ usePageSeo({
 }
 
 :deep(mark) {
-  background: #fde68a;
+  background: var(--color-fav-soft);
   padding: 0 2px;
   border-radius: 2px;
 }

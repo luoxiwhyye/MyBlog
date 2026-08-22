@@ -26,6 +26,8 @@ useLayoutSeo();
   display: flex;
   flex-direction: column;
   position: relative;
+  /* 自身形成层叠上下文，让背景遮罩(z:-1)压在图之上、内容之下 */
+  isolation: isolate;
 }
 
 .layout::before {
@@ -35,6 +37,16 @@ useLayoutSeo();
   background-color: var(--bg-primary);
   transition: background-color 0.3s;
   z-index: 0;
+  pointer-events: none;
+}
+
+/* 背景图之上的文字可读性遮罩 — 亮/暗随 --bg-page-overlay 自适应 */
+.layout::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--bg-page-overlay);
+  z-index: -1;
   pointer-events: none;
 }
 

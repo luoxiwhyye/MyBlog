@@ -33,4 +33,27 @@ html.dark {
 
   // 文字阴影 — 用于在图片背景上提升可读性
   --text-shadow-on-bg: 0 1px 3px rgba(0, 0, 0, 0.5);
+
+  // ==== 风格扩展（图B 夜间）====
+  // 主题无关的 --radius-card-lg / --transition-bounce 由 :root 继承
+  --color-category: #2dd4bf; // 分类徽标（青，提亮以保对比度）
+  --color-category-soft: rgba(45, 212, 191, 0.14);
+  --color-fav: #fbbf24; // 收藏/星标（暖橙，提亮）
+  --color-fav-soft: rgba(251, 191, 36, 0.2); // 收藏高亮底色/搜索 mark
+  // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：暗色版用明亮的青蓝，文字用深色保对比度
+  --gradient-brand: linear-gradient(135deg, #34d0c2, #4fc3f7);
+  --gradient-brand-text: #04303a;
+  // 热门文章排名徽标（top3）：夜间用明亮的青蓝渐变
+  --hot-rank-gradient: linear-gradient(135deg, #34d0c2, #4fc3f7);
+  --hot-rank-text: #04303a;
+  --deco-a: rgba(90, 140, 220, 0.2); // 冷蓝光装饰
+  --deco-b: rgba(201, 138, 75, 0.18); // 暖橙台灯装饰
+  --shadow-glow:
+    0 0 0 1px rgba(80, 140, 220, 0.25), 0 8px 30px rgba(20, 40, 90, 0.55);
+  --bg-page-overlay: linear-gradient(
+    180deg,
+    rgba(8, 12, 30, 0.35),
+    rgba(8, 12, 30, 0.12)
+  );
+  --text-glow: 0 2px 14px rgba(80, 140, 230, 0.35);
 }

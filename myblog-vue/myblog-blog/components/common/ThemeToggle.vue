@@ -41,12 +41,23 @@ const isDark = computed(() => themeStore.isDark);
   background: transparent;
   color: var(--text-secondary, #666);
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s,
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce);
   flex-shrink: 0;
 }
 
 .theme-toggle:hover {
   background: var(--bg-hover, #f0f0f0);
   color: var(--text-primary, #333);
+  box-shadow: var(--shadow-glow);
+  transform: scale(1.05);
+}
+
+.theme-toggle:active {
+  transform: scale(0.96);
 }
 </style>

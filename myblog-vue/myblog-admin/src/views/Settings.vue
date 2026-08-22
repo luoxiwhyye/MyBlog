@@ -29,7 +29,7 @@
           :label="group.label"
         >
           <el-form
-            ref="formRef"
+            :ref="(el: any) => setFormRef(group.key, el)"
             :model="formData"
             :rules="formRules"
             label-width="140px"
@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Download, Upload, UploadFilled, Check } from '@element-plus/icons-vue'
 import { setting, upload } from '@/api'
@@ -216,7 +216,7 @@ const groups: GroupConfig[] = [
         label: '友情链接',
         type: 'textarea',
         placeholder: '[{"name":"站点名称","url":"https://..."}]',
-        description: 'JSON 数组格式：{"name":"名称","url":"链接"}，保存在首页侧边栏展示。',
+        description: '友情链接，JSON 数组格式：[{"name":"名称","url":"链接"}]，首页侧边栏展示。',
       },
     ],
   },
@@ -224,7 +224,10 @@ const groups: GroupConfig[] = [
 
 const activeTab = ref('basic')
 const saving = ref(false)
-const formRef = ref<FormInstance>()
+const formRefs = ref<Record<string, FormInstance>>({})
+const setFormRef = (key: string, el: any) => {
+  if (el) formRefs.value[key] = el
+}
 const settings = ref<Record<string, any>>({})
 const formData = reactive<Record<string, any>>({})
 const uploadRefs = ref<Record<string, any>>({})
@@ -301,12 +304,24 @@ const removeImage = (key: string) => {
 }
 
 const saveSettings = async () => {
-  if (!formRef.value) return
-  try {
-    await formRef.value.validate()
-  } catch {
-    ElMessage.warning('请先修正表单中的错误项')
-    return
+  // 每个 tab 是独立 el-form，需逐组校验；首个出错项自动切换到对应 tab 并聚焦
+  for (const group of groups) {
+    const form = formRefs.value[group.key]
+    if (!form) continue
+    try {
+      await form.validate()
+    } catch (invalidFields: any) {
+      const firstKey = Object.keys(invalidFields || {})[0]
+      const firstField = allFields.value.find((f) => f.key === firstKey)
+      if (firstKey && firstField) {
+        activeTab.value = group.key
+        nextTick(() => form.scrollToField(firstKey))
+        ElMessage.warning(invalidFields[firstKey]?.[0]?.message || '请先修正表单中的错误项')
+      } else {
+        ElMessage.warning('请先修正表单中的错误项')
+      }
+      return
+    }
   }
 
   saving.value = true
@@ -342,7 +357,7 @@ const resetForm = () => {
   Object.keys(settings.value).forEach((key) => {
     formData[key] = settings.value[key].value
   })
-  formRef.value?.clearValidate()
+  Object.values(formRefs.value).forEach((form) => form?.clearValidate())
   ElMessage.info('已恢复为已保存的配置')
 }
 

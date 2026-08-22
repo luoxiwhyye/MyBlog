@@ -45,7 +45,7 @@ const getComments = async (req, res, next) => {
       topLevelOnly,
     });
 
-    // 文章详情页按顶级评论分页时，批量加载该页所有顶级评论的回复树
+    // 文章详情页按顶级评论分页时，批量加载该页所有顶级评论的一层回复（评论为两级结构）
     if (topLevelOnly && comments.length > 0) {
       const parentIds = comments.map((c) => c.id);
       const repliesMap = await commentModel.getRepliesBatch(parentIds);
@@ -88,9 +88,20 @@ const createComment = async (req, res, next) => {
       return error(res, "文章不存在", 404);
     }
 
+    // 两级扁平结构：若回复的目标本身是"回复"（有父级），需把回复挂到其顶层评论下，
+    // 避免出现第三层及以上嵌套。
+    let normalizedParentId = parentId || null;
+    if (parentId) {
+      const parentComment = await commentModel.getCommentById(parentId);
+      if (parentComment) {
+        normalizedParentId =
+          parentComment.parent_id || parentComment.parentId || parentComment.id;
+      }
+    }
+
     const commentData = {
       articleId,
-      parentId: parentId || null,
+      parentId: normalizedParentId,
       authorName,
       authorEmail,
       authorUrl: authorUrl || null,

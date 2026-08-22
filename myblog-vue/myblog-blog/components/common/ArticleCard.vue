@@ -1,8 +1,8 @@
 <template>
-  <article class="article-card">
+  <article class="article-card" :class="{ 'has-badge': !!badge }">
     <NuxtLink :to="`/article/${article.id}`" class="card-link" :aria-label="article.title">
       <div class="cover">
-        <NuxtImg
+        <img
           v-if="article.coverImage"
           :src="coverSrc"
           :alt="article.title"
@@ -16,12 +16,13 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span>{{ article.title }}</span>
         </div>
+        <span v-if="badge" class="cover-badge">{{ badge }}</span>
       </div>
       <div class="content">
         <h3 class="title">
           {{ article.title }}
         </h3>
-        <p class="summary">{{ article.summary }}</p>
+        <p class="summary">{{ markdownToPlain(article.summary) }}</p>
         <div class="meta">
           <div class="meta-top">
             <span class="category meta-item">{{ article.type.typeName }}</span>
@@ -48,23 +49,29 @@
 <script setup lang="ts">
 import type { Article } from "~/types";
 import { formatDate, estimateReadTime } from "~/utils/format";
-import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { markdownToPlain } from "~/utils/markdown";
 
-const props = defineProps<{
-  article: Article;
-}>();
+const props = withDefaults(
+  defineProps<{
+    article: Article;
+    /** 卡片角标，如 "最新"，为空则不显示 */
+    badge?: string;
+  }>(),
+  { badge: "" },
+);
 
 const readTime = computed(() => estimateReadTime(props.article.content || props.article.summary || ""));
 
-// 优先使用后端预生成的 _thumb.webp 缩略图，加载失败回退原图；
+// 封面使用后端预生成的 WebP 主图（1200px, q80），保证清晰度；加载失败回退原图；
 // 开发环境将 localhost 前缀归一化为相对路径（手机/局域网可访问）
 const coverFailed = ref(false);
 const coverSrc = computed(() => {
   const raw = normalizeAssetUrl(props.article.coverImage);
-  if (coverFailed.value) {
+  if (coverFailed.value || !raw) {
     return raw;
   }
-  return getThumbWebpUrl(raw);
+  return getWebpUrl(raw);
 });
 
 const handleCoverError = () => {
@@ -82,17 +89,21 @@ watch(
 <style lang="scss" scoped>
 .article-card {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-card-lg);
   overflow: hidden;
-  transition: box-shadow 0.3s, transform 0.25s, background-color 0.3s, border-color 0.3s;
+  transition:
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce),
+    background-color 0.3s,
+    border-color 0.3s;
   background: var(--bg-card);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
 }
 
 .article-card:hover {
-  box-shadow: var(--shadow-elevated);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  transform: translateY(-2px) scale(1.005);
   border-color: transparent;
 }
 
@@ -103,6 +114,7 @@ watch(
 }
 
 .cover {
+  position: relative;
   height: 200px;
   overflow: hidden;
 }
@@ -116,6 +128,23 @@ watch(
 
 .article-card:hover .cover-image {
   transform: scale(1.06);
+}
+
+/* 最新/热文角标：悬浮在封面左上角，使用亮/暗主题的品牌渐变 */
+.cover-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--gradient-brand-text, #fff);
+  background: var(--gradient-brand, linear-gradient(135deg, var(--color-category), var(--color-accent)));
+  box-shadow: var(--shadow-glow);
+  backdrop-filter: blur(8px);
 }
 
 .cover-placeholder {
@@ -207,8 +236,8 @@ watch(
 }
 
 .category {
-  background: rgba(15, 118, 110, 0.1);
-  color: var(--color-accent);
+  background: var(--color-category-soft);
+  color: var(--color-category);
   padding: 2px 8px;
   border-radius: 4px;
 }
