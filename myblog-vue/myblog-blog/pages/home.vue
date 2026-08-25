@@ -127,8 +127,10 @@ useWebsiteJsonLd();
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .home-page {
-  padding-top: 8px;
+  padding-top: $spacing-2;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -147,7 +149,7 @@ useWebsiteJsonLd();
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-muted);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
@@ -163,7 +165,7 @@ useWebsiteJsonLd();
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-auto-flow: dense;
-  gap: 22px;
+  gap: $spacing-5;
   align-items: stretch;
   /* 占据剩余空间，把分页栏推到底部 */
   flex: 1;
@@ -206,7 +208,7 @@ useWebsiteJsonLd();
   background: var(--bg-card);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
-  padding: 20px;
+  padding: $spacing-5;
   transition:
     box-shadow var(--transition-bounce),
     border-color 0.3s,
@@ -223,7 +225,7 @@ useWebsiteJsonLd();
   font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: $spacing-4;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -334,7 +336,7 @@ useWebsiteJsonLd();
 }
 
 .pagination-wrap {
-  margin-top: 24px;
+  margin-top: $spacing-6;
   /* 与上方组件保持间距，且推到底部，避免重叠 */
   padding-top: 4px;
   flex-shrink: 0;

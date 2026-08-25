@@ -55,13 +55,15 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .tag {
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-8;
 }
 
 .tag h1 {
@@ -74,14 +76,14 @@ usePageSeo({
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-secondary);
 }
 
 .tags-cloud {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: $spacing-3;
   justify-content: center;
 }
 
@@ -104,7 +106,7 @@ usePageSeo({
 
 @media (max-width: 768px) {
   .page-header {
-    margin-bottom: 24px;
+    margin-bottom: $spacing-6;
   }
 }
 </style>

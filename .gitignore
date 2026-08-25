@@ -41,3 +41,6 @@ target/
 
 # ── agent相关配置 ──
 .claude
+
+# ── 缓存 ──
+.npm-cache

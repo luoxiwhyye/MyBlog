@@ -21,6 +21,8 @@ useLayoutSeo();
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .layout {
   min-height: 100vh;
   display: flex;
@@ -42,7 +44,7 @@ useLayoutSeo();
 
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: $spacing-5 $spacing-5 $spacing-8;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;

@@ -125,6 +125,8 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .archive {
   max-width: 800px;
   margin: 0 auto;
@@ -141,7 +143,7 @@ usePageSeo({
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-secondary);
 }
 
@@ -149,8 +151,8 @@ usePageSeo({
 .archive-summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 40px;
+  gap: $spacing-4;
+  margin-bottom: $spacing-8;
 }
 
 .summary-item {
@@ -186,15 +188,15 @@ usePageSeo({
 
 /* 年份分组 */
 .year-group {
-  margin-bottom: 40px;
+  margin-bottom: $spacing-8;
   position: relative;
 }
 
 .year-title {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: $spacing-3;
+  margin-bottom: $spacing-5;
 }
 
 .year-badge {
@@ -217,9 +219,9 @@ usePageSeo({
 
 /* 月份分组 */
 .month-group {
-  margin-bottom: 20px;
+  margin-bottom: $spacing-5;
   position: relative;
-  padding-left: 28px;
+  padding-left: $spacing-6;
   transition: transform 0.3s;
 }
 

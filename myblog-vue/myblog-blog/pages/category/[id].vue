@@ -110,14 +110,16 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .category-detail {
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .breadcrumb {
-  margin-bottom: 24px;
-  margin-top: 8px;
+  margin-bottom: $spacing-6;
+  margin-top: $spacing-2;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -169,19 +171,19 @@ usePageSeo({
 .stats {
   text-align: center;
   color: var(--text-muted);
-  margin-bottom: 26px;
+  margin-bottom: $spacing-6;
 }
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-secondary);
 }
 
 .articles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: $spacing-5;
+  margin-bottom: $spacing-5;
 }
 </style>

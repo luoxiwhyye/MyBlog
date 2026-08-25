@@ -171,6 +171,8 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .search {
   max-width: 1400px;
   margin: 0 auto;
@@ -178,8 +180,8 @@ usePageSeo({
 
 .page-header {
   position: relative;
-  min-height: 40px;
-  margin-bottom: 30px;
+  min-height: $spacing-10;
+  margin-bottom: $spacing-8;
 }
 
 .search h1 {
@@ -198,18 +200,18 @@ usePageSeo({
 
 .search-input {
   max-width: 600px;
-  margin: 0 auto 40px;
+  margin: 0 auto $spacing-8;
 }
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-secondary);
 }
 
 .no-results {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-muted);
 }
 

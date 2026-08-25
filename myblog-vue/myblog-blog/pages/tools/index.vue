@@ -168,16 +168,18 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .tools-home {
   display: grid;
-  gap: 28px;
+  gap: $spacing-6;
 }
 
 .tools-hero {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-  padding: 30px;
+  gap: $spacing-6;
+  padding: $spacing-8;
   border-radius: var(--radius-hero-xl);
   background: linear-gradient(
     135deg,
@@ -226,7 +228,7 @@ usePageSeo({
 .quick-grid,
 .tool-grid {
   display: grid;
-  gap: 18px;
+  gap: $spacing-5;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-auto-flow: dense;
 }
@@ -240,7 +242,7 @@ usePageSeo({
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 22px;
+  padding: $spacing-5;
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
@@ -312,12 +314,12 @@ usePageSeo({
 
 .favorite-section {
   display: grid;
-  gap: 18px;
+  gap: $spacing-5;
 }
 
 .category-section {
   display: grid;
-  gap: 18px;
+  gap: $spacing-5;
   scroll-margin-top: 88px;
 }
 
@@ -388,7 +390,7 @@ usePageSeo({
 @media (max-width: 768px) {
   .tools-hero {
     flex-direction: column;
-    padding: 24px;
+    padding: $spacing-6;
     border-radius: var(--radius-hero-xl);
   }
 

@@ -556,14 +556,16 @@ useArticleJsonLd(article as Ref<Article | null>);
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .article-detail {
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
   position: relative;
   /* 非对称：左宽阅读 + 右粘性 TOC */
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 28px;
+  gap: $spacing-6;
   align-items: start;
 }
 
@@ -631,7 +633,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card-lg);
-  padding: 36px 40px;
+  padding: $spacing-6 $spacing-8;
   box-shadow: var(--shadow-card);
 }
 
@@ -725,7 +727,9 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .article-body {
-  line-height: 1.9;
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: $line-height-loose;
   color: var(--text-primary);
   margin-bottom: 0;
   font-size: 16px;
@@ -740,7 +744,8 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .article-body :deep(p) {
-  margin-bottom: 1.2em;
+  margin-block: 0 $spacing-5;
+  line-height: $line-height-loose;
 }
 
 .article-body :deep(blockquote) {
@@ -758,12 +763,12 @@ useArticleJsonLd(article as Ref<Article | null>);
   text-underline-offset: 3px;
 }
 
+.article-body :deep(h1),
 .article-body :deep(h2),
 .article-body :deep(h3),
 .article-body :deep(h4) {
-  margin-top: 2em;
-  margin-bottom: 0.8em;
-  line-height: 1.35;
+  margin-block: $spacing-8 $spacing-4;
+  line-height: $line-height-relaxed;
 }
 
 .article-body :deep(pre) {
@@ -987,11 +992,11 @@ useArticleJsonLd(article as Ref<Article | null>);
 
 .toc {
   border: 1px solid var(--border-light);
-  background: var(--bg-backdrop);
+  background: var(--bg-card);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border-radius: var(--radius-card-lg);
-  padding: 16px;
+  padding: $spacing-4;
   box-shadow: var(--shadow-card);
 }
 

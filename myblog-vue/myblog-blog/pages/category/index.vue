@@ -56,13 +56,15 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .category {
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: $spacing-8;
 }
 
 .category h1 {
@@ -75,18 +77,18 @@ usePageSeo({
 
 .loading {
   text-align: center;
-  padding: 40px;
+  padding: $spacing-8;
   color: var(--text-secondary);
 }
 
 .categories-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  gap: $spacing-5;
 }
 
 .category-card {
-  padding: 30px;
+  padding: $spacing-8;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card-lg);
   text-align: center;
@@ -119,7 +121,7 @@ usePageSeo({
 
 @media (max-width: 768px) {
   .page-header {
-    margin-bottom: 24px;
+    margin-bottom: $spacing-6;
   }
 }
 </style>

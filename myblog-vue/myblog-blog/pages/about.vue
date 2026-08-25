@@ -85,6 +85,8 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .about {
   max-width: 960px;
   margin: 20px auto;
@@ -93,7 +95,7 @@ usePageSeo({
 .about h1 {
   text-align: center;
   font-size: 32px;
-  margin-bottom: 40px;
+  margin-bottom: $spacing-8;
   color: var(--text-primary);
   text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
@@ -102,18 +104,29 @@ usePageSeo({
 .about-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 28px;
+  gap: $spacing-6;
   align-items: start;
 }
 
 .profile-col {
   text-align: center;
-  padding: 24px;
+  padding: $spacing-6;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card-lg);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
+  transform: translateY($spacing-10);
+  transition:
+    box-shadow var(--transition-bounce),
+    border-color 0.3s,
+    transform var(--transition-bounce);
+}
+
+.profile-col:hover {
+  box-shadow: var(--shadow-glow);
+  border-color: transparent;
+  transform: translateY(calc($spacing-10 - $spacing-1));
 }
 
 .avatar {
@@ -147,17 +160,18 @@ usePageSeo({
 
 .bio {
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: $line-height-relaxed;
 }
 
 .info-col {
-  padding: 26px;
-  background: var(--bg-card);
+  padding: $spacing-6;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card-lg);
   backdrop-filter: blur(16px) saturate(130%);
   -webkit-backdrop-filter: blur(16px) saturate(130%);
-  transition: box-shadow var(--transition-bounce), border-color 0.3s;
+  transform: translateY(-$spacing-5);
+  transition: box-shadow var(--transition-bounce), border-color 0.3s, transform var(--transition-bounce);
 }
 
 .info-col:hover {
@@ -167,34 +181,38 @@ usePageSeo({
 
 .info-col h3 {
   font-size: 20px;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-4;
   color: var(--text-primary);
 }
 
 .info-col p {
-  margin-bottom: 10px;
+  margin-bottom: $spacing-3;
   color: var(--text-secondary);
 }
 
-/* 站点统计 */
+/* 站点统计：合并为一张宽扁的 Glassmorphism 卡片 */
 .about-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 22px;
-  padding-top: 22px;
-  border-top: 1px solid var(--border-light);
+  gap: $spacing-2;
+  margin-top: $spacing-5;
+  padding: $spacing-4;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card-lg);
+  background: var(--bg-card);
+  backdrop-filter: blur($glass-blur);
+  -webkit-backdrop-filter: blur($glass-blur);
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 14px 8px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card-lg);
+  gap: $spacing-1;
+  padding: $spacing-3 $spacing-2;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .stat-num {
@@ -212,6 +230,11 @@ usePageSeo({
 @media (max-width: 768px) {
   .about-content {
     grid-template-columns: 1fr;
+  }
+
+  .profile-col,
+  .info-col {
+    transform: none;
   }
 }
 </style>

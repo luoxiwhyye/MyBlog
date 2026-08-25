@@ -73,6 +73,8 @@ usePageSeo({
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .friends-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -81,8 +83,8 @@ usePageSeo({
 
 .page-header {
   text-align: center;
-  margin-bottom: 40px;
-  margin-top: 16px;
+  margin-bottom: $spacing-8;
+  margin-top: $spacing-4;
 }
 
 .page-header h1 {
@@ -112,14 +114,14 @@ usePageSeo({
 .friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  gap: $spacing-5;
 }
 
 .friend-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px;
+  gap: $spacing-3;
+  padding: $spacing-5;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);

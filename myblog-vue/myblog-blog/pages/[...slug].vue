@@ -86,12 +86,14 @@ const goHome = () => {
 </script>
 
 <style lang="scss" scoped>
+@use "../assets/css/abstracts/variables" as *;
+
 .not-found-page {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  padding: 40px 20px;
+  padding: $spacing-8 $spacing-5;
 }
 
 .not-found-content {
@@ -117,16 +119,16 @@ const goHome = () => {
 
 .not-found-desc {
   color: var(--text-secondary);
-  margin: 0 0 32px;
-  line-height: 1.8;
+  margin: 0 0 $spacing-8;
+  line-height: $line-height-relaxed;
 }
 
 .not-found-search {
-  margin-bottom: 24px;
+  margin-bottom: $spacing-6;
 }
 
 .not-found-actions {
-  margin-bottom: 40px;
+  margin-bottom: $spacing-8;
 }
 
 .not-found-suggestions {

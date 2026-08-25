@@ -27,11 +27,13 @@ const siteDescription = computed(
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .footer {
   background: var(--bg-card);
   position: relative;
-  padding: 20px 0;
-  margin-top: 40px;
+  padding: $spacing-5 0;
+  margin-top: 0;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
