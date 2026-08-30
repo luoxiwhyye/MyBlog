@@ -1,6 +1,36 @@
 <template>
   <div class="home-page">
     <div class="home-body">
+      <!-- 公告栏：极简毛玻璃横向卡片 -->
+      <section class="announce-card">
+        <span class="announce-label">{{ t('home.announcement') }}</span>
+        <p class="announce-text">{{ announcement || t('home.announcementEmpty') }}</p>
+      </section>
+
+      <!-- 博主信息卡：头像 + 简介 + 社交链接 + 关于入口 -->
+      <section class="profile-card">
+        <div class="profile-avatar">
+          <img v-if="profileAvatar" :src="profileAvatar" :alt="authorName" />
+          <span v-else class="avatar-fallback">{{ (authorName || 'B').slice(0, 1) }}</span>
+        </div>
+        <div class="profile-info">
+          <h2 class="profile-name">{{ authorName }}</h2>
+          <p class="profile-bio">{{ bio || t('home.profileEmpty') }}</p>
+          <div v-if="socialLinks.length" class="profile-links">
+            <a
+              v-for="link in socialLinks"
+              :key="link.url"
+              :href="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="profile-link"
+            >{{ link.name }}</a>
+          </div>
+        </div>
+        <NuxtLink to="/about" class="profile-more">{{ t('home.viewProfile') }}</NuxtLink>
+      </section>
+
+      <!-- 文章列表：规律等宽网格，数据少时允许自然留白 -->
       <div v-if="loading" class="loading">
         <el-icon class="is-loading"><Loading /></el-icon>
         {{ t('article.loading') }}
@@ -12,31 +42,17 @@
         action-text="返回首页"
         action-to="/home"
       />
-      <div v-else class="bento-grid">
-        <template v-for="(article, i) in articles" :key="article.id">
-          <div class="bento-item" :class="{ 'bento-item--first': i === 0 }">
-            <!-- 第一篇文章视为最新，在卡片内标注 -->
-            <ArticleCard :article="article" :badge="i === 0 ? t('home.hero.latestBadge') : ''" />
-          </div>
-          <!-- 热门文章与第一篇文章并排同一行，撑满等高 -->
-          <div v-if="i === 0" class="bento-card bento-hot">
-            <section class="widget">
-              <h3>{{ t('home.hero.hot') }}</h3>
-              <ol class="hot-list">
-                <li v-for="(item, idx) in hotArticles" :key="item.id">
-                  <NuxtLink :to="`/article/${item.id}`" class="hot-item">
-                    <span class="hot-rank" :class="{ 'top3': idx < 3 }">{{ idx + 1 }}</span>
-                    <div class="hot-info">
-                      <span class="hot-title">{{ item.title }}</span>
-                      <span class="hot-meta">{{ item.viewCount }} {{ t('home.reads') }} · {{ item.type.typeName }}</span>
-                    </div>
-                  </NuxtLink>
-                </li>
-              </ol>
-            </section>
-          </div>
-        </template>
-      </div>
+      <template v-else>
+        <h2 class="section-title">{{ t('home.articlesTitle') }}</h2>
+        <div class="article-grid">
+          <ArticleCard
+            v-for="(article, i) in articles"
+            :key="article.id"
+            :article="article"
+            :badge="i === 0 ? t('home.hero.latestBadge') : ''"
+          />
+        </div>
+      </template>
 
       <div class="pagination-wrap">
         <Pagination
@@ -53,6 +69,7 @@
 <script setup lang="ts">
 import { Loading } from "@element-plus/icons-vue";
 import { articleApi } from "~/api";
+import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import type { Article, PaginatedResponse } from "~/types";
 
 const settingsStore = useSettingsStore();
@@ -62,13 +79,13 @@ const { t } = useI18n();
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const currentPage = ref(1);
-const pageSize = ref(4);
+const pageSize = ref(6);
 
 const emptyArticlePage = (): PaginatedResponse<Article> => ({
   list: [],
   total: 0,
   page: 1,
-  pageSize: 4,
+  pageSize: 6,
 });
 
 const { data: articlePage, pending } = await useAsyncData(
@@ -80,34 +97,37 @@ const { data: articlePage, pending } = await useAsyncData(
   { watch: [currentPage, pageSize], default: emptyArticlePage },
 );
 
-// 热门文章：按浏览量单独拉取，最多取 12 篇（与当前页文章解耦）
-const { data: hotData } = await useAsyncData(
-  "home-hot-articles",
-  () =>
-    articleApi
-      .getList({ page: 1, pageSize: 12, status: "published", sortBy: "view_count" })
-      .then((response) => response.data),
-  { default: () => emptyArticlePage() },
-);
-
 const loading = computed(() => pending.value);
 const articles = computed(() => articlePage.value.list);
 const total = computed(() => articlePage.value.total);
 
-// 视口宽度：控制热门文章显示篇数及单/双列（SSR 默认按宽屏渲染，防水合不一致）
-const viewportWidth = ref(1440);
-onMounted(() => {
-  viewportWidth.value = window.innerWidth;
-  const onResize = () => (viewportWidth.value = window.innerWidth);
-  window.addEventListener("resize", onResize);
-  onBeforeUnmount(() => window.removeEventListener("resize", onResize));
+/* ===== 公告 / 博主信息（动态配置，无硬编码假数据） =====
+   - 公告：settings 中的 `announcement` 配置项（可空）
+   - 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url}]，可空） */
+const announcement = computed(() => settingsStore.getSetting("announcement"));
+
+const socialLinks = computed<Array<{ name: string; url: string }>>(() => {
+  const raw = settingsStore.getSetting("social_links");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((i) => i?.name && i?.url);
+    }
+  } catch {
+    // 解析失败视为空
+  }
+  return [];
 });
 
-// 宽度 >1280 显示 12 篇两列；否则 6 篇单列
-const isWideLayout = computed(() => viewportWidth.value > 1280);
-const hotArticles = computed(() =>
-  hotData.value.list.slice(0, isWideLayout.value ? 12 : 6),
-);
+const authorName = computed(() => bloggerStore.nickname());
+const bio = computed(() => bloggerStore.bio());
+const profileAvatar = computed(() => {
+  const raw = normalizeAssetUrl(
+    bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "",
+  );
+  return raw ? getThumbWebpUrl(raw) : "";
+});
 
 const handlePageUpdate = (page: number, size: number) => {
   currentPage.value = page;
@@ -137,14 +157,14 @@ useWebsiteJsonLd();
 }
 
 .home-body {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  /* 分页栏不再预留底部间距（用户要求删除下边距） */
-  padding-bottom: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  gap: $spacing-6;
+  /* 分页与内容保持自然间距，不再强制撑满屏幕 */
+  padding-bottom: $spacing-6;
 }
 
 .loading {
@@ -152,193 +172,171 @@ useWebsiteJsonLd();
   padding: $spacing-8;
   color: var(--text-muted);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
-/* ===== 卡片网格 ===== */
-/* 以 6 列作为弹性底模，用 span 控制每行数量：
-   - >1280：文章卡 span2（每行3张），热门卡 span4 与首篇文章并排
-   - 641~1280：文章卡 span3（每行2张），热门卡 span3 与首篇并排
-   - ≤640：全部 span6（每行1张） */
-.bento-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-flow: dense;
-  gap: $spacing-5;
-  align-items: stretch;
-  /* 占据剩余空间，把分页栏推到底部 */
-  flex: 1;
-}
-
-.bento-item,
-.bento-card {
-  min-width: 0;
-}
-
-/* 普通文章卡：每行3张 */
-.bento-item { grid-column: span 2; }
-/* 首篇文章：与热门卡并排同一行 */
-.bento-item--first { grid-column: span 2; }
-/* 热门卡：占剩余4列，与首篇文章等高撑满 */
-.bento-hot { grid-column: span 4; }
-
-@media (max-width: 1280px) {
-  /* 每行2张文章卡 */
-  .bento-item,
-  .bento-item--first { grid-column: span 3; }
-  /* 热门卡占半行，与首篇并排；内部改为单列 */
-  .bento-hot { grid-column: span 3; }
-}
-
-@media (max-width: 640px) {
-  /* 每行1张 */
-  .bento-item,
-  .bento-item--first,
-  .bento-hot { grid-column: span 6; }
-}
-
-/* ===== 特色卡（热门文章 widget） ===== */
-.widget {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-card-lg);
-  background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  padding: $spacing-5;
-  transition:
-    box-shadow var(--transition-bounce),
-    border-color 0.3s,
-    transform var(--transition-bounce);
-}
-
-.widget:hover {
-  box-shadow: var(--shadow-glow);
-  border-color: transparent;
-  transform: translateY(-1px);
-}
-
-.widget h3 {
-  font-size: 17px;
+.section-title {
+  font-size: $font-size-lg;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: $spacing-4;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
-.widget h3::before {
-  content: "";
-  display: inline-block;
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--gradient-brand, linear-gradient(180deg, var(--color-category), var(--color-accent)));
+/* ===== 公告栏 ===== */
+.announce-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  padding: $spacing-4 $spacing-5;
+  border-radius: var(--radius-card-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+}
+
+.announce-label {
   flex-shrink: 0;
+  padding: 2px $spacing-3;
+  border-radius: $border-radius-full;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: var(--color-category);
+  background: var(--color-category-soft);
 }
 
-/* 热门列表：宽度足够时两列（12篇），否则单列（6篇）。
-   行高固定、顶部对齐，下方留白即可（不拉伸填满）。 */
-.hot-list {
-  list-style: none;
-  counter-reset: hot-rank;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: auto;
-  column-gap: 12px;
-  row-gap: 6px;
-  align-content: start;
-  flex: 1;
+.announce-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: $line-height-relaxed;
 }
 
-@media (max-width: 1280px) {
-  .hot-list { grid-template-columns: 1fr; }
-}
-
-.hot-list li {
+/* ===== 博主信息卡 ===== */
+.profile-card {
   display: flex;
-  align-items: stretch;
-}
-
-/* 每个选项固定高度，不随卡片高度拉伸 */
-.hot-item {
-  height: 44px;
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 0 10px;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: background 0.2s;
+  gap: $spacing-5;
+  padding: $spacing-5 $spacing-6;
+  border-radius: var(--radius-card-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+  width: $spacing-20;
+  height: $spacing-20;
+  border-radius: 50%;
   overflow: hidden;
-}
-
-.hot-item:hover {
-  background: var(--bg-hover);
-}
-
-.hot-rank {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  font-size: 13px;
+}
+
+.profile-avatar img,
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-2xl;
   font-weight: 700;
-  color: #fff;
-  background: var(--hot-rank-gradient, linear-gradient(135deg, var(--color-category), var(--color-accent)));
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  color: $color-white;
+  background: var(--brand-logo-gradient);
 }
 
-/* 前三名加深一档，更醒目 */
-.hot-rank.top3 {
-  color: #fff;
-  background: var(--hot-rank-gradient, linear-gradient(135deg, var(--color-category), var(--color-accent)));
-  box-shadow: var(--shadow-glow);
-}
-
-.hot-info {
+.profile-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  line-height: 1.2;
+  gap: $spacing-1;
 }
 
-.hot-title {
+.profile-name {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: 700;
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color 0.2s;
 }
 
-.hot-item:hover .hot-title {
+.profile-bio {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: $line-height-relaxed;
+}
+
+.profile-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+  margin-top: $spacing-2;
+}
+
+.profile-link {
+  font-size: $font-size-sm;
   color: var(--color-accent);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-category);
+  }
 }
 
-.hot-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.profile-more {
+  flex-shrink: 0;
+  padding: $spacing-2 $spacing-4;
+  border-radius: $border-radius-full;
+  font-size: $font-size-sm;
+  color: var(--color-category);
+  background: var(--color-category-soft);
+  text-decoration: none;
+  transition:
+    background-color 0.2s,
+    box-shadow var(--transition-bounce);
 }
 
+.profile-more:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+/* ===== 文章网格：规律等宽 3/2/1 列，数据不足时自然留白 ===== */
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-5;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .article-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .article-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 分页器：自然居中，不与内容脱节 ===== */
 .pagination-wrap {
-  margin-top: $spacing-6;
-  /* 与上方组件保持间距，且推到底部，避免重叠 */
-  padding-top: 4px;
+  margin-top: $spacing-2;
+  display: flex;
+  justify-content: center;
   flex-shrink: 0;
 }
 </style>

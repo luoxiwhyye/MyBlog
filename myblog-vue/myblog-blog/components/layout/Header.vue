@@ -73,13 +73,13 @@ watch(
 <style lang="scss" scoped>
 .header {
   background: var(--bg-header);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--glass-border);
   padding: 12px 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   transition: background-color 0.3s, border-color 0.3s;
   box-shadow: var(--shadow-card);
 }

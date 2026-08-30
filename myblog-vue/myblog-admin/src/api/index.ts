@@ -225,6 +225,13 @@ export const blogger = {
 }
 
 // 网站配置管理
+export interface CustomSettingItem {
+  key: string
+  value: string
+  type: string
+  description: string
+}
+
 export const setting = {
   getList: (): Promise<
     ApiResponse<
@@ -245,6 +252,28 @@ export const setting = {
     key: string,
   ): Promise<ApiResponse<{ value: string; type: string; description: string }>> => {
     return request.get(`/settings/${key}`)
+  },
+  create: (data: {
+    key: string
+    value: string
+    type?: string
+    description?: string
+  }): Promise<ApiResponse<CustomSettingItem>> => {
+    return request.post('/settings', data)
+  },
+  updateByKey: (
+    key: string,
+    data: { value?: string; type?: string; description?: string },
+  ): Promise<ApiResponse<CustomSettingItem>> => {
+    return request.put(`/settings/${key}`, data)
+  },
+  updateBatch: (
+    data: Record<string, { value: string; type?: string; description?: string }>,
+  ): Promise<ApiResponse> => {
+    return request.put('/settings', { settings: data })
+  },
+  remove: (key: string): Promise<ApiResponse> => {
+    return request.delete(`/settings/${key}`)
   },
 }
 

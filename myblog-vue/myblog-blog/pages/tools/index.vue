@@ -30,7 +30,7 @@
           v-for="(tool, i) in favoriteTools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          :class="['quick-card', `tool-span-${toolSpan(i)}`]"
+          :class="['quick-card', `tool-span-${toolSpan(i, favoriteTools.length)}`]"
         >
           <div class="quick-card-top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -54,7 +54,7 @@
         v-for="(tool, i) in hotTools"
         :key="tool.id"
         :to="getToolPath(tool)"
-        :class="['quick-card', `tool-span-${toolSpan(i)}`]"
+        :class="['quick-card', `tool-span-${toolSpan(i, hotTools.length)}`]"
       >
         <div class="quick-card-top">
           <el-icon><component :is="tool.icon" /></el-icon>
@@ -88,7 +88,7 @@
           v-for="(tool, i) in category.tools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          :class="['tool-card', `tool-span-${toolSpan(i)}`]"
+          :class="['tool-card', `tool-span-${toolSpan(i, category.tools.length)}`]"
         >
           <div class="tool-card__top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -126,8 +126,18 @@ const FAVORITES_KEY = "myblog:tools:favorites";
 const categories = TOOL_CATEGORIES;
 const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
 
-// 非对称卡片 span：每 3 张抽一张加宽
-const toolSpan = (i: number) => (i % 3 === 1 ? 3 : 2);
+// Bento 自适应 span：优先三张普通卡（span2）铺满一行；
+// 若最后一行只剩 1~2 张，则分别拉伸为整行/半行，避免网格右侧出现空洞。
+const toolSpan = (i: number, total: number) => {
+  const remainder = total % 3;
+  if (remainder === 1) {
+    return i === total - 1 ? 6 : 2;
+  }
+  if (remainder === 2) {
+    return i >= total - 2 ? 3 : 2;
+  }
+  return 2;
+};
 
 // 收藏功能（localStorage 持久化）
 const favoriteIds = ref<string[]>([]);
@@ -186,9 +196,9 @@ usePageSeo({
     var(--color-accent-light) 0%,
     var(--bg-card) 100%
   );
-  border: 1px solid var(--border-light);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
 .tools-eyebrow {
@@ -235,6 +245,7 @@ usePageSeo({
 
 .tool-span-2 { grid-column: span 2; }
 .tool-span-3 { grid-column: span 3; }
+.tool-span-6 { grid-column: span 6; }
 
 .quick-card,
 .tool-card {
@@ -245,10 +256,10 @@ usePageSeo({
   padding: $spacing-5;
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   text-decoration: none;
   transition:
     transform var(--transition-bounce),
@@ -333,9 +344,9 @@ usePageSeo({
   gap: 10px;
   padding: 10px;
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .category-caps .caps-pill {
@@ -405,7 +416,8 @@ usePageSeo({
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .tool-span-2,
-  .tool-span-3 {
+  .tool-span-3,
+  .tool-span-6 {
     grid-column: span 2;
   }
 }
@@ -416,7 +428,8 @@ usePageSeo({
     grid-template-columns: 1fr;
   }
   .tool-span-2,
-  .tool-span-3 {
+  .tool-span-3,
+  .tool-span-6 {
     grid-column: span 1;
   }
 }

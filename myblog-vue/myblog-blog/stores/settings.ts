@@ -40,6 +40,20 @@ export const useSettingsStore = defineStore("settings", () => {
     return settings.value[key]?.value || "";
   };
 
+  // 后端返回的是完整 Key-Value 配置；预设 schema 之外的键即“自定义配置”。
+  // 这里按需抽取为数组，配合 presetKeys 过滤出动态项。
+  const getCustomSettings = (presetKeys: string[] = []) => {
+    const presetSet = new Set(presetKeys);
+    return Object.entries(settings.value)
+      .filter(([key]) => !presetSet.has(key))
+      .map(([key, item]) => ({
+        key,
+        value: item?.value || "",
+        type: item?.type || "text",
+        description: item?.description || "",
+      }));
+  };
+
   return {
     settings,
     loading,
@@ -47,5 +61,6 @@ export const useSettingsStore = defineStore("settings", () => {
     fetchSettings,
     ensureSettings,
     getSetting,
+    getCustomSettings,
   };
 });

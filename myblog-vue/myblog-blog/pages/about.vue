@@ -112,10 +112,10 @@ usePageSeo({
   text-align: center;
   padding: $spacing-6;
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   transform: translateY($spacing-10);
   transition:
     box-shadow var(--transition-bounce),
@@ -166,10 +166,10 @@ usePageSeo({
 .info-col {
   padding: $spacing-6;
   background: color-mix(in srgb, var(--bg-card) 88%, transparent);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   transform: translateY(-$spacing-5);
   transition: box-shadow var(--transition-bounce), border-color 0.3s, transform var(--transition-bounce);
 }
@@ -197,7 +197,7 @@ usePageSeo({
   gap: $spacing-2;
   margin-top: $spacing-5;
   padding: $spacing-4;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   backdrop-filter: blur($glass-blur);

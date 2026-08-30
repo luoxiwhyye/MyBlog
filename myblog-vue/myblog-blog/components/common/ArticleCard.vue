@@ -88,7 +88,7 @@ watch(
 
 <style lang="scss" scoped>
 .article-card {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   overflow: hidden;
   transition:
@@ -97,8 +97,8 @@ watch(
     background-color 0.3s,
     border-color 0.3s;
   background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
 .article-card:hover {
@@ -144,7 +144,7 @@ watch(
   color: var(--gradient-brand-text, #fff);
   background: var(--gradient-brand, linear-gradient(135deg, var(--color-category), var(--color-accent)));
   box-shadow: var(--shadow-glow);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .cover-placeholder {

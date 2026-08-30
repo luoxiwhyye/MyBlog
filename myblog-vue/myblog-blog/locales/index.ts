@@ -29,6 +29,11 @@ export const zh = {
       startReading: "开始阅读",
       tools: "前往工具箱",
     },
+    announcement: "公告",
+    announcementEmpty: "暂无公告，稍后回来看看。",
+    articlesTitle: "最新文章",
+    profileEmpty: "还没有个人简介。",
+    viewProfile: "关于我",
     reads: "阅读",
   },
   about: {
@@ -130,6 +135,11 @@ export const en: typeof zh = {
       startReading: "Start Reading",
       tools: "Explore Tools",
     },
+    announcement: "Announcement",
+    announcementEmpty: "No announcement yet. Check back soon.",
+    articlesTitle: "Latest Articles",
+    profileEmpty: "No bio yet.",
+    viewProfile: "About Me",
     reads: "reads",
   },
   about: {

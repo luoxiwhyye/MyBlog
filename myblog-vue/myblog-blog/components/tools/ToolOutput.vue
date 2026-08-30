@@ -141,10 +141,10 @@ const regexSegments = computed(() => {
 <style lang="scss" scoped>
 .tool-panel {
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   padding: 20px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .panel-header {
@@ -174,7 +174,7 @@ const regexSegments = computed(() => {
 
 .metric-card,
 .kv-card {
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 14px;
   background: var(--bg-card);

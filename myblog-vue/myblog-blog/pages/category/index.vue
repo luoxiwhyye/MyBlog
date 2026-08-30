@@ -83,13 +83,13 @@ usePageSeo({
 
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: $spacing-5;
 }
 
 .category-card {
   padding: $spacing-8;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   text-align: center;
   cursor: pointer;
@@ -99,8 +99,8 @@ usePageSeo({
     background-color 0.3s,
     border-color 0.3s;
   background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
 .category-card:hover {

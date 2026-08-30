@@ -126,8 +126,8 @@ usePageSeo({
   flex-wrap: wrap;
   padding: 10px 16px;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   font-size: 14px;
 }
@@ -182,7 +182,7 @@ usePageSeo({
 
 .articles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: $spacing-5;
   margin-bottom: $spacing-5;
 }

@@ -156,10 +156,10 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 <style lang="scss" scoped>
 .tool-panel {
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   padding: 20px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .panel-header {

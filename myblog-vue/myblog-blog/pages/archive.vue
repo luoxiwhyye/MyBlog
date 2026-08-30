@@ -163,9 +163,9 @@ usePageSeo({
   padding: 20px 12px;
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   transition: box-shadow var(--transition-bounce), border-color 0.3s;
 }
 

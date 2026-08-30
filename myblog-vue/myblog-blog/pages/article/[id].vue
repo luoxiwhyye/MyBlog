@@ -161,9 +161,9 @@
     </div>
     <div v-else class="not-found">文章不存在</div>
 
-    <!-- 目录侧栏（保留） -->
-    <aside v-if="article" class="quick-nav">
-      <div v-if="tocItems.length" class="toc">
+    <!-- 目录侧栏（保留）：仅在正文存在标题时占用右栏，避免空抽屉造成孤立感 -->
+    <aside v-if="article && tocItems.length" class="quick-nav">
+      <div class="toc">
         <h4>目录</h4>
         <ul>
           <li v-for="item in tocItems" :key="item.id" :class="`level-${item.level}`">
@@ -562,9 +562,9 @@ useArticleJsonLd(article as Ref<Article | null>);
   max-width: 1280px;
   margin: 0 auto;
   position: relative;
-  /* 非对称：左宽阅读 + 右粘性 TOC */
+  /* 非对称：左宽阅读 + 右粘性 TOC；无目录时 auto 列自然收起，文章占满宽度 */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: $spacing-6;
   align-items: start;
 }
@@ -592,8 +592,8 @@ useArticleJsonLd(article as Ref<Article | null>);
   flex-wrap: wrap;
   padding: 10px 16px;
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   font-size: 14px;
 }
@@ -629,9 +629,9 @@ useArticleJsonLd(article as Ref<Article | null>);
 /* ===== 统合卡片 ===== */
 .article-card-wrap {
   background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   padding: $spacing-6 $spacing-8;
   box-shadow: var(--shadow-card);
@@ -688,7 +688,7 @@ useArticleJsonLd(article as Ref<Article | null>);
   color: var(--text-secondary);
   line-height: 1.8;
   background: var(--bg-card);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur));
   border-left: 4px solid var(--color-category);
   padding: 10px 12px;
   border-radius: 6px;
@@ -855,9 +855,9 @@ useArticleJsonLd(article as Ref<Article | null>);
   width: 380px;
   max-height: 300px;
   background: var(--bg-card);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--shadow-elevated);
   overflow-y: auto;
@@ -947,10 +947,15 @@ useArticleJsonLd(article as Ref<Article | null>);
   position: sticky;
   top: 24px;
   grid-column: 2;
+  width: 260px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   align-self: start;
+  /* 让右侧目录卡在长文中保持可滚动，减少“孤岛式”悬浮感 */
+  max-height: calc(100vh - 2 * $spacing-6);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* 悬浮圆形“返回顶部”方向按钮 — 不挤压文章空间 */
@@ -965,9 +970,9 @@ useArticleJsonLd(article as Ref<Article | null>);
   align-items: center;
   justify-content: center;
   background: var(--bg-backdrop);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-card);
   color: var(--color-accent);
   cursor: pointer;
@@ -991,10 +996,10 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .toc {
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   background: var(--bg-card);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   border-radius: var(--radius-card-lg);
   padding: $spacing-4;
   box-shadow: var(--shadow-card);

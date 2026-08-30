@@ -106,10 +106,10 @@ const filteredCategories = computed(() => {
 
 .sidebar-group {
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   padding: 16px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .sidebar-group header {

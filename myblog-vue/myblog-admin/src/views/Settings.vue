@@ -111,6 +111,47 @@
             </el-form-item>
           </el-form>
         </el-tab-pane>
+
+        <el-tab-pane label="自定义配置" name="custom">
+          <div class="custom-config">
+            <div class="custom-toolbar">
+              <el-button type="primary" :icon="Plus" @click="openAddCustom">添加配置</el-button>
+              <el-button :icon="Refresh" @click="fetchSettings">刷新</el-button>
+              <el-button
+                :icon="Check"
+                :loading="savingCustomBatch"
+                :disabled="!customConfigs.length"
+                @click="saveCustomBatch"
+              >
+                保存自定义配置列表
+              </el-button>
+            </div>
+
+            <el-alert
+              v-if="customConfigs.length"
+              type="info"
+              :closable="false"
+              show-icon
+              class="custom-tip"
+              title="自定义配置为 Key-Value 形式，保存后前台 settings store 会自动合并读取；删除请使用列表中“删除”按钮。"
+            />
+
+            <el-table v-if="customConfigs.length" :data="customConfigs" class="custom-table">
+              <el-table-column prop="key" label="配置键" min-width="180" />
+              <el-table-column prop="type" label="类型" width="110" />
+              <el-table-column prop="value" label="配置值" min-width="220" show-overflow-tooltip />
+              <el-table-column prop="description" label="备注描述" min-width="200" show-overflow-tooltip />
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" :icon="Edit" @click="openEditCustom(row)">编辑</el-button>
+                  <el-button link type="danger" :icon="Delete" @click="handleCustomDelete(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <el-empty v-else description="暂无自定义配置，点击“添加配置”新增一个 Key-Value 配置项。" />
+          </div>
+        </el-tab-pane>
       </el-tabs>
 
       <div class="actions">
@@ -125,13 +166,75 @@
         <el-button @click="resetForm">重置未保存修改</el-button>
       </div>
     </el-card>
+
+    <el-dialog
+      v-model="customDialogVisible"
+      :title="customEditingKey ? '编辑配置' : '添加配置'"
+      width="560px"
+      @closed="resetCustomForm"
+    >
+      <el-form
+        ref="customFormRef"
+        :model="customForm"
+        :rules="customRules"
+        label-width="90px"
+      >
+        <el-form-item label="配置键" prop="key">
+          <el-input
+            v-model="customForm.key"
+            :disabled="!!customEditingKey"
+            placeholder="如 notice / custom_nav"
+          />
+        </el-form-item>
+        <el-form-item label="类型" prop="type">
+          <el-select v-model="customForm.type" placeholder="选择类型">
+            <el-option label="文本" value="text" />
+            <el-option label="富文本 HTML" value="html" />
+            <el-option label="布尔" value="boolean" />
+            <el-option label="图片(URL)" value="image" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="配置值" prop="value">
+          <el-switch
+            v-if="customForm.type === 'boolean'"
+            v-model="customForm.value"
+            active-value="true"
+            inactive-value="false"
+          />
+          <el-input
+            v-else-if="customForm.type === 'html'"
+            v-model="customForm.value"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入内容"
+          />
+          <el-input
+            v-else
+            v-model="customForm.value"
+            :type="customForm.type === 'text' ? 'textarea' : 'text'"
+            :rows="customForm.type === 'text' ? 3 : 1"
+            placeholder="请输入配置值"
+          />
+        </el-form-item>
+        <el-form-item label="备注描述" prop="description">
+          <el-input
+            v-model="customForm.description"
+            placeholder="可选，说明该配置的用途"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="customDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingCustom" @click="saveCustomConfig">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Download, Upload, UploadFilled, Check } from '@element-plus/icons-vue'
+import { Download, Upload, UploadFilled, Check, Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
 import { setting, upload } from '@/api'
 
 interface FieldConfig {
@@ -233,6 +336,150 @@ const formData = reactive<Record<string, any>>({})
 const uploadRefs = ref<Record<string, any>>({})
 
 const allFields = computed(() => groups.flatMap((group) => group.fields))
+
+// ===== 自定义配置（Key-Value）管理 =====
+const customDialogVisible = ref(false)
+const customEditingKey = ref('')
+const customFormRef = ref<FormInstance>()
+const customForm = reactive({ key: '', value: '', type: 'text', description: '' })
+const savingCustom = ref(false)
+const savingCustomBatch = ref(false)
+
+// 预设 schema 之外的键即为自定义配置
+const customConfigs = computed(() => {
+  const presetSet = new Set(allFields.value.map((f) => f.key))
+  return Object.entries(settings.value)
+    .filter(([key]) => !presetSet.has(key))
+    .map(([key, item]) => ({
+      key,
+      value: item.value,
+      type: item.type,
+      description: item.description || '',
+    }))
+})
+
+const customRules = computed<FormRules>(() => {
+  const rules: FormRules = {}
+  if (!customEditingKey.value) {
+    rules.key = [
+      { required: true, message: '请输入配置键', trigger: 'blur' },
+      {
+        validator: (_rule, value: string, callback) => {
+          if (!value) {
+            callback()
+            return
+          }
+          if (!/^[\p{L}\p{N}_.-]{1,100}$/u.test(value)) {
+            callback(new Error('配置键只能包含字母、数字、下划线、点、连字符'))
+            return
+          }
+          if (allFields.value.some((f) => f.key === value)) {
+            callback(new Error('该配置键已被预设字段占用'))
+            return
+          }
+          if (customConfigs.value.some((c) => c.key === value)) {
+            callback(new Error('该配置键已存在'))
+            return
+          }
+          callback()
+        },
+        trigger: 'blur',
+      },
+    ]
+  }
+  return rules
+})
+
+const openAddCustom = () => {
+  customEditingKey.value = ''
+  resetCustomForm()
+  customDialogVisible.value = true
+}
+
+const openEditCustom = (row: any) => {
+  customEditingKey.value = row.key
+  customForm.key = row.key
+  customForm.value = row.value
+  customForm.type = row.type
+  customForm.description = row.description
+  customDialogVisible.value = true
+}
+
+const resetCustomForm = () => {
+  customEditingKey.value = ''
+  customForm.key = ''
+  customForm.value = ''
+  customForm.type = 'text'
+  customForm.description = ''
+  customFormRef.value?.clearValidate()
+}
+
+const saveCustomConfig = async () => {
+  try {
+    await customFormRef.value?.validate()
+  } catch {
+    return
+  }
+
+  savingCustom.value = true
+  try {
+    if (customEditingKey.value) {
+      await setting.updateByKey(customEditingKey.value, {
+        value: customForm.value,
+        type: customForm.type,
+        description: customForm.description,
+      })
+      ElMessage.success('配置已更新')
+    } else {
+      await setting.create({
+        key: customForm.key,
+        value: customForm.value,
+        type: customForm.type,
+        description: customForm.description,
+      })
+      ElMessage.success('配置已添加')
+    }
+    customDialogVisible.value = false
+    await fetchSettings()
+  } finally {
+    savingCustom.value = false
+  }
+}
+
+const saveCustomBatch = async () => {
+  savingCustomBatch.value = true
+  try {
+    const payload: Record<string, { value: string; type: string; description: string }> = {}
+    customConfigs.value.forEach((c) => {
+      payload[c.key] = { value: c.value, type: c.type, description: c.description }
+    })
+    await setting.updateBatch(payload)
+    ElMessage.success('自定义配置列表已保存')
+    await fetchSettings()
+  } finally {
+    savingCustomBatch.value = false
+  }
+}
+
+const handleCustomDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定删除配置 “${row.key}” 吗？`, '确认删除', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+
+  try {
+    await setting.remove(row.key)
+    ElMessage.success('配置已删除')
+    await fetchSettings()
+  } catch {
+    /* 拦截器已提示 */
+  }
+}
 
 const formRules = computed<FormRules>(() => {
   const rules: FormRules = {}
@@ -536,5 +783,24 @@ onMounted(() => {
   border-top: 1px solid var(--border-light);
   display: flex;
   gap: 12px;
+}
+
+.custom-config {
+  padding: 8px 0;
+}
+
+.custom-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.custom-tip {
+  margin-bottom: 16px;
+}
+
+.custom-table {
+  width: 100%;
 }
 </style>

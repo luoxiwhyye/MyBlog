@@ -173,8 +173,8 @@ usePageSeo({
   letter-spacing: 2px;
   color: var(--color-category);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .welcome-site {
@@ -215,8 +215,8 @@ usePageSeo({
   border-radius: 999px;
   color: var(--text-secondary);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
   text-decoration: none;
   font-size: 14px;
   transition:

@@ -295,11 +295,11 @@ const handleReplySubmitted = () => {
 .bubble {
   position: relative;
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   border-top-left-radius: 6px;
   padding: 12px 14px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 /* 气泡尾巴（指向头像） */
@@ -311,8 +311,8 @@ const handleReplySubmitted = () => {
   width: 12px;
   height: 12px;
   background: var(--bg-card);
-  border-left: 1px solid var(--border-light);
-  border-bottom: 1px solid var(--border-light);
+  border-left: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
   transform: rotate(45deg);
 }
 
@@ -368,9 +368,9 @@ const handleReplySubmitted = () => {
   margin-top: 12px;
   padding: 16px;
   background: var(--bg-hover);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--radius-card-lg);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
 }
 
 .reply-form-row {
@@ -418,9 +418,9 @@ const handleReplySubmitted = () => {
   width: 380px;
   max-height: 300px;
   background: var(--bg-card);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   box-shadow: var(--shadow-elevated);
   overflow-y: auto;

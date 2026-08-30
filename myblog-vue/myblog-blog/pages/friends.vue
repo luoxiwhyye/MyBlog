@@ -113,7 +113,7 @@ usePageSeo({
 
 .friends-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: $spacing-5;
 }
 
@@ -122,11 +122,11 @@ usePageSeo({
   align-items: center;
   gap: $spacing-3;
   padding: $spacing-5;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   text-decoration: none;
   transition:
     box-shadow var(--transition-bounce),

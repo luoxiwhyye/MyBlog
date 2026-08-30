@@ -41,10 +41,24 @@ export const useSettingsStore = defineStore('settings', () => {
 
   const getSetting = (key: string) => settings.value[key]?.value || ''
 
+  // 返回“自定义配置”列表：即除去预设 schema 键后的全部 Key-Value 项
+  const getCustomSettings = (presetKeys: string[] = []) => {
+    const presetSet = new Set(presetKeys)
+    return Object.entries(settings.value)
+      .filter(([key]) => !presetSet.has(key))
+      .map(([key, item]) => ({
+        key,
+        value: item.value,
+        type: item.type,
+        description: item.description,
+      }))
+  }
+
   return {
     settings,
     loading,
     fetchSettings,
     getSetting,
+    getCustomSettings,
   }
 })

@@ -55,7 +55,7 @@ useLayoutSeo();
 .main-content {
   flex: 1;
   padding: $spacing-3 $spacing-5 $spacing-8;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   position: relative;

@@ -21,4 +21,28 @@ router.put(
   settingController.updateSettings,
 );
 
+// 新增单个自定义配置
+router.post(
+  "/",
+  auth,
+  requireRole("admin"),
+  settingController.createSetting,
+);
+
+// 更新单个自定义配置
+router.put(
+  "/:key",
+  auth,
+  requireRole("admin"),
+  settingController.updateSettingByKey,
+);
+
+// 删除单个自定义配置
+router.delete(
+  "/:key",
+  auth,
+  requireRole("admin"),
+  settingController.deleteSetting,
+);
+
 module.exports = router;

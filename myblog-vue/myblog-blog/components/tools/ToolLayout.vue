@@ -226,8 +226,8 @@ const scrollToSelected = () => {
   padding: 28px;
   border-radius: var(--radius-hero-xl);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
 }
 
 .hero-eyebrow {
@@ -289,7 +289,7 @@ const scrollToSelected = () => {
   text-decoration: none;
   color: var(--text-secondary);
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--glass-border);
 }
 
 .command-item:hover,
