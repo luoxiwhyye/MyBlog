@@ -7,10 +7,18 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+# Alpine（musl）上编译原生模块所需工具链。
+# sharp(@nuxt/image→ipx)、@parcel/watcher(sass)、esbuild 等若预编译二进制
+# 下载失败会回退到 node-gyp 源码编译，缺 python3/make/g++ 会让 npm install
+# 直接 exit code 1；libc6-compat 兼容部分 glibc 依赖。
+RUN apk add --no-cache python3 make g++ libc6-compat
 
+# 先复制整个项目（.dockerignore 已排除 node_modules/.nuxt/.output 等），
+# 再安装依赖。因为 postinstall=nuxt prepare 需要 nuxt.config 等源文件，
+# 若只 COPY package.json 会在缺源码时执行 nuxt prepare 而失败。
 COPY . .
+
+RUN npm install
 
 # Nuxt 构建（ARG 注入构建时环境变量）
 ARG NUXT_API_BASE=http://myblog-backend:3000/api/v1
