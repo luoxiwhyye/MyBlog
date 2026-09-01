@@ -14,42 +14,53 @@
         router
         unique-opened
       >
-        <el-menu-item index="/admin/dashboard">
-          <el-icon><HomeFilled /></el-icon>
-          <template #title>仪表盘</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/articles">
-          <el-icon><Document /></el-icon>
-          <template #title>文章管理</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/types">
-          <el-icon><Folder /></el-icon>
-          <template #title>分类管理</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/labels">
-          <el-icon><PriceTag /></el-icon>
-          <template #title>标签管理</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/friend-links">
-          <el-icon><Link /></el-icon>
-          <template #title>友链管理</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/comments">
-          <el-icon><ChatDotRound /></el-icon>
-          <template #title>评论管理</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/cache">
-          <el-icon><Odometer /></el-icon>
-          <template #title>运维监控</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/profile">
-          <el-icon><User /></el-icon>
-          <template #title>个人资料</template>
-        </el-menu-item>
-        <el-menu-item index="/admin/settings">
-          <el-icon><Setting /></el-icon>
-          <template #title>系统设置</template>
-        </el-menu-item>
+        <el-menu-item-group title="总览">
+          <el-menu-item index="/admin/dashboard">
+            <el-icon><HomeFilled /></el-icon>
+            <template #title>仪表盘</template>
+          </el-menu-item>
+        </el-menu-item-group>
+
+        <el-menu-item-group title="内容">
+          <el-menu-item index="/admin/articles">
+            <el-icon><Document /></el-icon>
+            <template #title>文章管理</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/types">
+            <el-icon><Folder /></el-icon>
+            <template #title>分类管理</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/labels">
+            <el-icon><PriceTag /></el-icon>
+            <template #title>标签管理</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/comments">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>评论管理</template>
+          </el-menu-item>
+        </el-menu-item-group>
+
+        <el-menu-item-group title="链接">
+          <el-menu-item index="/admin/friend-links">
+            <el-icon><Link /></el-icon>
+            <template #title>友链管理</template>
+          </el-menu-item>
+        </el-menu-item-group>
+
+        <el-menu-item-group title="系统">
+          <el-menu-item index="/admin/cache">
+            <el-icon><Odometer /></el-icon>
+            <template #title>运维监控</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/settings">
+            <el-icon><Setting /></el-icon>
+            <template #title>系统设置</template>
+          </el-menu-item>
+          <el-menu-item index="/admin/profile">
+            <el-icon><User /></el-icon>
+            <template #title>个人资料</template>
+          </el-menu-item>
+        </el-menu-item-group>
       </el-menu>
     </el-aside>
 
@@ -262,6 +273,26 @@ onMounted(() => {
   --el-menu-text-color: var(--text-secondary);
   --el-menu-hover-bg-color: var(--bg-hover);
   --el-menu-active-color: var(--color-accent);
+}
+
+/* 分组标题：小字号、弱化，形成业务域分隔 */
+.sidebar-menu :deep(.el-menu-item-group__title) {
+  padding: 14px 20px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-menu :deep(.el-menu-item) {
+  border-radius: 10px;
+  margin: 2px 8px;
+  min-width: auto;
+}
+
+.sidebar-menu :deep(.el-menu-item.is-active) {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
 }
 
 .header {

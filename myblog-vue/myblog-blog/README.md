@@ -4,13 +4,13 @@
 
 ## 功能特性
 
-- 🏠 首页、文章详情、分类、标签、归档、关于、搜索页面
+- 🏠 首页（公告栏 + 博主信息卡 + 秩序化 3/2/1 列文章网格）、文章详情、分类、标签、归档、关于、`/friends` 友链页、搜索
 - 🧰 编程工具箱：编解码、格式化、哈希、文本处理、颜色工具
 - 📖 文章详情页支持评论、回复、代码高亮、目录导航
 - 🔎 基础 SEO：全局 `titleTemplate`、默认 description、Open Graph、Twitter Card、canonical
 - 🗺️ 内置 `robots.txt` 与 `sitemap.xml`
 - 🔁 通过 Nuxt server route 代理后端 Express API
-- 📱 响应式设计
+- 📱 响应式设计 + 暗色模式
 
 ## 技术栈
 
@@ -61,18 +61,19 @@ npm run build
 
 ```text
 api/                  # API 封装（复用原接口契约）
-assets/               # 全局样式
+assets/               # 全局样式（含设计 Token，见 documents/design-system.md）
 components/           # 通用组件与布局组件
 composables/          # SEO 等复用逻辑
 config/               # 工具箱配置
 layouts/              # Nuxt 布局
+locales/              # i18n 词条（zh / en）
 pages/                # Nuxt 页面与约定式路由
 plugins/              # Nuxt 插件（Element Plus）
 public/               # 静态资源
 server/               # API 代理、robots、sitemap
 stores/               # Pinia 状态
 types/                # TypeScript 类型
-utils/                # 通用工具函数
+utils/                # 通用工具函数、Markdown 渲染、图片 URL 归一化
 ```
 
 ## 编程工具箱模块

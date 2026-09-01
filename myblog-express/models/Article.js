@@ -265,6 +265,16 @@ const updateArticle = async (id, articleData) => {
   return result.affectedRows > 0;
 };
 
+const updateArticlesStatus = async (ids, status) => {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const placeholders = ids.map(() => "?").join(", ");
+  const [result] = await pool.query(
+    `UPDATE article SET status = ?, updated_at = NOW() WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+    [status, ...ids],
+  );
+  return result.affectedRows;
+};
+
 const softDeleteArticle = async (id) => {
   const [result] = await pool.query(
     "UPDATE article SET deleted_at = NOW() WHERE id = ?",
@@ -376,6 +386,7 @@ module.exports = {
   getArticlesByIds,
   createArticle,
   updateArticle,
+  updateArticlesStatus,
   softDeleteArticle,
   restoreArticle,
   hardDeleteArticle,

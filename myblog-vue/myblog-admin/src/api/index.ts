@@ -115,6 +115,12 @@ export const article = {
   hardDelete: (id: number): Promise<ApiResponse> => {
     return request.delete(`/articles/${id}/hard`)
   },
+  batchUpdateStatus: (data: {
+    ids: number[]
+    status: 'draft' | 'published'
+  }): Promise<ApiResponse<{ affected: number }>> => {
+    return request.put('/articles/batch/status', data)
+  },
   restore: (id: number): Promise<ApiResponse> => {
     return request.put(`/articles/${id}/restore`)
   },

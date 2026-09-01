@@ -8,6 +8,7 @@ export const zh = {
     friends: "友情链接",
     about: "关于",
     search: "搜索文章...",
+    openMenu: "打开菜单",
   },
   friends: {
     title: "友情链接",
@@ -32,6 +33,7 @@ export const zh = {
     announcement: "公告",
     announcementEmpty: "暂无公告，稍后回来看看。",
     articlesTitle: "最新文章",
+    filterAll: "全部",
     profileEmpty: "还没有个人简介。",
     viewProfile: "关于我",
     reads: "阅读",
@@ -114,6 +116,7 @@ export const en: typeof zh = {
     friends: "Friends",
     about: "About",
     search: "Search articles...",
+    openMenu: "Open menu",
   },
   friends: {
     title: "Friends",
@@ -138,6 +141,7 @@ export const en: typeof zh = {
     announcement: "Announcement",
     announcementEmpty: "No announcement yet. Check back soon.",
     articlesTitle: "Latest Articles",
+    filterAll: "All",
     profileEmpty: "No bio yet.",
     viewProfile: "About Me",
     reads: "reads",

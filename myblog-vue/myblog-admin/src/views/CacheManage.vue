@@ -17,10 +17,6 @@
               <span class="stat-value">{{ stats.misses }}</span>
             </div>
             <div class="stat-row">
-              <span class="stat-label">命中率</span>
-              <span class="stat-value highlight">{{ stats.hitRate }}%</span>
-            </div>
-            <div class="stat-row">
               <span class="stat-label">当前缓存键数</span>
               <span class="stat-value">{{ stats.keyCount }}</span>
             </div>
@@ -29,11 +25,29 @@
               <span class="stat-value">{{ formatTime(stats.startedAt) }}</span>
             </div>
 
-            <!-- 命中率进度条 -->
+            <!-- 命中率：环形仪表盘 + 细进度条 -->
+            <div class="hit-rate-gauge">
+              <svg class="donut" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="donut-track" cx="60" cy="60" r="50" />
+                <circle
+                  class="donut-value"
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  :stroke="rateColor"
+                  :style="{ strokeDasharray: `${stats.hitRate} ${100 - stats.hitRate}` }"
+                />
+              </svg>
+              <div class="donut-text">
+                <strong>{{ stats.hitRate }}%</strong>
+                <span>命中率</span>
+              </div>
+            </div>
             <div class="hit-rate-bar">
               <el-progress
                 :percentage="stats.hitRate"
-                :stroke-width="14"
+                :stroke-width="10"
+                :show-text="false"
                 :color="rateColor"
               />
             </div>
@@ -94,18 +108,22 @@
           <div class="perf-item">
             <span class="perf-num">{{ perf.totalRequests }}</span>
             <span class="perf-label">总请求数</span>
+            <span class="perf-bar"><i :style="{ width: perfRatio.perRequests + '%' }"></i></span>
           </div>
           <div class="perf-item">
             <span class="perf-num">{{ perf.avgResponseTimeMs }}<small>ms</small></span>
             <span class="perf-label">平均响应时间</span>
+            <span class="perf-bar"><i :style="{ width: perfRatio.perAvg + '%' }"></i></span>
           </div>
           <div class="perf-item">
             <span class="perf-num">{{ perf.maxResponseTimeMs }}<small>ms</small></span>
             <span class="perf-label">最大响应时间</span>
+            <span class="perf-bar"><i :style="{ width: perfRatio.perMax + '%' }"></i></span>
           </div>
           <div class="perf-item">
             <span class="perf-num" :class="{ warn: perf.errorRate > 5 }">{{ perf.errorRate }}%</span>
             <span class="perf-label">错误率</span>
+            <span class="perf-bar" :class="{ danger: perf.errorRate > 5 }"><i :style="{ width: perfRatio.perError + '%' }"></i></span>
           </div>
         </div>
 
@@ -186,6 +204,18 @@ const rateColor = computed(() => {
   if (stats.value.hitRate >= 70) return '#52c41a'
   if (stats.value.hitRate >= 40) return '#faad14'
   return '#ff4d4f'
+})
+
+// 性能 KPI 相对比例条（0-100），用最大值归一化
+const perfRatio = computed(() => {
+  const p = perf.value
+  const maxTime = Math.max(p.maxResponseTimeMs, p.avgResponseTimeMs, 1)
+  return {
+    perRequests: Math.min(100, Math.round((p.totalRequests / 1000) * 100)),
+    perAvg: Math.min(100, Math.round((p.avgResponseTimeMs / maxTime) * 100) || 5),
+    perMax: 100,
+    perError: Math.min(100, Math.round(p.errorRate * 10)) || 5,
+  }
 })
 
 const formatTime = (time?: string) => {
@@ -315,6 +345,59 @@ onMounted(() => {
   margin-top: 4px;
 }
 
+/* 命中率环形仪表盘 */
+.hit-rate-gauge {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  margin: 8px auto 0;
+}
+
+.hit-rate-gauge .donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.donut-track,
+.donut-value {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.donut-track {
+  stroke: var(--bg-hover);
+}
+
+.donut-value {
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.donut-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-text strong {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.donut-text span {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .ops-body {
   min-height: 240px;
   display: flex;
@@ -407,6 +490,27 @@ onMounted(() => {
   .perf-label {
     font-size: 12px;
     color: var(--text-muted);
+  }
+
+  .perf-bar {
+    width: 100%;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--border-light);
+    overflow: hidden;
+    margin-top: 4px;
+
+    i {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--color-accent);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  }
+
+  .perf-bar.danger i {
+    background: #ff4d4f;
   }
 }
 

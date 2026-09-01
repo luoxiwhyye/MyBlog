@@ -22,6 +22,7 @@
               v-model="filters.keyword"
               placeholder="搜索标题"
               clearable
+              @input="handleKeywordDebounced"
               @clear="handleSearch"
               @keyup.enter="handleSearch"
             />
@@ -61,12 +62,45 @@
         </el-form>
       </div>
 
+      <!-- 批量操作条：选中后显示 -->
+      <div v-if="selectedRows.length" class="batch-bar">
+        <span class="batch-count">已选 <strong>{{ selectedRows.length }}</strong> 篇</span>
+        <template v-if="!inTrash">
+          <!-- 批量发布 / 下架：目标状态取决于当前选中项里是否包含待发布的文章 -->
+          <el-button size="small" type="success" plain :loading="batchDeleting" @click="batchPublish">
+            批量发布
+          </el-button>
+          <el-button size="small" type="warning" plain :loading="batchDeleting" @click="batchUnpublish">
+            批量下架
+          </el-button>
+          <el-button size="small" type="primary" plain :loading="batchDeleting" @click="batchDelete">
+            批量移入回收站
+          </el-button>
+        </template>
+        <template v-else>
+          <el-button size="small" type="success" plain :loading="batchDeleting" @click="batchRestore">
+            批量恢复
+          </el-button>
+          <el-button size="small" type="danger" plain :loading="batchDeleting" @click="batchHardDelete">
+            批量彻底删除
+          </el-button>
+        </template>
+      </div>
+
       <!-- 文章列表 -->
       <el-table
+        ref="tableRef"
         :data="articleList"
         v-loading="loading"
+        row-key="id"
         style="width: 100%"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="48">
+          <template #header>
+            <span v-if="!inTrash" title="选中后可批量操作" style="cursor: default; color: var(--text-muted); font-size: 12px;">勾选</span>
+          </template>
+        </el-table-column>
         <el-table-column label="ID" prop="id" width="80" />
         <el-table-column label="封面" width="100">
           <template #default="scope">
@@ -167,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { article, type as typeApi } from '@/api'
@@ -179,6 +213,141 @@ const articleList = ref<any[]>([])
 const typeList = ref<any[]>([])
 const viewMode = ref<'list' | 'trash'>('list')
 const inTrash = ref(false)
+
+// 批量选择
+const tableRef = ref()
+const selectedRows = ref<any[]>([])
+const batchDeleting = ref(false)
+
+const handleSelectionChange = (rows: any[]) => {
+  selectedRows.value = rows
+}
+
+// 关键词实时搜索（防抖 300ms）
+let keywordTimer: ReturnType<typeof setTimeout> | null = null
+const handleKeywordDebounced = () => {
+  if (keywordTimer) clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => handleSearch(), 300)
+}
+
+// 批量操作：复用单条接口，避免依赖后端新增批量端点
+const collapseConfirmation = async (msg: string, kind: string): Promise<number[]> => {
+  const ids = selectedRows.value.map((r) => r.id)
+  if (!ids.length) return []
+  try {
+    await ElMessageBox.confirm(msg, kind, {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return []
+  }
+  return ids
+}
+
+const batchDelete = async () => {
+  const ids = await collapseConfirmation(
+    `确定将选中的 ${selectedRows.value.length} 篇文章移入回收站吗？`,
+    '批量删除',
+  )
+  if (!ids.length) return
+  batchDeleting.value = true
+  let ok = 0
+  for (const id of ids) {
+    try {
+      const res = await article.delete(id)
+      if (res.code === 200 || res.code === 201) ok++
+    } catch {
+      /* 忽略单条失败，继续 */
+    }
+  }
+  batchDeleting.value = false
+  ElMessage.success(`已批量移入回收站 ${ok}/${ids.length} 篇`)
+  selectedRows.value = []
+  tableRef.value?.clearSelection?.()
+  fetchArticles()
+}
+
+const batchRestore = async () => {
+  const ids = await collapseConfirmation(
+    `确定恢复选中的 ${selectedRows.value.length} 篇文章吗？`,
+    '批量恢复',
+  )
+  if (!ids.length) return
+  batchDeleting.value = true
+  let ok = 0
+  for (const id of ids) {
+    try {
+      const res = await article.restore(id)
+      if (res.code === 200 || res.code === 201) ok++
+    } catch {
+      /* 忽略 */
+    }
+  }
+  batchDeleting.value = false
+  ElMessage.success(`已批量恢复 ${ok}/${ids.length} 篇`)
+  selectedRows.value = []
+  tableRef.value?.clearSelection?.()
+  fetchArticles()
+}
+
+const batchHardDelete = async () => {
+  const ids = await collapseConfirmation(
+    `确定彻底删除选中的 ${selectedRows.value.length} 篇文章吗？此操作不可恢复！`,
+    '批量彻底删除',
+  )
+  if (!ids.length) return
+  batchDeleting.value = true
+  let ok = 0
+  for (const id of ids) {
+    try {
+      const res = await article.hardDelete(id)
+      if (res.code === 200 || res.code === 201) ok++
+    } catch {
+      /* 忽略 */
+    }
+  }
+  batchDeleting.value = false
+  ElMessage.success(`已批量彻底删除 ${ok}/${ids.length} 篇`)
+  selectedRows.value = []
+  tableRef.value?.clearSelection?.()
+  fetchArticles()
+}
+
+// 批量发布 / 下架：调用后端批量状态接口
+const runBatchStatus = async (status: 'published' | 'draft', verb: string) => {
+  const ids = selectedRows.value.map((r) => r.id)
+  if (!ids.length) return
+  try {
+    await ElMessageBox.confirm(
+      `确定将选中的 ${ids.length} 篇文章${verb}吗？`,
+      `批量${verb}`,
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  batchDeleting.value = true
+  try {
+    const res = await article.batchUpdateStatus({ ids, status })
+    batchDeleting.value = false
+    ElMessage.success(res.message || `已批量${verb} ${res.data?.affected ?? ids.length} 篇`)
+    selectedRows.value = []
+    tableRef.value?.clearSelection?.()
+    fetchArticles()
+  } catch {
+    batchDeleting.value = false
+    ElMessage.error(`批量${verb}失败`)
+  }
+}
+
+const batchPublish = () => runBatchStatus('published', '发布')
+const batchUnpublish = () => runBatchStatus('draft', '下架')
+
+onBeforeUnmount(() => {
+  if (keywordTimer) clearTimeout(keywordTimer)
+})
 
 const filters = reactive({
   keyword: '',
@@ -380,6 +549,23 @@ onMounted(() => {
   .filter-select {
     min-width: 220px;
     width: 220px;
+  }
+
+  /* 批量操作条 */
+  .batch-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+  }
+
+  .batch-count {
+    color: var(--text-secondary);
+    font-size: 14px;
   }
 
 

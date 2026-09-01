@@ -77,6 +77,37 @@
           <div class="article-body" v-html="renderContent"></div>
         </article>
 
+        <section v-if="relatedArticles.length" class="related-articles">
+          <div class="related-header">
+            <h3 class="related-title">相关文章</h3>
+          </div>
+          <div class="related-list">
+            <NuxtLink
+              v-for="item in relatedArticles"
+              :key="item.id"
+              :to="`/article/${item.id}`"
+              class="related-item"
+              :aria-label="item.title"
+            >
+              <div class="related-cover">
+                <img
+                  v-if="item.coverImage"
+                  :src="getWebpUrl(normalizeAssetUrl(item.coverImage))"
+                  :alt="item.title"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div v-else class="related-cover-fallback">{{ item.type.typeName }}</div>
+              </div>
+              <div class="related-info">
+                <span class="related-cat">{{ item.type.typeName }}</span>
+                <h4 class="related-item-title">{{ item.title }}</h4>
+                <time class="related-date">{{ formatDate(item.createdAt) }}</time>
+              </div>
+            </NuxtLink>
+          </div>
+        </section>
+
         <hr class="card-divider" />
 
         <div class="comments-section">
@@ -88,11 +119,17 @@
             </el-radio-group>
           </div>
           <div class="comment-form">
-            <el-form @submit.prevent="handleComment">
+            <el-form ref="commentFormRef" :model="commentForm" :rules="commentRules" @submit.prevent="handleComment">
               <div class="comment-form-row">
-                <el-input v-model="commentForm.authorName" placeholder="您的姓名 *" class="form-name" />
-                <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" class="form-email" />
-                <el-input v-model="commentForm.authorUrl" placeholder="https://（选填）" class="form-url" />
+                <el-form-item prop="authorName" class="form-name">
+                  <el-input v-model="commentForm.authorName" placeholder="您的姓名 *" />
+                </el-form-item>
+                <el-form-item prop="authorEmail" class="form-email">
+                  <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" />
+                </el-form-item>
+                <el-form-item class="form-url">
+                  <el-input v-model="commentForm.authorUrl" placeholder="https://（选填）" />
+                </el-form-item>
               </div>
               <div class="comment-textarea-wrap">
                 <el-input
@@ -279,6 +316,16 @@ const commentForm = ref({
   content: "",
 });
 
+const commentFormRef = ref<any>(null);
+
+// 邮箱为选填，但填写时须为合法格式
+const commentRules = {
+  authorName: [{ required: true, message: "请输入姓名", trigger: "blur" }],
+  authorEmail: [
+    { type: "email", message: "请输入有效的邮箱地址", trigger: "blur" },
+  ],
+};
+
 // localStorage key for remembering visitor comment info
 const COMMENT_STORAGE_KEY = "blog_comment_author";
 
@@ -336,6 +383,29 @@ const { data: article, pending: articlePending } = await useAsyncData(
     watch: [articleId],
     default: () => null,
   },
+);
+
+// 相关文章推荐：同分类 + 排除当前文章（客户端再过滤，前端无需扩展 API）
+const { data: relatedArticles } = await useAsyncData(
+  () => `related-${articleId.value}`,
+  async () => {
+    const current = article.value;
+    if (!current) return [];
+    try {
+      const res = await articleApi.getList({
+        page: 1,
+        pageSize: 5,
+        status: "published",
+        typeId: current.type.id,
+      });
+      return (res.data.list || [])
+        .filter((a) => a.id !== current.id)
+        .slice(0, 4);
+    } catch {
+      return [];
+    }
+  },
+  { watch: [article], default: () => [] },
 );
 
 const { data: commentPage, refresh: refreshComments } = await useAsyncData(
@@ -429,10 +499,12 @@ const refreshArticleEnhancements = async () => {
 };
 
 const handleComment = async () => {
-  if (!commentForm.value.authorName || !commentForm.value.content) {
-    ElMessage.warning("请填写姓名和评论内容");
+  if (!commentForm.value.content) {
+    ElMessage.warning("请填写评论内容");
     return;
   }
+  const valid = await commentFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
 
   submitting.value = true;
   try {
@@ -443,7 +515,7 @@ const handleComment = async () => {
       authorUrl: commentForm.value.authorUrl || undefined,
       content: commentForm.value.content,
     });
-    ElMessage.success("评论已提交，感谢您的分享。经审核通过后即可显示。");
+    ElMessage.success("评论已提交，审核通过后将显示，您也会收到邮件通知。");
     saveCommentInfo();
     commentForm.value.content = "";
     await refreshComments();
@@ -640,7 +712,113 @@ useArticleJsonLd(article as Ref<Article | null>);
 .card-divider {
   border: none;
   border-top: 1px solid var(--border-light);
-  margin: 32px 0 24px;
+  margin: $spacing-8 0 $spacing-6;
+}
+
+/* ===== 相关文章推荐 ===== */
+.related-articles {
+  margin-top: $spacing-8;
+}
+
+.related-header {
+  margin-bottom: $spacing-5;
+}
+
+.related-title {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.related-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-4;
+}
+
+.related-item {
+  display: flex;
+  gap: $spacing-4;
+  padding: $spacing-4;
+  border-radius: $border-radius-md;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  text-decoration: none;
+  transition:
+    background-color $transition-fast,
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce);
+}
+
+.related-item:hover {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.related-cover {
+  flex: 0 0 96px;
+  height: 64px;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  background: var(--bg-code);
+}
+
+.related-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.related-cover-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-category);
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.related-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.related-cat {
+  color: var(--color-category);
+  font-size: $font-size-sm;
+  font-weight: 600;
+}
+
+.related-item-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: $font-size-base;
+  font-weight: 500;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.related-date {
+  color: var(--text-muted);
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .related-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .article-header {
@@ -732,29 +910,60 @@ useArticleJsonLd(article as Ref<Article | null>);
   line-height: $line-height-loose;
   color: var(--text-primary);
   margin-bottom: 0;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .article-body :deep(img) {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: $border-radius-base;
   display: block;
-  margin: 20px auto;
+  margin: $spacing-6 auto;
 }
 
 .article-body :deep(p) {
-  margin-block: 0 $spacing-5;
-  line-height: $line-height-loose;
+  margin-block: 0 $spacing-6;
+  line-height: $line-height-relaxed;
 }
 
 .article-body :deep(blockquote) {
-  border-left: 4px solid var(--color-accent);
-  padding: 8px 16px;
-  margin: 16px 0;
-  background: var(--bg-hover);
-  border-radius: 0 8px 8px 0;
+  border-left: 4px solid var(--color-category);
+  padding: $spacing-3 $spacing-5;
+  margin: $spacing-5 0;
+  background: var(--bg-code);
+  border-radius: 0 $border-radius-base $border-radius-base 0;
   color: var(--text-secondary);
+}
+
+/* 标题层级：字号随层级递减，建立可读性优先的节奏 */
+.article-body :deep(h1) {
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin-block: $spacing-10 $spacing-5;
+  line-height: $line-height-relaxed;
+}
+
+.article-body :deep(h2) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-block: $spacing-10 $spacing-4;
+  line-height: $line-height-relaxed;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: $spacing-2;
+}
+
+.article-body :deep(h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-block: $spacing-8 $spacing-4;
+  line-height: $line-height-relaxed;
+}
+
+.article-body :deep(h4) {
+  font-size: 1.06rem;
+  font-weight: 600;
+  margin-block: $spacing-8 $spacing-3;
+  line-height: $line-height-relaxed;
 }
 
 .article-body :deep(a) {
@@ -763,25 +972,64 @@ useArticleJsonLd(article as Ref<Article | null>);
   text-underline-offset: 3px;
 }
 
-.article-body :deep(h1),
-.article-body :deep(h2),
-.article-body :deep(h3),
-.article-body :deep(h4) {
-  margin-block: $spacing-8 $spacing-4;
+.article-body :deep(ul),
+.article-body :deep(ol) {
+  margin: $spacing-4 0;
+  padding-left: $spacing-6;
   line-height: $line-height-relaxed;
+}
+
+.article-body :deep(li) {
+  margin-bottom: $spacing-2;
+}
+
+/* 表格：正文中的表格统一为可读的斑马纹样式 */
+.article-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: $spacing-5 0;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.article-body :deep(thead th) {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-bottom: 2px solid var(--border-color);
+  padding: $spacing-3 $spacing-4;
+}
+
+.article-body :deep(tbody td) {
+  padding: $spacing-3 $spacing-4;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.article-body :deep(tbody tr:nth-child(even)) {
+  background: var(--bg-hover);
+}
+
+.article-body :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: $spacing-8 0;
 }
 
 .article-body :deep(pre) {
   background: var(--bg-code);
   color: var(--text-primary);
-  border-radius: 8px;
+  border-radius: $border-radius-base;
   overflow: auto;
-  padding: 14px;
-  margin: 14px 0;
+  padding: $spacing-4;
+  margin: $spacing-5 0;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
 }
 
 .article-body :deep(code) {
-  font-family: "Fira Code", "Consolas", monospace;
+  font-family: $font-family-code;
 }
 
 .comments-section {
@@ -811,8 +1059,23 @@ useArticleJsonLd(article as Ref<Article | null>);
 .comment-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: $spacing-3;
+  margin-bottom: $spacing-3;
+}
+
+.comment-form-row :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.comment-form-row :deep(.el-form-item__error) {
+  position: static;
+  padding-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .comment-form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 评论区文本域 + emoji 按钮 */
@@ -1016,18 +1279,27 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .toc button {
+  position: relative;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   text-align: left;
-  padding: 4px 8px;
+  padding: 4px 8px 4px 12px;
   border-radius: 6px;
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: background-color 0.2s, color 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+/* 当前章节：左侧青绿指示条 + 浅底，随滚动跟随 */
+.toc button.active {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 600;
+  border-left: 2px solid var(--color-category);
 }
 
 .toc button:hover {
@@ -1035,18 +1307,27 @@ useArticleJsonLd(article as Ref<Article | null>);
   color: var(--text-primary);
 }
 
-.toc button.active {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-  font-weight: 600;
+.toc li {
+  position: relative;
 }
 
-.toc .level-2 {
-  padding-left: 12px;
+.toc li.level-2 {
+  padding-left: 10px;
 }
 
-.toc .level-3 {
-  padding-left: 24px;
+.toc li.level-3 {
+  padding-left: 20px;
+}
+
+.toc li.level-2::before,
+.toc li.level-3::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  background: var(--border-light);
 }
 
 /* ===== 阅读进度条 ===== */

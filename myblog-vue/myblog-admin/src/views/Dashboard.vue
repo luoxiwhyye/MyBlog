@@ -10,6 +10,10 @@
           <div class="stat-content">
             <div class="stat-number">{{ card.value }}</div>
             <div class="stat-label">{{ card.label }}</div>
+            <!-- 环比趋势：后端返回 delta 时显示，否则隐藏（占位） -->
+            <span v-if="card.delta != null" class="stat-trend" :class="card.delta >= 0 ? 'up' : 'down'">
+              {{ card.delta >= 0 ? '↑' : '↓' }} {{ Math.abs(card.delta) }}%
+            </span>
           </div>
         </div>
       </el-col>
@@ -111,11 +115,12 @@ const stats = ref({
   pendingComments: 0
 })
 
+// tone 映射语义色（info/success/warning/danger），delta 为环比趋势占位（后端未提供时隐藏）
 const statCards = computed(() => [
-  { label: '总文章数', value: stats.value.totalArticles, icon: Document, tone: 'blue' },
-  { label: '总评论数', value: stats.value.totalComments, icon: ChatDotRound, tone: 'green' },
-  { label: '总浏览数', value: stats.value.totalViews, icon: View, tone: 'purple' },
-  { label: '待审核评论', value: stats.value.pendingComments, icon: Warning, tone: 'orange' },
+  { label: '总文章数', value: stats.value.totalArticles, icon: Document, tone: 'info', delta: null as number | null },
+  { label: '总评论数', value: stats.value.totalComments, icon: ChatDotRound, tone: 'success', delta: null as number | null },
+  { label: '总浏览数', value: stats.value.totalViews, icon: View, tone: 'warning', delta: null as number | null },
+  { label: '待审核评论', value: stats.value.pendingComments, icon: Warning, tone: 'danger', delta: null as number | null },
 ])
 
 const recentComments = ref<any[]>([])
@@ -434,24 +439,24 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.stat-blue .stat-icon {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.12);
+.stat-info .stat-icon {
+  color: var(--el-color-info);
+  background: rgba(144, 147, 153, 0.12);
 }
 
-.stat-green .stat-icon {
-  color: #52c41a;
-  background: rgba(82, 196, 26, 0.12);
+.stat-success .stat-icon {
+  color: var(--el-color-success);
+  background: rgba(103, 194, 58, 0.12);
 }
 
-.stat-purple .stat-icon {
-  color: #722ed1;
-  background: rgba(114, 46, 209, 0.12);
+.stat-warning .stat-icon {
+  color: var(--el-color-warning);
+  background: rgba(230, 162, 60, 0.12);
 }
 
-.stat-orange .stat-icon {
-  color: #fa8c16;
-  background: rgba(250, 140, 22, 0.12);
+.stat-danger .stat-icon {
+  color: var(--el-color-danger);
+  background: rgba(245, 108, 108, 0.12);
 }
 
 .stat-number {
@@ -466,6 +471,29 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: var(--text-muted);
   margin-top: 4px;
+}
+
+/* 环比趋势徽标（后端提供 delta 时显示） */
+.stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.stat-trend.up {
+  color: var(--el-color-success);
+  background: rgba(103, 194, 58, 0.12);
+}
+
+.stat-trend.down {
+  color: var(--el-color-danger);
+  background: rgba(245, 108, 108, 0.12);
 }
 
 .panel-card {

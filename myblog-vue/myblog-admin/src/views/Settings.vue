@@ -777,12 +777,17 @@ onMounted(() => {
   padding: 20px 0;
 }
 
+/* 常驻保存栏：滚动时始终吸附在视口底部，避免配置项多时找不到保存入口 */
 .actions {
-  margin-top: 8px;
-  padding-top: 20px;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin: 16px -20px -8px;
+  padding: 16px 20px 8px;
   border-top: 1px solid var(--border-light);
   display: flex;
   gap: 12px;
+  background: var(--bg-card);
 }
 
 .custom-config {

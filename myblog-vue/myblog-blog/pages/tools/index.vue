@@ -330,8 +330,27 @@ usePageSeo({
 
 .category-section {
   display: grid;
-  gap: $spacing-5;
+  gap: $spacing-6;
   scroll-margin-top: 88px;
+}
+
+/* ===== 分类块：标题 + 工具卡合并为一个整体卡片，消除割裂感 ===== */
+.category-block {
+  padding: $spacing-6;
+  border-radius: var(--radius-card-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  box-shadow: var(--shadow-card);
+  transition:
+    box-shadow var(--transition-bounce),
+    border-color 0.2s ease;
+}
+
+.category-block:hover {
+  border-color: transparent;
+  box-shadow: var(--shadow-card), var(--shadow-glow);
 }
 
 /* ===== 折叠式胶囊分类导航 ===== */
@@ -366,15 +385,40 @@ usePageSeo({
 
 /* 分类折叠块：隐藏原生 marker */
 .category-block summary {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
   list-style: none;
   cursor: pointer;
+  padding-bottom: $spacing-5;
+  margin-bottom: $spacing-6;
+  border-bottom: 1px solid var(--border-light);
+  position: relative;
 }
 
 .category-block summary::-webkit-details-marker {
   display: none;
 }
 
+/* 折叠指示箭头：默认朝下，收起时朝右 */
+.category-block summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform $transition-base;
+}
+
+.category-block:not([open]) summary::after {
+  transform: rotate(-45deg);
+}
+
 .section-header {
+  flex: 1;
   display: flex;
   justify-content: space-between;
   gap: 16px;

@@ -1,5 +1,5 @@
 <template>
-  <article class="article-card" :class="{ 'has-badge': !!badge }">
+  <article class="article-card" :class="{ 'has-badge': !!badge, 'article-card--hero': variant === 'hero' }">
     <NuxtLink :to="`/article/${article.id}`" class="card-link" :aria-label="article.title">
       <div class="cover">
         <img
@@ -57,8 +57,10 @@ const props = withDefaults(
     article: Article;
     /** 卡片角标，如 "最新"，为空则不显示 */
     badge?: string;
+    /** 卡片变体：grid = 网格卡（默认）；hero = 首页首篇重点卡（整行横排） */
+    variant?: "grid" | "hero";
   }>(),
-  { badge: "" },
+  { badge: "", variant: "grid" },
 );
 
 const readTime = computed(() => estimateReadTime(props.article.content || props.article.summary || ""));
@@ -87,6 +89,8 @@ watch(
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .article-card {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
@@ -115,8 +119,53 @@ watch(
 
 .cover {
   position: relative;
-  height: 200px;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
+}
+
+/* ===== Featured 重点卡：整行横排 + 更大图幅 ===== */
+.article-card--hero .card-link {
+  display: flex;
+  flex-direction: row;
+}
+
+.article-card--hero .cover {
+  flex: 0 0 42%;
+  aspect-ratio: 2 / 1;
+}
+
+.article-card--hero .content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: $spacing-6 $spacing-8;
+}
+
+.article-card--hero .title {
+  font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+  font-weight: 700;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-height: 0;
+}
+
+.article-card--hero .summary {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+@media (max-width: 640px) {
+  .article-card--hero .card-link {
+    flex-direction: column;
+  }
+  .article-card--hero .cover {
+    flex: none;
+    aspect-ratio: 16 / 10;
+  }
+  .article-card--hero .content {
+    padding: $spacing-5;
+  }
 }
 
 .cover-image {
@@ -133,10 +182,10 @@ watch(
 /* 最新/热文角标：悬浮在封面左上角，使用亮/暗主题的品牌渐变 */
 .cover-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: $spacing-3;
+  left: $spacing-3;
   z-index: 1;
-  padding: 4px 12px;
+  padding: 4px $spacing-3;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -163,11 +212,11 @@ watch(
 }
 
 .content {
-  padding: 20px;
+  padding: $spacing-5;
 }
 
 .title {
-  margin-bottom: 10px;
+  margin-bottom: $spacing-2;
   color: var(--text-primary);
   font-size: 18px;
   font-weight: 600;
@@ -187,8 +236,14 @@ watch(
 
 .summary {
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 15px;
+  font-size: $font-size-sm;
+  line-height: 1.7;
+  margin-bottom: $spacing-4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .meta {

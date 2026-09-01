@@ -210,6 +210,10 @@ const handleReply = async () => {
     ElMessage.warning("请填写姓名和内容");
     return;
   }
+  if (replyForm.authorEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyForm.authorEmail)) {
+    ElMessage.warning("请输入有效的邮箱地址");
+    return;
+  }
 
   submitting.value = true;
   try {

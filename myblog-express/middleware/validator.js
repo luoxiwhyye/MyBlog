@@ -30,6 +30,15 @@ const validateIntId = [
   param("id").isInt({ min: 1 }).withMessage("id 必须是正整数"),
 ];
 
+// 验证批量更新文章状态
+const validateBatchStatus = [
+  body("ids").isArray({ min: 1 }).withMessage("ids 必须是非空数组"),
+  body("ids.*").isInt({ min: 1 }).withMessage("文章 ID 必须是正整数"),
+  body("status")
+    .isIn(["draft", "published"])
+    .withMessage("status 必须是 draft 或 published"),
+];
+
 // URL 格式校验正则
 const urlPattern =
   /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
@@ -70,5 +79,6 @@ module.exports = {
   validatePagination,
   validateIntId,
   validateComment,
+  validateBatchStatus,
   handleValidationErrors,
 };

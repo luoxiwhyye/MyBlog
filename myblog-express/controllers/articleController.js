@@ -210,6 +210,37 @@ const updateArticle = async (req, res, next) => {
 };
 
 /**
+ * 批量更新文章状态（发布 / 下架）
+ */
+const batchUpdateStatus = async (req, res, next) => {
+  try {
+    const { ids, status } = req.body;
+    const normalizedIds = ids.map((id) => Number(id));
+
+    const affected = await articleModel.updateArticlesStatus(
+      normalizedIds,
+      status,
+    );
+
+    // F-01: 同步 Meilisearch（发布加入索引，下架移除）
+    for (const id of normalizedIds) {
+      const article = await articleModel.getArticleById(id);
+      if (article) {
+        if (article.status === "published") {
+          meilisearch.syncArticle(article);
+        } else {
+          meilisearch.deleteArticle(id);
+        }
+      }
+    }
+
+    success(res, { affected }, `已更新 ${affected} 篇文章`, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * 软删除文章
  */
 const deleteArticle = async (req, res, next) => {
@@ -307,6 +338,7 @@ module.exports = {
   getArticleById,
   createArticle,
   updateArticle,
+  batchUpdateStatus,
   deleteArticle,
   restoreArticle,
   hardDeleteArticle,

@@ -7,6 +7,7 @@ const uploadConfig = require("../config/upload");
 const {
   validatePagination,
   validateIntId,
+  validateBatchStatus,
   handleValidationErrors,
 } = require("../middleware/validator");
 
@@ -36,6 +37,16 @@ router.get(
   validateIntId,
   handleValidationErrors,
   articleController.getArticleById,
+);
+
+// 批量更新文章状态（需认证）— 置于 /:id 之前，避免被参数路由捕获
+router.put(
+  "/batch/status",
+  validateBatchStatus,
+  handleValidationErrors,
+  auth,
+  requireRole("admin"),
+  articleController.batchUpdateStatus,
 );
 
 // 创建文章（需认证）

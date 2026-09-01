@@ -16,3 +16,22 @@ body {
 #app {
   height: 100vh;
 }
+
+// 键盘可达性：仅在键盘导航时显示清晰焦点轮廓
+:where(a, button, [tabindex], input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+// 尊重系统"减少动效"偏好（全局兜底）
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

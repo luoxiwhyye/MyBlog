@@ -1,0 +1,11 @@
+# 文档：保持手写排版，避免 prettier 重排表格列宽 / 硬性换行
+*.md
+*.mdx
+
+# 依赖与产物
+node_modules
+dist
+.output
+.nuxt
+.temp
+.vite

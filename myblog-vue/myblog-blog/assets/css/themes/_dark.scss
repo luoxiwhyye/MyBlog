@@ -34,6 +34,12 @@ html.dark {
   --color-accent-deep: #f1f5f9;
   --color-link: #94a3b8;
 
+  // 语义色（暗色降饱和：清晰但不喧宾，避免与灰蓝基底冲突）
+  --color-success: #3fbf2f;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #4d9fff;
+
   // 文字阴影 — 用于在图片背景上提升可读性
   --text-shadow-on-bg: 0 1px 3px rgba(0, 0, 0, 0.5);
 

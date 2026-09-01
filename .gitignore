@@ -41,6 +41,16 @@ target/
 
 # ── agent相关配置 ──
 .claude
+.agents
+skills-lock.json
+agent
 
 # ── 缓存 ──
 .npm-cache
+
+# ── commitlint 本地校验（仅根目录临时使用，不入库） ──
+/package.json
+/package-lock.json
+/node_modules/
+/commitlint.config.cjs
+/commitlint-msg.txt
