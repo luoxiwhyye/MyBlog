@@ -64,27 +64,34 @@ import { formatDate } from "~/utils/format";
 
 const { t } = useI18n();
 
-const { data: articlePage, pending } = await useAsyncData(
-  "archive-articles",
-  () =>
-    articleApi
-      .getList({
-        page: 1,
-        pageSize: 1000,
-        status: "published",
-      })
-      .then((response) => response.data),
-  {
-    default: () => ({
-      list: [],
-      total: 0,
-      page: 1,
-      pageSize: 1000,
-    }),
-  },
-);
+// 归档需展示全部文章，但后端分页接口 pageSize 上限为 100，故循环分页拉取
+const PAGE_SIZE = 100;
 
-const articles = computed(() => articlePage.value.list);
+const fetchAllArticles = async () => {
+  const list: Article[] = [];
+  let page = 1;
+  let total = 0;
+
+  do {
+    const response = await articleApi.getList({
+      page,
+      pageSize: PAGE_SIZE,
+      status: "published",
+    });
+    if (response.code !== 200 && response.code !== 201) break;
+    list.push(...(response.data.list || []));
+    total = response.data.total || 0;
+    page += 1;
+  } while (list.length < total && list.length < 2000);
+
+  return list;
+};
+
+const { data: articles, pending } = await useAsyncData(
+  "archive-articles",
+  fetchAllArticles,
+  { default: () => [] },
+);
 
 const yearsCount = computed(() => groupedArticles.value.length);
 
@@ -206,8 +213,8 @@ usePageSeo({
   border-radius: 999px;
   font-size: 17px;
   font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--color-category), rgba(71, 85, 105, 0.65));
+  color: var(--gradient-brand-text, #fff);
+  background: var(--gradient-brand, var(--color-category));
   box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
@@ -304,7 +311,7 @@ usePageSeo({
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--border-color);
+  background: var(--color-category-soft);
   transition: background-color 0.2s, transform 0.2s;
 }
 

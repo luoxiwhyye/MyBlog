@@ -125,7 +125,7 @@
                   <el-input v-model="commentForm.authorName" placeholder="您的姓名 *" />
                 </el-form-item>
                 <el-form-item prop="authorEmail" class="form-email">
-                  <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱" />
+                  <el-input v-model="commentForm.authorEmail" placeholder="您的邮箱 *" />
                 </el-form-item>
                 <el-form-item class="form-url">
                   <el-input v-model="commentForm.authorUrl" placeholder="https://（选填）" />
@@ -318,10 +318,11 @@ const commentForm = ref({
 
 const commentFormRef = ref<any>(null);
 
-// 邮箱为选填，但填写时须为合法格式
+// 姓名、邮箱均为必填；邮箱还需为合法格式
 const commentRules = {
   authorName: [{ required: true, message: "请输入姓名", trigger: "blur" }],
   authorEmail: [
+    { required: true, message: "请输入邮箱", trigger: "blur" },
     { type: "email", message: "请输入有效的邮箱地址", trigger: "blur" },
   ],
 };
@@ -519,8 +520,13 @@ const handleComment = async () => {
     saveCommentInfo();
     commentForm.value.content = "";
     await refreshComments();
-  } catch {
-    ElMessage.error("评论失败");
+  } catch (err: any) {
+    // 优先展示后端返回的具体错误原因（如邮箱格式不正确/内容校验失败）
+    const msg =
+      err?.response?.data?.message ||
+      err?.message ||
+      "评论失败，请稍后重试";
+    ElMessage.error(msg);
   } finally {
     submitting.value = false;
   }
@@ -1077,14 +1083,27 @@ useArticleJsonLd(article as Ref<Article | null>);
   margin-bottom: 0;
 }
 
+/* 错误提示改为绝对定位，避免把表单行顶高、也避免一触发就常驻占位 */
 .comment-form-row :deep(.el-form-item__error) {
-  position: static;
-  padding-top: 4px;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  padding: 0;
+  line-height: 1.3;
 }
 
+/* 每列预留底部空间容纳错误提示，防止被下一行遮盖 */
+.comment-form-row :deep(.el-form-item) {
+  padding-bottom: 16px;
+}
+
+/* 收起时不再因空白影响视觉：仅在移动端单列时收紧 */
 @media (max-width: 640px) {
   .comment-form-row {
     grid-template-columns: 1fr;
+  }
+  .comment-form-row :deep(.el-form-item) {
+    padding-bottom: 16px;
   }
 }
 

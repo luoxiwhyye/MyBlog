@@ -85,9 +85,14 @@ usePageSeo({
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: $spacing-5;
+  justify-content: center;
 }
 
 .category-card {
+  /* 限制卡片最大宽度，防止 auto-fit 在分类不足一行时把卡片拉伸过宽 */
+  width: 100%;
+  max-width: 420px;
+  justify-self: center;
   padding: $spacing-8;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);

@@ -46,16 +46,17 @@
   --brand-logo-gradient: linear-gradient(135deg, #18233e, #f8fafc);
 
   // ==== 风格扩展（图A 日间）====
-  --color-category: #0f766e; // 分类徽标（青，提取自原有硬编码）
-  --color-category-soft: rgba(15, 118, 110, 0.12); // 徽标底
+  // 分类徽标：偏青蓝以贴合天空蓝/薄荷青背景（原深青绿 #0f766e 色调偏离、显得突兀）
+  --color-category: #2e9aad; // cyan-700，青蓝
+  --color-category-soft: rgba(14, 116, 144, 0.12); // 徽标底
   --color-fav: #f59e0b; // 收藏/星标（暖橙，提取自原有硬编码）
   --color-fav-soft: rgba(245, 158, 11, 0.22); // 收藏高亮底色/搜索 mark
   // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：亮色版用薄荷青，起 #75E1F1、末更浅；文字用深青保对比度
   --gradient-brand: linear-gradient(135deg, #75e1f1, #bff4fa);
-  --gradient-brand-text: #0e5f6b;
+  --gradient-brand-text: #2e9aaa;
   // 热门文章排名徽标（top3）：亮色版更亮
   --hot-rank-gradient: linear-gradient(135deg, #75e1f1, #aeeef8);
-  --hot-rank-text: #0e5f6b;
+  --hot-rank-text: #2e9aad;
   --deco-a: rgba(143, 224, 232, 0.16); // 薄荷青装饰
   --deco-b: rgba(74, 155, 232, 0.14); // 天蓝装饰
   --shadow-glow:
