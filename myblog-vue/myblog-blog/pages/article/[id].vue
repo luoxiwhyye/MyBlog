@@ -554,12 +554,13 @@ const updateReadingProgress = () => {
   // 滚动超过一定距离后显示返回顶部按钮
   showBackTop.value = window.scrollY > 320;
 
-  // 目录高亮：找到当前视口内的标题
+  // 目录高亮：找到当前视口内的标题（阈值与 sticky header 高度对齐，避免被遮挡）
+  const HEADER_OFFSET = 76;
   let current: string = "";
   const tocElements = document.querySelectorAll(".article-body h1, .article-body h2, .article-body h3");
   tocElements.forEach((node) => {
     const rect = node.getBoundingClientRect();
-    if (rect.top <= 120) {
+    if (rect.top <= HEADER_OFFSET) {
       current = node.getAttribute("id") || "";
     }
   });
@@ -569,6 +570,7 @@ const updateReadingProgress = () => {
 const scrollToHeading = (id: string) => {
   const target = document.getElementById(id);
   if (target) {
+    // scroll-margin-top 已为标题预留 header 高度，scrollIntoView 会自动让标题避开 sticky header
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     activeTocId.value = id;
   }
@@ -936,6 +938,14 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 /* 标题层级：字号随层级递减，建立可读性优先的节奏 */
+/* 为 sticky header 预留高度：scrollIntoView 时标题自动避开 header 遮挡 */
+.article-body :deep(h1),
+.article-body :deep(h2),
+.article-body :deep(h3),
+.article-body :deep(h4) {
+  scroll-margin-top: 76px;
+}
+
 .article-body :deep(h1) {
   font-size: 1.9rem;
   font-weight: 700;
@@ -1208,7 +1218,8 @@ useArticleJsonLd(article as Ref<Article | null>);
 
 .quick-nav {
   position: sticky;
-  top: 24px;
+  /* 首页 sticky header 高度约 60px + 安全间距，避免目录顶部被 header 遮挡 */
+  top: 76px;
   grid-column: 2;
   width: 260px;
   display: flex;
@@ -1216,7 +1227,8 @@ useArticleJsonLd(article as Ref<Article | null>);
   gap: 12px;
   align-self: start;
   /* 让右侧目录卡在长文中保持可滚动，减少“孤岛式”悬浮感 */
-  max-height: calc(100vh - 2 * $spacing-6);
+  /* 扣掉顶部 76px 与底部 24px 的占据，避免目录超出视口造成底部被裁 */
+  max-height: calc(100vh - 76px - $spacing-6);
   overflow-y: auto;
   overscroll-behavior: contain;
 }

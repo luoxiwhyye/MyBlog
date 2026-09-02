@@ -30,10 +30,12 @@ const recordMiss = () => {
 
 /**
  * 生成缓存键
+ * @param {boolean} [byUser=false] 是否把用户角色纳入 key（用于同一 URL 但不同身份返回不同数据的接口）
  */
-const makeKey = (prefix, req) => {
+const makeKey = (prefix, req, byUser = false) => {
   const qs = req.originalUrl?.split("?")[1] || "";
-  return `cache:${prefix}${qs ? `:${qs}` : ""}`;
+  const role = byUser ? `:${req.user?.role || "anon"}` : "";
+  return `cache:${prefix}${role}${qs ? `:${qs}` : ""}`;
 };
 
 /**
@@ -54,8 +56,9 @@ const setCacheHeaders = (res, ttl) => {
  * 缓存中间件——缓存 GET 响应
  * @param {string} prefix  缓存前缀（如 "settings"）
  * @param {number} ttl    过期时间（秒），默认 300
+ * @param {boolean} [byUser=false] 按用户角色区分缓存 key（同一 URL 但公开/管理员返回不同数据的接口用）
  */
-const cache = (prefix, ttl = DEFAULT_TTL) => {
+const cache = (prefix, ttl = DEFAULT_TTL, byUser = false) => {
   return async (req, res, next) => {
     // 仅缓存 GET 请求
     if (req.method !== "GET") return next();
@@ -69,7 +72,7 @@ const cache = (prefix, ttl = DEFAULT_TTL) => {
       return next();
     }
 
-    const key = makeKey(prefix, req);
+    const key = makeKey(prefix, req, byUser);
 
     try {
       const cached = await client.get(key);

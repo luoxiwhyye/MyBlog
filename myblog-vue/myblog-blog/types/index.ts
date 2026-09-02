@@ -83,8 +83,17 @@ export interface Settings {
 }
 
 export interface FriendLink {
+  id: number;
   name: string;
   url: string;
+  avatar?: string;
+  description?: string;
+  email?: string;
+  status?: boolean;
+  isSticky?: boolean;
+  clickCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BloggerProfile {

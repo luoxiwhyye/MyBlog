@@ -5,8 +5,11 @@
       <p class="page-desc">{{ t('friends.description') }}</p>
     </div>
 
+    <div v-if="pending" class="friends-loading">
+      <el-skeleton animated :rows="3" />
+    </div>
     <EmptyState
-      v-if="links.length === 0"
+      v-else-if="links.length === 0"
       :message="t('friends.title')"
       :description="t('friends.description')"
       action-text="返回首页"
@@ -15,17 +18,19 @@
     <div v-else class="friends-grid">
       <a
         v-for="link in links"
-        :key="link.url"
+        :key="link.id"
         :href="link.url"
         target="_blank"
         rel="noopener noreferrer"
         class="friend-card"
       >
         <div class="friend-avatar">
-          <span>{{ link.name.slice(0, 1).toUpperCase() }}</span>
+          <img v-if="link.avatar" :src="link.avatar" :alt="link.name" loading="lazy" />
+          <span v-else>{{ link.name.slice(0, 1).toUpperCase() }}</span>
         </div>
         <div class="friend-info">
           <h3 class="friend-name">{{ link.name }}</h3>
+          <p v-if="link.description" class="friend-desc">{{ link.description }}</p>
           <p class="friend-url">{{ displayUrl(link.url) }}</p>
         </div>
         <svg class="friend-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></svg>
@@ -35,28 +40,33 @@
 </template>
 
 <script setup lang="ts">
-import type { FriendLink } from "~/types";
+import type { FriendLink, PaginatedResponse } from "~/types";
+import { friendLinkApi } from "~/api";
 
-const settingsStore = useSettingsStore();
 const { t } = useI18n();
 
-await settingsStore.ensureSettings();
-
-const links = computed<FriendLink[]>(() => {
-  const raw = settingsStore.getSetting("friend_links");
-  if (!raw) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item) => item?.name && item?.url);
-    }
-  } catch {
-    return [];
-  }
-  return [];
+// 友链改为使用独立的 friend_link 表 /friend-links 接口（非管理员的公开请求仅返回启用项）
+const emptyPage = (): PaginatedResponse<FriendLink> => ({
+  list: [],
+  total: 0,
+  page: 1,
+  pageSize: 20,
 });
+
+const { data, pending } = await useAsyncData(
+  () => "friend-links",
+  async () => {
+    try {
+      const res = await friendLinkApi.getList({ page: 1, pageSize: 100 });
+      return res.data;
+    } catch {
+      return emptyPage();
+    }
+  },
+  { default: emptyPage },
+);
+
+const links = computed<FriendLink[]>(() => data.value?.list || []);
 
 const displayUrl = (url: string) => {
   try {
@@ -111,6 +121,15 @@ usePageSeo({
   font-size: 15px;
 }
 
+.friends-loading {
+  padding: $spacing-6;
+  border-radius: var(--radius-card-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+}
+
 .friends-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -151,7 +170,14 @@ usePageSeo({
   font-size: 20px;
   font-weight: 700;
   color: #fff;
+  overflow: hidden;
   background: var(--gradient-brand, linear-gradient(135deg, var(--color-category), var(--color-accent)));
+}
+
+.friend-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .friend-info {
@@ -171,6 +197,15 @@ usePageSeo({
 
 .friend-card:hover .friend-name {
   color: var(--color-accent);
+}
+
+.friend-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .friend-url {

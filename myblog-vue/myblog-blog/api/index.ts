@@ -4,6 +4,7 @@ import type {
   Category,
   Tag,
   Comment,
+  FriendLink,
   BloggerProfile,
   ArticleListParams,
   CommentListParams,
@@ -61,6 +62,14 @@ export const commentApi = {
 
   like: (id: number): Promise<ApiResponse<void>> =>
     request.post(`/comments/${id}/like`),
+};
+
+export const friendLinkApi = {
+  getList: (params?: {
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<PaginatedResponse<FriendLink>>> =>
+    request.get("/friend-links", { params: toRequestParams(params) }),
 };
 
 export const settingsApi = {

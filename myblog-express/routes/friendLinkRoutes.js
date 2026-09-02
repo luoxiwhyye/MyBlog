@@ -10,10 +10,12 @@ const {
   handleValidationErrors,
 } = require("../middleware/validator");
 
-// 获取友链列表（公开，仅启用；管理端看全部）— 缓存 10 分钟
+// 获取友链列表（公开仅启用；管理端带 token 看全部）
+// auth.optionalAuth 放前：让 cache 能按 req.user.role 区分缓存 key，避免公开/管理员共享缓存
 router.get(
   "/",
-  cache("friend-links", 600),
+  auth.optionalAuth,
+  cache("friend-links", 600, true),
   validatePagination,
   handleValidationErrors,
   friendLinkController.getFriendLinks,

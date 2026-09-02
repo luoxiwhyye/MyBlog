@@ -35,6 +35,9 @@ const siteDescription = computed(
   padding: $spacing-5 0;
   margin-top: 0;
   transition: background-color 0.3s, border-color 0.3s;
+  /* 裁剪 :after 柔光装饰圆的向下溢出，避免其撑大文档滚动高度，
+     在页面底部形成 body 之外的奇怪留白 */
+  overflow: hidden;
 }
 
 /* 顶部青光渐变细分隔（呼应图A天光） */
