@@ -13,18 +13,6 @@
           {{ item.label }}
         </NuxtLink>
       </nav>
-      <div class="search">
-        <el-input
-          v-model="searchQuery"
-          :placeholder="t('nav.search')"
-          @keyup.enter="handleSearch"
-          clearable
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
-          </template>
-        </el-input>
-      </div>
       <div class="header-controls">
         <div class="theme-toggle-wrapper">
           <ThemeToggle />
@@ -45,18 +33,6 @@
           :title="siteName"
           class="mobile-drawer"
         >
-          <div class="drawer-search">
-            <el-input
-              v-model="searchQuery"
-              :placeholder="t('nav.search')"
-              @keyup.enter="handleSearch"
-              clearable
-            >
-              <template #append>
-                <el-button :icon="Search" @click="handleSearch" />
-              </template>
-            </el-input>
-          </div>
           <nav class="drawer-nav" role="navigation">
             <NuxtLink v-for="item in navItems" :key="item.to" :to="item.to" class="drawer-link" @click="drawerOpen = false">
               {{ item.label }}
@@ -69,13 +45,10 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from "@element-plus/icons-vue";
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
 
-const router = useRouter();
 const route = useRoute();
 const settingsStore = useSettingsStore();
-const searchQuery = ref(typeof route.query.q === "string" ? route.query.q : "");
 const drawerOpen = ref(false);
 const { t } = useI18n();
 
@@ -106,20 +79,6 @@ const siteLogo = computed(() => {
   const raw = normalizeAssetUrl(settingsStore.getSetting("site_logo"));
   return raw ? getThumbWebpUrl(raw) : "";
 });
-
-const handleSearch = () => {
-  const keyword = searchQuery.value.trim();
-  if (keyword) {
-    router.push({ path: "/search", query: { q: keyword } });
-  }
-};
-
-watch(
-  () => route.query.q,
-  (value) => {
-    searchQuery.value = typeof value === "string" ? value : "";
-  },
-);
 </script>
 
 <style lang="scss" scoped>
@@ -209,11 +168,6 @@ watch(
   transform: translateY(-1px);
 }
 
-.search {
-  margin-left: auto;
-  width: 280px;
-}
-
 /* ===== 右侧控件组（主题切换 + 移动端汉堡） ===== */
 .header-controls {
   display: flex;
@@ -250,10 +204,6 @@ watch(
 }
 
 /* ===== 移动端抽屉内导航 ===== */
-.drawer-search {
-  margin-bottom: 20px;
-}
-
 .drawer-nav {
   display: flex;
   flex-direction: column;
@@ -280,8 +230,7 @@ watch(
 }
 
 @media (max-width: 992px) {
-  .nav,
-  .search {
+  .nav {
     display: none;
   }
 

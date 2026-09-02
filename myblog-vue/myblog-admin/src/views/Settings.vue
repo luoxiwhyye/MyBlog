@@ -311,15 +311,22 @@ const groups: GroupConfig[] = [
     ],
   },
   {
-    key: 'social',
-    label: '社交与友链',
+    key: 'home',
+    label: '首页内容',
     fields: [
       {
-        key: 'friend_links',
-        label: '友情链接',
+        key: 'announcement',
+        label: '首页公告',
         type: 'textarea',
-        placeholder: '[{"name":"站点名称","url":"https://..."}]',
-        description: '友情链接，JSON 数组格式：[{"name":"名称","url":"链接"}]，首页侧边栏展示。',
+        placeholder: '请输入公告内容',
+        description: '显示在首页顶部的公告栏，为空则不显示。',
+      },
+      {
+        key: 'social_links',
+        label: '社交链接',
+        type: 'textarea',
+        placeholder: '[{"name":"GitHub","url":"https://github.com/"}]',
+        description: '首页展示的社交链接，JSON 数组格式：[{"name":"名称","url":"链接"}]，推荐 3 个以内。',
       },
     ],
   },
@@ -487,7 +494,7 @@ const formRules = computed<FormRules>(() => {
     if (field.required) {
       rules[field.key] = [{ required: true, message: `请填写${field.label}`, trigger: 'blur' }]
     }
-    if (field.key === 'friend_links') {
+    if (field.key === 'social_links') {
       rules[field.key] = [
         {
           validator: (_rule, value: string, callback) => {

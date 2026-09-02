@@ -59,7 +59,7 @@ const avatar = computed(() => {
   return raw.endsWith(".svg") ? raw : getThumbWebpUrl(raw);
 });
 
-// 站点名若已包含作者名（如 "洛溪Roche's Blog" 含 "洛溪Roche"），则不再单独展示作者行，避免重复
+// 站点名若已包含作者名，则不再单独展示作者行，避免重复
 const showAuthor = computed(() => {
   const site = siteName.value.trim();
   const author = authorName.value.trim();
@@ -67,9 +67,9 @@ const showAuthor = computed(() => {
   return !site.includes(author);
 });
 
-// 极简社交链接：复用 friend_links（结构 {name,url}），取前 3 个
+// 极简社交链接：复用 social_links（结构 {name,url}），取前 3 个
 const socialLinks = computed<FriendLink[]>(() => {
-  const raw = settingsStore.getSetting("friend_links");
+  const raw = settingsStore.getSetting("social_links");
   if (!raw) {
     return [{ name: "GitHub", url: "https://github.com/" }];
   }
