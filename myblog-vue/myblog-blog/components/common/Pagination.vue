@@ -191,7 +191,7 @@ const handleJump = () => {
 }
 
 .total-badge strong {
-  color: var(--color-accent);
+  color: var(--text-secondary);
   font-weight: 700;
   margin: 0 2px;
 }
@@ -208,7 +208,7 @@ const handleJump = () => {
 }
 
 .size-select :deep(.el-select__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--color-accent) inset;
+  box-shadow: 0 0 0 1px var(--border-color) inset;
 }
 
 .size-select :deep(.el-select__selected-item) {
@@ -238,8 +238,8 @@ const handleJump = () => {
 }
 
 .pager-btn:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--border-color);
+  color: var(--text-primary);
   background: var(--bg-hover);
 }
 
@@ -266,24 +266,22 @@ const handleJump = () => {
 }
 
 .pager-num:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--border-color);
+  color: var(--text-primary);
   background: var(--bg-hover);
 }
 
 .pager-num.active {
-  background: var(--bg-card);
-  color: var(--color-accent);
+  background: var(--bg-hover);
+  color: var(--text-primary);
   border-color: var(--border-color);
   font-weight: 700;
-  box-shadow: var(--shadow-glow);
 }
 
 html.dark .pager-num.active {
-  background: var(--bg-card);
-  color: var(--color-accent);
+  background: var(--bg-hover);
+  color: var(--text-primary);
   border-color: var(--border-color);
-  box-shadow: var(--shadow-glow);
 }
 
 .pager-ellipsis {

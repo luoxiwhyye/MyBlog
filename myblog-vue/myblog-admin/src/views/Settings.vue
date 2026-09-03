@@ -110,6 +110,63 @@
               <div v-if="field.description" class="field-desc">{{ field.description }}</div>
             </el-form-item>
           </el-form>
+
+          <!-- 主题色分组：按维度独立设置 + 一键应用预设 -->
+          <div v-if="group.key === 'theme'" class="theme-color-section">
+            <div class="theme-toolbar">
+              <span class="theme-toolbar-label">快速应用整套预设：</span>
+              <el-select
+                v-model="activeThemePreset"
+                placeholder="选择预设"
+                class="theme-preset-select"
+                @change="applyThemePreset"
+              >
+                <el-option
+                  v-for="preset in THEME_COLOR_PRESET_MAP"
+                  :key="preset.value"
+                  :label="preset.name"
+                  :value="preset.value"
+                />
+              </el-select>
+            </div>
+
+            <el-form label-width="140px" label-position="right" class="settings-form">
+              <el-form-item
+                v-for="dim in COLOR_DIMENSIONS"
+                :key="dim.key"
+                :label="dim.label"
+                :prop="themeColorKey(dim.key, 'light')"
+              >
+                <div class="theme-dim">
+                  <div
+                    v-for="mode in COLOR_MODES"
+                    :key="mode.mode"
+                    class="color-field theme-mode"
+                  >
+                    <span class="theme-mode-label">{{ mode.label }}</span>
+                    <el-color-picker
+                      v-model="formData[themeColorKey(dim.key, mode.mode)]"
+                      :predefine="dim.predefine"
+                      size="large"
+                    />
+                    <span class="color-hex">
+                      {{ formData[themeColorKey(dim.key, mode.mode)] ? formData[themeColorKey(dim.key, mode.mode)] : '默认' }}
+                    </span>
+                    <el-button
+                      v-if="formData[themeColorKey(dim.key, mode.mode)]"
+                      size="small"
+                      text
+                      type="primary"
+                      @click="formData[themeColorKey(dim.key, mode.mode)] = ''"
+                    >
+                      恢复默认
+                    </el-button>
+                  </div>
+                </div>
+                <div v-if="dim.description" class="field-desc">{{ dim.description }}</div>
+              </el-form-item>
+            </el-form>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="自定义配置" name="custom">
@@ -240,7 +297,7 @@ import { setting, upload } from '@/api'
 interface FieldConfig {
   key: string
   label: string
-  type: 'text' | 'textarea' | 'image' | 'boolean'
+  type: 'text' | 'textarea' | 'image' | 'boolean' | 'color'
   placeholder?: string
   description?: string
   required?: boolean
@@ -251,6 +308,136 @@ interface GroupConfig {
   label: string
   fields: FieldConfig[]
 }
+
+// ===== 主题色维度配置 =====
+// 主题色拆成 5 个独立维度，每维可分别设置「亮色」「暗色」两套主色，互不影响。
+// 颜色均走 CSS 变量，未设置（留空）时前台回退到各自默认预设（当前设计）。
+// 设置键规则：site_theme_{dim}_{light|dark}
+const COLOR_DIMENSIONS = [
+  {
+    key: 'accent',
+    label: '强调色',
+    description: '链接、主按钮、当前选中、面包屑高亮、统计数字等交互强调场景。',
+    predefine: ['#475569', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
+  },
+  {
+    key: 'category',
+    label: '分类徽标色',
+    description: '分类/标签徽标、页头页脚青光渐变、TOC 高亮等分类强调场景。',
+    predefine: ['#2e9aad', '#0f766e', '#2563eb', '#8b5cf6', '#d97706'],
+  },
+  {
+    key: 'fav',
+    label: '收藏星标色',
+    description: '收藏/星标、搜索命中高亮 mark 等暖色强调场景。',
+    predefine: ['#f59e0b', '#fbbf24', '#ef4444', '#ec4899'],
+  },
+  {
+    key: 'gradient',
+    label: '品牌渐变',
+    description: '标题竖条、最新/热文徽标、热门排名徽标等品牌渐变（取渐变起始色）。',
+    predefine: ['#75e1f1', '#5eead4', '#93c5fd', '#c4b5fd', '#fbbf24'],
+  },
+  {
+    key: 'deco',
+    label: '装饰光效',
+    description: '装饰光晕、卡片光效阴影、文字光效等氛围装饰（取光效主色）。',
+    predefine: ['#8fe0e8', '#2dd4bf', '#60a5fa', '#a78bfa', '#fbbf24'],
+  },
+]
+
+// 主题色的亮/暗模式标签（用于色块分组显示）
+const COLOR_MODES = [
+  { mode: 'light', label: '亮色' },
+  { mode: 'dark', label: '暗色' },
+]
+
+// 设置键生成：site_theme_{dim}_{mode}
+const themeColorKey = (dim: string, mode: string) => `site_theme_${dim}_${mode}`
+
+// 一键应用预设：每套预设映射到 5 个维度的亮/暗起始色
+const THEME_COLOR_PRESET_MAP = [
+  {
+    name: '石墨青（当前/默认）',
+    value: 'slate',
+    colors: {
+      site_theme_accent_light: '#475569',
+      site_theme_accent_dark: '#cbd5e1',
+      site_theme_category_light: '#2e9aad',
+      site_theme_category_dark: '#2dd4bf',
+      site_theme_fav_light: '#f59e0b',
+      site_theme_fav_dark: '#fbbf24',
+      site_theme_gradient_light: '#75e1f1',
+      site_theme_gradient_dark: '#34d0c2',
+      site_theme_deco_light: '#8fe0e8',
+      site_theme_deco_dark: '#5a8cdc',
+    },
+  },
+  {
+    name: '薄荷青',
+    value: 'mint',
+    colors: {
+      site_theme_accent_light: '#0d9488',
+      site_theme_accent_dark: '#2dd4bf',
+      site_theme_category_light: '#0f766e',
+      site_theme_category_dark: '#5eead4',
+      site_theme_fav_light: '#f59e0b',
+      site_theme_fav_dark: '#fbbf24',
+      site_theme_gradient_light: '#5eead4',
+      site_theme_gradient_dark: '#2dd4bf',
+      site_theme_deco_light: '#2dd4bf',
+      site_theme_deco_dark: '#5eead4',
+    },
+  },
+  {
+    name: '天青蓝',
+    value: 'azure',
+    colors: {
+      site_theme_accent_light: '#2563eb',
+      site_theme_accent_dark: '#60a5fa',
+      site_theme_category_light: '#1d4ed8',
+      site_theme_category_dark: '#93c5fd',
+      site_theme_fav_light: '#f59e0b',
+      site_theme_fav_dark: '#fbbf24',
+      site_theme_gradient_light: '#93c5fd',
+      site_theme_gradient_dark: '#3b82f6',
+      site_theme_deco_light: '#60a5fa',
+      site_theme_deco_dark: '#60a5fa',
+    },
+  },
+  {
+    name: '暮紫藤',
+    value: 'wisteria',
+    colors: {
+      site_theme_accent_light: '#7c3aed',
+      site_theme_accent_dark: '#a78bfa',
+      site_theme_category_light: '#8b5cf6',
+      site_theme_category_dark: '#c4b5fd',
+      site_theme_fav_light: '#f59e0b',
+      site_theme_fav_dark: '#fbbf24',
+      site_theme_gradient_light: '#c4b5fd',
+      site_theme_gradient_dark: '#8b5cf6',
+      site_theme_deco_light: '#a78bfa',
+      site_theme_deco_dark: '#a78bfa',
+    },
+  },
+  {
+    name: '暖琥珀',
+    value: 'amber',
+    colors: {
+      site_theme_accent_light: '#d97706',
+      site_theme_accent_dark: '#fbbf24',
+      site_theme_category_light: '#b45309',
+      site_theme_category_dark: '#f59e0b',
+      site_theme_fav_light: '#ea580c',
+      site_theme_fav_dark: '#fb923c',
+      site_theme_gradient_light: '#fbbf24',
+      site_theme_gradient_dark: '#f59e0b',
+      site_theme_deco_light: '#fbbf24',
+      site_theme_deco_dark: '#fbbf24',
+    },
+  },
+]
 
 // 配置分组 Schema（前端声明式驱动，与后端 setting 表 key 一一对应）
 const groups: GroupConfig[] = [
@@ -279,6 +466,11 @@ const groups: GroupConfig[] = [
         description: '显示在页脚，为空则不显示。',
       },
     ],
+  },
+  {
+    key: 'theme',
+    label: '主题色',
+    fields: [],
   },
   {
     key: 'appearance',
@@ -342,7 +534,31 @@ const settings = ref<Record<string, any>>({})
 const formData = reactive<Record<string, any>>({})
 const uploadRefs = ref<Record<string, any>>({})
 
-const allFields = computed(() => groups.flatMap((group) => group.fields))
+// 主题色预设选择器应用状态
+const activeThemePreset = ref('')
+
+// 一键应用整套预设：把 5 个维度 × 亮/暗色值填到 formData
+const applyThemePreset = (presetValue: string) => {
+  const preset = THEME_COLOR_PRESET_MAP.find((p) => p.value === presetValue)
+  if (!preset) return
+  Object.keys(preset.colors).forEach((key) => {
+    formData[key] = preset.colors[key as keyof typeof preset.colors] ?? ''
+  })
+  ElMessage.success(`已应用「${preset.name}」预设，请点击「保存所有配置」生效`)
+}
+
+const allFields = computed(() => {
+  const groupFields = groups.flatMap((group) => group.fields)
+  const themeDims: FieldConfig[] = COLOR_DIMENSIONS.flatMap((dim) =>
+    COLOR_MODES.map((mode) => ({
+      key: themeColorKey(dim.key, mode.mode),
+      label: `${dim.label}（${mode.label}）`,
+      type: 'color',
+      description: dim.description,
+    })),
+  )
+  return [...groupFields, ...themeDims]
+})
 
 // ===== 自定义配置（Key-Value）管理 =====
 const customDialogVisible = ref(false)
@@ -750,6 +966,66 @@ onMounted(() => {
   line-height: 1.6;
   margin-top: 4px;
   width: 100%;
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .color-hex {
+    font-family: var(--font-family-mono, monospace);
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+/* 主题色分组：一键应用预设 + 按维度设置 */
+.theme-color-section {
+  max-width: 640px;
+  padding: 8px 0;
+}
+
+.theme-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+
+  .theme-toolbar-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+}
+
+.theme-preset-select {
+  width: 220px;
+}
+
+/* 主题色维度：每个维度一行，内含亮/暗两个色块并排 */
+.theme-dim {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.theme-mode {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .theme-mode-label {
+    width: 32px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
 }
 
 .image-field {

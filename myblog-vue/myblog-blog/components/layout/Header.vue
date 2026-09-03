@@ -130,7 +130,7 @@ const siteLogo = computed(() => {
   height: 32px;
   object-fit: cover;
   border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(15, 118, 110, 0.18);
+  box-shadow: 0 6px 18px var(--color-category-soft);
 }
 
 .logo-text {

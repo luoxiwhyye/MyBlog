@@ -887,7 +887,7 @@ useArticleJsonLd(article as Ref<Article | null>);
 }
 
 .category {
-  background: rgba(15, 118, 110, 0.1);
+  background: var(--color-category-soft);
   color: var(--color-accent);
   padding: 4px 12px;
   border-radius: 4px;
