@@ -88,6 +88,7 @@ const reset = async (req, res, next) => {
         "label",
         "type",
         "setting",
+        "message_board",
         "blogger",
       ];
       for (const table of tables) {

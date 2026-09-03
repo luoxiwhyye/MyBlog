@@ -62,6 +62,7 @@ const navItems = computed(() => [
   { to: "/archive", label: t("nav.archive") },
   { to: "/tools", label: t("nav.tools") },
   { to: "/friends", label: t("nav.friends") },
+  { to: "/message-board", label: t("nav.messageBoard") },
   { to: "/about", label: t("nav.about") },
 ]);
 

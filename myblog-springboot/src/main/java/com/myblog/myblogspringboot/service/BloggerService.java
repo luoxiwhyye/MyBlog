@@ -144,6 +144,7 @@ public class BloggerService {
             "label",
             "type",
             "setting",
+            "message_board",
             "blogger",
         };
         for (String table : tables) {

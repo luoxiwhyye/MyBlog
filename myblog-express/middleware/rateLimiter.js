@@ -59,6 +59,19 @@ const commentLimiter = rateLimit({
   },
 });
 
+/** 留言板提交限流（访客免登录，防止刷屏） */
+const messageLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    code: 429,
+    message: "留言发送过于频繁，请稍后再试",
+    data: null,
+  },
+});
+
 /** 上传限流 */
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -68,4 +81,10 @@ const uploadLimiter = rateLimit({
   message: RATE_LIMIT_MESSAGE,
 });
 
-module.exports = { apiLimiter, loginLimiter, commentLimiter, uploadLimiter };
+module.exports = {
+  apiLimiter,
+  loginLimiter,
+  commentLimiter,
+  messageLimiter,
+  uploadLimiter,
+};

@@ -38,6 +38,10 @@
             <el-icon><ChatDotRound /></el-icon>
             <template #title>评论管理</template>
           </el-menu-item>
+          <el-menu-item index="/admin/message-board">
+            <el-icon><Message /></el-icon>
+            <template #title>留言管理</template>
+          </el-menu-item>
         </el-menu-item-group>
 
         <el-menu-item-group title="链接">
@@ -137,6 +141,7 @@ import {
   PriceTag,
   Link,
   ChatDotRound,
+  Message,
   Odometer,
   User,
   Setting,
@@ -167,6 +172,7 @@ const routeTitles: Record<string, string> = {
   '/admin/labels': '标签管理',
   '/admin/friend-links': '友链管理',
   '/admin/comments': '评论管理',
+  '/admin/message-board': '留言管理',
   '/admin/cache': '运维监控',
   '/admin/profile': '个人资料',
   '/admin/settings': '系统设置',

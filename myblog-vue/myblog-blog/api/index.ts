@@ -11,6 +11,7 @@ import type {
   ApiResponse,
   PaginatedResponse,
   Settings,
+  MessageBoard,
 } from "~/types";
 
 const toRequestParams = <T extends object>(params?: T) => {
@@ -70,6 +71,22 @@ export const friendLinkApi = {
     pageSize?: number;
   }): Promise<ApiResponse<PaginatedResponse<FriendLink>>> =>
     request.get("/friend-links", { params: toRequestParams(params) }),
+};
+
+export const messageBoardApi = {
+  getList: (params?: {
+    page?: number;
+    pageSize?: number;
+  }): Promise<ApiResponse<PaginatedResponse<MessageBoard>>> =>
+    request.get("/message-board", { params: toRequestParams(params) }),
+
+  create: (data: {
+    authorName: string;
+    authorEmail: string;
+    authorUrl?: string;
+    content: string;
+  }): Promise<ApiResponse<{ id: number }>> =>
+    request.post("/message-board", data),
 };
 
 export const settingsApi = {

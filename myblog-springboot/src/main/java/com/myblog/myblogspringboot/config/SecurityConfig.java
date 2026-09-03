@@ -68,6 +68,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/labels/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/message-board/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/message-board").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/settings/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/friend-links/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/friend-links/*/click").permitAll()
@@ -100,6 +102,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/v1/comments/*/status").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/comments/*/restore").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/comments/*/hard").hasRole("ADMIN")
+                // 留言板管理（审核/恢复/删除）需管理员
+                .requestMatchers(HttpMethod.PUT, "/api/v1/message-board/*/status").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/message-board/*/restore").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/message-board/*/hard").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/message-board/*").hasRole("ADMIN")
                 // 评论删除：登录用户可删自己的
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/comments/*").authenticated()
                 // 其他需要认证

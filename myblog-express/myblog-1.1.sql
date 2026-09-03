@@ -195,4 +195,26 @@ CREATE TABLE `type`  (
 -- Records of type
 -- ----------------------------
 
+-- ----------------------------
+-- Table structure for message_board
+-- ----------------------------
+DROP TABLE IF EXISTS `message_board`;
+CREATE TABLE `message_board`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '留言ID',
+  `author_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '昵称',
+  `author_email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '邮箱（用于Gravatar头像）',
+  `author_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '访客网站地址（选填）',
+  `author_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '提交IP',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '留言内容',
+  `status` enum('pending','approved','spam','deleted') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '留言状态',
+  `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_message_status`(`status` ASC) USING BTREE,
+  INDEX `idx_message_create_at`(`create_at` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '留言板（访客免登录，单层留言）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of message_board
+-- ----------------------------
+
 SET FOREIGN_KEY_CHECKS = 1;

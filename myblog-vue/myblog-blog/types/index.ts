@@ -96,6 +96,17 @@ export interface FriendLink {
   updatedAt?: string;
 }
 
+export interface MessageBoard {
+  id: number;
+  authorName: string;
+  authorEmail: string;
+  authorUrl?: string;
+  authorIp?: string;
+  content: string;
+  status: "pending" | "approved" | "spam" | "deleted";
+  createdAt: string;
+}
+
 export interface BloggerProfile {
   id: number;
   nickname: string;

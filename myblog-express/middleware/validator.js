@@ -66,6 +66,24 @@ const validateComment = [
     .withMessage("parentId 必须是正整数"),
 ];
 
+// 验证留言板提交
+const validateMessage = [
+  body("authorName")
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage("昵称长度应在2-50字符之间"),
+  body("authorEmail").trim().isEmail().withMessage("邮箱格式不正确"),
+  body("authorUrl")
+    .optional({ values: "falsy" })
+    .trim()
+    .matches(urlPattern)
+    .withMessage("网址格式不正确"),
+  body("content")
+    .trim()
+    .isLength({ min: 1, max: 1000 })
+    .withMessage("留言内容长度应在1-1000字符之间"),
+];
+
 // 验证结果中间件
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -79,6 +97,7 @@ module.exports = {
   validatePagination,
   validateIntId,
   validateComment,
+  validateMessage,
   validateBatchStatus,
   handleValidationErrors,
 };

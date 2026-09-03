@@ -51,6 +51,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/CommentManage.vue'),
       },
       {
+        path: 'message-board',
+        name: 'MessageBoardManage',
+        component: () => import('@/views/MessageBoardManage.vue'),
+      },
+      {
         path: 'cache',
         name: 'CacheManage',
         component: () => import('@/views/CacheManage.vue'),

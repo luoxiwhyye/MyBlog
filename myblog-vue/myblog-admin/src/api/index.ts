@@ -188,6 +188,45 @@ export const comment = {
   },
 }
 
+// 留言板管理
+export const messageBoard = {
+  getList: (params?: {
+    page?: number
+    pageSize?: number
+    status?: string
+  }): Promise<
+    ApiResponse<
+      PaginatedResponse<{
+        id: number
+        authorName: string
+        authorEmail: string
+        authorUrl?: string
+        authorIp?: string
+        content: string
+        status: 'pending' | 'approved' | 'spam' | 'deleted'
+        createdAt: string
+      }>
+    >
+  > => {
+    return request.get('/message-board', { params })
+  },
+  delete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/message-board/${id}`)
+  },
+  restore: (id: number): Promise<ApiResponse> => {
+    return request.put(`/message-board/${id}/restore`)
+  },
+  hardDelete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/message-board/${id}/hard`)
+  },
+  updateStatus: (
+    id: number,
+    data: { status: 'pending' | 'approved' | 'spam' | 'deleted' },
+  ): Promise<ApiResponse> => {
+    return request.put(`/message-board/${id}/status`, data)
+  },
+}
+
 // 博主管理
 export const blogger = {
   login: (data: {
