@@ -32,11 +32,25 @@ export default defineEventHandler(async (event) => {
   const runtimeConfig = useRuntimeConfig();
   const siteUrl = runtimeConfig.public.siteUrl || "http://localhost:3001";
 
-  const articles = await fetchAllArticles();
+  // 站点信息（settings 驱动，失败回退默认）
+  let siteTitle = "MyBlog";
+  let siteDescription = "个人技术博客";
+  try {
+    const apiBase = (
+      runtimeConfig.apiBase || "http://localhost:3000/api/v1"
+    ).replace(/\/$/, "");
+    const settingsResponse = await $fetch<{
+      code: number;
+      data: Record<string, { value: string }>;
+    }>(`${apiBase}/settings`);
+    const data = settingsResponse.data || {};
+    siteTitle = data.site_name?.value || siteTitle;
+    siteDescription = data.site_description?.value || siteDescription;
+  } catch {
+    // 后端不可用时使用默认值
+  }
 
-  // 站点信息（硬编码默认值，由 settings 存储驱动）
-  const siteTitle = "MyBlog";
-  const siteDescription = "个人技术博客";
+  const articles = await fetchAllArticles();
 
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">

@@ -1,4 +1,10 @@
-import type { ApiResponse, Article, Category, PaginatedResponse, Tag } from "~/types";
+import type {
+  ApiResponse,
+  Article,
+  Category,
+  PaginatedResponse,
+  Tag,
+} from "~/types";
 
 export const fetchBackend = async <T>(
   path: string,
@@ -14,6 +20,7 @@ const fetchAllPages = async <T>(
   pageSize = 100,
   query?: Record<string, string | number | boolean | undefined>,
 ) => {
+  // 后端 validatePagination 限制 pageSize ≤ 100；循环分页拉全量
   let page = 1;
   let total = 0;
   const items: T[] = [];
@@ -33,7 +40,7 @@ const fetchAllPages = async <T>(
 };
 
 export const fetchAllArticles = () =>
-  fetchAllPages<Article>("/articles", 1000, { status: "published" });
+  fetchAllPages<Article>("/articles", 100, { status: "published" });
 
 export const fetchAllCategories = () => fetchAllPages<Category>("/types");
 

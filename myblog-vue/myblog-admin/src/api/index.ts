@@ -228,6 +228,25 @@ export const blogger = {
   changePassword: (data: { oldPassword: string; newPassword: string }): Promise<ApiResponse> => {
     return request.put('/blogger/password', data)
   },
+  exists: (): Promise<ApiResponse<{ exists: boolean }>> => {
+    return request.get('/blogger/exists')
+  },
+  init: (data: {
+    username: string
+    password: string
+    nickname?: string
+    email?: string
+  }): Promise<ApiResponse> => {
+    return request.post('/blogger/init', data)
+  },
+  reset: (data: {
+    username: string
+    password: string
+    nickname?: string
+    email?: string
+  }): Promise<ApiResponse> => {
+    return request.post('/blogger/reset', data)
+  },
 }
 
 // 网站配置管理

@@ -4,15 +4,26 @@ require("dotenv").config();
 
 /**
  * 初始化博主账号
- * 检查博主表，如果没有博主则创建默认博主
+ *
+ * 支持三种调用方式：
+ * 1. 脚本交互式：`node scripts/initBlogger.js`（通过 readline 提示输入账号密码）
+ * 2. 传入显式凭据：`initBlogger({ username, password, nickname, email })`
+ * 3. 默认凭据：从环境变量 BLOGGER_* 读取，缺省回退到 admin/admin123
+ *
+ * 若检测到已有任意账号，则拒绝再次初始化并返回 false。
+ * @param {object} [credentials] 可选 { username, password, nickname, email }
  * @returns {Promise<boolean>} 是否执行了初始化
  */
-async function initBlogger() {
+async function initBlogger(credentials = {}) {
   try {
-    const username = process.env.BLOGGER_USERNAME || "admin";
-    const password = process.env.BLOGGER_PASSWORD || "admin123";
-    const nickname = process.env.BLOGGER_NICKNAME || "博主";
-    const email = process.env.BLOGGER_EMAIL || "admin@blog.com";
+    const username =
+      credentials.username || process.env.BLOGGER_USERNAME || "admin";
+    const password =
+      credentials.password || process.env.BLOGGER_PASSWORD || "admin123";
+    const nickname =
+      credentials.nickname || process.env.BLOGGER_NICKNAME || "博主";
+    const email =
+      credentials.email || process.env.BLOGGER_EMAIL || "admin@blog.com";
 
     // 检查 blogger 表是否存在
     const [tables] = await pool.query(
@@ -41,17 +52,10 @@ async function initBlogger() {
       );
     }
 
-    const existingBlogger = await bloggerModel.getBloggerByUsername(username);
-    if (existingBlogger) {
+    // 若已存在任意账号，拒绝再次初始化（防重复创建/覆盖）
+    const exists = await bloggerModel.exists();
+    if (exists) {
       console.log("✅ 博主账号已存在，跳过初始化");
-      // 若旧数据 nickname 为空则补上默认值
-      if (!existingBlogger.nickname) {
-        await pool.query("UPDATE blogger SET nickname = ? WHERE id = ?", [
-          nickname,
-          existingBlogger.id,
-        ]);
-        console.log("📝 已为现有博主补充默认昵称");
-      }
       return false;
     }
 

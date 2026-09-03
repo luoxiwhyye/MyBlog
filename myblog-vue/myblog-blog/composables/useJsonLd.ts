@@ -169,3 +169,47 @@ export const useWebsiteJsonLd = () => {
     ],
   }));
 };
+
+/**
+ * 归档页 JSON-LD (Blog，含文章列表)
+ * 在归档页 useHead 中调用，为搜索引擎提供站点内容概况。
+ */
+export const useArchiveJsonLd = (articles: Ref<Article[]>) => {
+  const { siteUrl, siteName, siteDescription } = useSiteMeta();
+
+  const jsonLd = computed(() => {
+    const list = articles.value || [];
+    return {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      name: siteName.value,
+      description: siteDescription.value,
+      url: `${siteUrl.value}/archive`,
+      blogPost: list.slice(0, 100).map((article) => ({
+        "@type": "BlogPosting",
+        headline: article.title,
+        datePublished: article.createdAt,
+        dateModified: article.updatedAt || article.createdAt,
+        url: `${siteUrl.value}/article/${article.id}`,
+        ...(article.summary
+          ? {
+              description: article.summary
+                .replace(/<[^>]*>/g, "")
+                .slice(0, 200),
+            }
+          : {}),
+      })),
+    };
+  });
+
+  useHead(() => ({
+    script: jsonLd.value
+      ? [
+          {
+            type: "application/ld+json",
+            innerHTML: JSON.stringify(jsonLd.value),
+          },
+        ]
+      : [],
+  }));
+};

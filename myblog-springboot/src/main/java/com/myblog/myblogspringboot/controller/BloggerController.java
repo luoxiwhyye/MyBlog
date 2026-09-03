@@ -1,17 +1,25 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.myblog.myblogspringboot.dto.AccountRequest;
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.LoginRequest;
 import com.myblog.myblogspringboot.dto.PasswordChangeRequest;
 import com.myblog.myblogspringboot.security.UserPrincipal;
 import com.myblog.myblogspringboot.service.BloggerService;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/blogger")
@@ -33,6 +41,24 @@ public class BloggerController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getPublicProfile() {
         Map<String, Object> profile = bloggerService.getPublicProfile();
         return ResponseEntity.ok(ApiResponse.success(profile));
+    }
+
+    @GetMapping("/exists")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> exists() {
+        boolean exists = bloggerService.exists();
+        return ResponseEntity.ok(ApiResponse.success(Map.of("exists", exists)));
+    }
+
+    @PostMapping("/init")
+    public ResponseEntity<ApiResponse<Void>> init(@Valid @RequestBody AccountRequest request) {
+        bloggerService.init(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "管理员账号初始化成功"));
+    }
+
+    @PostMapping("/reset")
+    public ResponseEntity<ApiResponse<Void>> reset(@Valid @RequestBody AccountRequest request) {
+        bloggerService.reset(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "账户已重置，全部数据已清空，请使用新账号登录"));
     }
 
     @GetMapping("/profile")

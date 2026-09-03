@@ -1,17 +1,22 @@
 package com.myblog.myblogspringboot.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.myblog.myblogspringboot.dto.AccountRequest;
 import com.myblog.myblogspringboot.dto.LoginRequest;
 import com.myblog.myblogspringboot.entity.Blogger;
 import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.repository.BloggerRepository;
 import com.myblog.myblogspringboot.security.JwtTokenProvider;
 import com.myblog.myblogspringboot.security.UserPrincipal;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 public class BloggerService {
@@ -19,6 +24,10 @@ public class BloggerService {
     private final BloggerRepository bloggerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+
+    // 用于重置账户时按外键顺序清空全部业务表
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public BloggerService(BloggerRepository bloggerRepository,
                           PasswordEncoder passwordEncoder,
@@ -98,6 +107,60 @@ public class BloggerService {
         }
 
         blogger.setPasswordHash(passwordEncoder.encode(newPassword));
+        bloggerRepository.save(blogger);
+    }
+
+    /** 是否已存在任意博主账号（用于登录页判断是否显示初始化表单） */
+    public boolean exists() {
+        return bloggerRepository.count() > 0;
+    }
+
+    /** 初始化管理员账号（仅当尚无任何账号时允许，已存在则拒绝） */
+    @Transactional
+    public void init(AccountRequest request) {
+        if (bloggerRepository.count() > 0) {
+            throw new BusinessException(409, "博主账号已存在，拒绝再次初始化");
+        }
+        createAdmin(request);
+    }
+
+    /** 重置账户：清空全部业务数据并重建管理员（危险操作） */
+    @Transactional
+    public void reset(AccountRequest request) {
+        if (bloggerRepository.count() == 0) {
+            throw new BusinessException(400, "尚未初始化账号，无需重置");
+        }
+        clearAllBusinessData();
+        createAdmin(request);
+    }
+
+    /** 按外键依赖顺序清空全部业务表（先子表后父表） */
+    private void clearAllBusinessData() {
+        String[] tables = {
+            "article_label",
+            "comment",
+            "article",
+            "friend_link",
+            "label",
+            "type",
+            "setting",
+            "blogger",
+        };
+        for (String table : tables) {
+            entityManager.createNativeQuery("DELETE FROM `" + table + "`").executeUpdate();
+        }
+    }
+
+    /** 用账号请求重建管理员（Bcrypt 加密密码） */
+    private void createAdmin(AccountRequest request) {
+        Blogger blogger = new Blogger();
+        blogger.setUsername(request.getUsername());
+        blogger.setNickname(
+                (request.getNickname() == null || request.getNickname().isBlank())
+                        ? request.getUsername() : request.getNickname());
+        blogger.setEmail(request.getEmail() == null ? "" : request.getEmail());
+        blogger.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        blogger.setRole("admin");
         bloggerRepository.save(blogger);
     }
 }

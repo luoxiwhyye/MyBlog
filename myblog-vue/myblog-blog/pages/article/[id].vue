@@ -633,6 +633,15 @@ usePageSeo({
 
 // JSON-LD 结构化数据（BlogPosting）
 useArticleJsonLd(article as Ref<Article | null>);
+
+// 面包屑结构化数据（BreadcrumbList）
+useBreadcrumbJsonLd([
+  { name: "首页", url: "/home" },
+  ...(article.value?.type
+    ? [{ name: article.value.type.typeName, url: `/category/${article.value.type.id}` }]
+    : []),
+  ...(article.value ? [{ name: article.value.title, url: `/article/${article.value.id}` }] : []),
+]);
 </script>
 
 <style lang="scss" scoped>

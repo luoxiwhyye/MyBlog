@@ -107,6 +107,13 @@ usePageSeo({
   title: computed(() => tagName.value),
   description: computed(() => `${tagName.value} 标签下的博客文章列表。`),
 });
+
+// 面包屑结构化数据（BreadcrumbList）
+useBreadcrumbJsonLd([
+  { name: "首页", url: "/home" },
+  { name: "标签", url: "/tag" },
+  { name: tagName.value, url: `/tag/${tagId.value}` },
+]);
 </script>
 
 <style lang="scss" scoped>

@@ -9,6 +9,18 @@ const getBloggerByUsername = async (username) => {
   return rows[0];
 };
 
+/** 统计是否存在任意博主账号（用于判断是否已初始化） */
+const countAll = async () => {
+  const [rows] = await pool.query("SELECT COUNT(*) AS total FROM blogger");
+  return rows[0]?.total || 0;
+};
+
+/** 是否存在任意博主账号 */
+const exists = async () => {
+  const total = await countAll();
+  return total > 0;
+};
+
 const getBloggerById = async (id) => {
   const [rows] = await pool.query(
     "SELECT id, username, nickname, email, avatar, bio, role, created_at AS createdAt FROM blogger WHERE id = ?",
@@ -99,4 +111,6 @@ module.exports = {
   updateBlogger,
   changePassword,
   getPublicProfile,
+  countAll,
+  exists,
 };

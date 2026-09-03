@@ -73,6 +73,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/friend-links/*/click").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/blogger/public-profile").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/blogger/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/blogger/exists").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/blogger/init").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/comments").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/comments/*/like").permitAll()
                 // 需要管理员权限
@@ -94,6 +96,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/upload/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/blogger/profile").hasRole("ADMIN")
                 .requestMatchers("/api/v1/blogger/password").hasRole("ADMIN")
+                .requestMatchers("/api/v1/blogger/reset").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/comments/*/status").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/comments/*/restore").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/comments/*/hard").hasRole("ADMIN")

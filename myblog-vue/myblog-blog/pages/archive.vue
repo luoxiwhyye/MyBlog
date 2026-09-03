@@ -262,6 +262,9 @@ usePageSeo({
   title: t('archive.title'),
   description: "按时间维度浏览博客文章归档。",
 });
+
+// 归档页 JSON-LD（Blog，含文章列表）
+useArchiveJsonLd(articles);
 </script>
 
 <style lang="scss" scoped>

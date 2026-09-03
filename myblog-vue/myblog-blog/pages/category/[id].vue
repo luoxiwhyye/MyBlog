@@ -107,6 +107,13 @@ usePageSeo({
   title: computed(() => categoryName.value),
   description: computed(() => `${categoryName.value} 分类下的博客文章列表。`),
 });
+
+// 面包屑结构化数据（BreadcrumbList）
+useBreadcrumbJsonLd([
+  { name: "首页", url: "/home" },
+  { name: "分类", url: "/category" },
+  { name: categoryName.value, url: `/category/${categoryId.value}` },
+]);
 </script>
 
 <style lang="scss" scoped>

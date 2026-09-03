@@ -114,6 +114,77 @@
             </el-form-item>
           </el-form>
         </el-tab-pane>
+
+        <!-- 重置账户（危险操作） -->
+        <el-tab-pane label="重置账户" name="reset">
+          <el-alert
+            type="error"
+            :closable="false"
+            show-icon
+            class="reset-alert"
+            title="危险操作"
+            description="重置账户会清空数据库的全部数据（文章、评论、分类、标签、友链、网站设置等），并重新创建管理员账号。此操作不可撤销，请务必备份数据。"
+          />
+
+          <el-form
+            ref="resetFormRef"
+            :model="resetForm"
+            :rules="resetRules"
+            label-width="100px"
+            class="reset-form"
+          >
+            <el-form-item label="新用户名" prop="username">
+              <el-input
+                v-model="resetForm.username"
+                placeholder="3-50 位"
+              />
+            </el-form-item>
+            <el-form-item label="新昵称" prop="nickname">
+              <el-input
+                v-model="resetForm.nickname"
+                placeholder="可选"
+              />
+            </el-form-item>
+            <el-form-item label="新邮箱" prop="email">
+              <el-input
+                v-model="resetForm.email"
+                placeholder="可选"
+              />
+            </el-form-item>
+            <el-form-item label="新密码" prop="password">
+              <el-input
+                v-model="resetForm.password"
+                type="password"
+                placeholder="至少 6 位"
+                show-password
+              />
+            </el-form-item>
+            <el-form-item label="确认密码" prop="confirmPassword">
+              <el-input
+                v-model="resetForm.confirmPassword"
+                type="password"
+                placeholder="再次输入新密码"
+                show-password
+              />
+            </el-form-item>
+            <el-form-item label="确认清空" prop="confirmText">
+              <el-input
+                v-model="resetForm.confirmText"
+                placeholder="输入 RESET 以确认"
+              />
+              <div class="field-hint">请输入 RESET（不区分大小写）以确认清空全部数据</div>
+            </el-form-item>
+            <el-form-item>
+              <el-button
+                type="danger"
+                :loading="resetting"
+                @click="handleReset"
+              >
+                清空数据并重置账户
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -121,13 +192,17 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { blogger, upload } from '@/api'
 import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const activeTab = ref('info')
 const updatingInfo = ref(false)
 const updatingPassword = ref(false)
+const resetting = ref(false)
+const resetFormRef = ref()
 
 const infoFormRef = ref()
 const passwordFormRef = ref()
@@ -165,6 +240,64 @@ const passwordRules = {
       validator: (rule: any, value: string, callback: any) => {
         if (value !== passwordForm.newPassword) {
           callback(new Error('两次输入密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+// 重置账户表单
+const resetForm = reactive({
+  username: '',
+  nickname: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  confirmText: ''
+})
+
+const resetRules = {
+  username: [
+    { required: true, message: '请输入新用户名', trigger: 'blur' },
+    { min: 3, max: 50, message: '用户名长度需为 3-50 位', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (value !== resetForm.password) {
+          callback(new Error('两次输入密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  email: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          callback(new Error('邮箱格式不正确'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  confirmText: [
+    {
+      validator: (_rule: any, value: string, callback: any) => {
+        if (!value || value.toUpperCase() !== 'RESET') {
+          callback(new Error('请输入 RESET 以确认清空'))
         } else {
           callback()
         }
@@ -293,6 +426,54 @@ const changePassword = async () => {
   })
 }
 
+// 重置账户（危险操作：清空全部数据并重建管理员）
+const handleReset = async () => {
+  if (!resetFormRef.value) return
+
+  await resetFormRef.value.validate(async (valid: boolean) => {
+    if (!valid) return
+
+    // 强确认弹窗
+    try {
+      await ElMessageBox.confirm(
+        '确定要清空数据库【全部数据】并重置管理员账户吗？\n此操作不可撤销，请务必提前备份数据！',
+        '危险操作确认',
+        {
+          type: 'error',
+          confirmButtonText: '我已了解风险，确认清空',
+          cancelButtonText: '取消',
+          confirmButtonClass: 'el-button--danger'
+        }
+      )
+    } catch {
+      // 用户取消
+      return
+    }
+
+    resetting.value = true
+    try {
+      const response = await blogger.reset({
+        username: resetForm.username,
+        password: resetForm.password,
+        nickname: resetForm.nickname,
+        email: resetForm.email
+      })
+      if (response.code === 200) {
+        ElMessage.success('账户已重置，全部数据已清空')
+        // 登出并跳转登录页
+        userStore.logout()
+        router.push('/login')
+      } else {
+        ElMessage.error(response.message || '重置失败')
+      }
+    } catch (error: any) {
+      ElMessage.error(error?.response?.data?.message || '重置失败')
+    } finally {
+      resetting.value = false
+    }
+  })
+}
+
 onMounted(() => {
   fetchUserInfo()
 })
@@ -313,5 +494,22 @@ onMounted(() => {
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.reset-alert {
+  margin-bottom: 16px;
+}
+
+.reset-form {
+  margin-top: 8px;
+  max-width: 480px;
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  width: 100%;
+  margin-top: 4px;
 }
 </style>
