@@ -1,6 +1,12 @@
 import type { Component } from "vue";
 
-export type ToolCategoryId = "encoding" | "formatter" | "crypto" | "text" | "color";
+export type ToolCategoryId =
+  | "encoding"
+  | "formatter"
+  | "crypto"
+  | "text"
+  | "color"
+  | "dev";
 
 export type ToolId =
   | "base64"
@@ -8,7 +14,6 @@ export type ToolId =
   | "unicode"
   | "html-entity"
   | "json"
-  | "json-minify"
   | "sql"
   | "xml"
   | "md5"
@@ -17,11 +22,20 @@ export type ToolId =
   | "regex"
   | "word-count"
   | "case-convert"
-  | "color-convert"
-  | "color-picker";
+  | "color"
+  | "jwt-parse"
+  | "qr"
+  | "password"
+  | "cron"
+  | "json-diff";
 
 export type ToolFieldType = "text" | "textarea" | "number" | "color";
-export type ToolOptionType = "select" | "radio" | "switch" | "checkbox-group" | "number";
+export type ToolOptionType =
+  | "select"
+  | "radio"
+  | "switch"
+  | "checkbox-group"
+  | "number";
 export type ToolOptionValue = string | number | boolean | string[];
 export type ToolInputValues = Record<string, string>;
 export type ToolOptionValues = Record<string, ToolOptionValue>;
@@ -36,12 +50,17 @@ export interface ToolFieldDefinition {
   monospace?: boolean;
 }
 
-export interface ToolOptionChoice<TValue extends ToolOptionValue = ToolOptionValue> {
+export interface ToolOptionChoice<
+  TValue extends ToolOptionValue = ToolOptionValue,
+> {
   label: string;
   value: TValue;
 }
 
-interface ToolOptionBase<TType extends ToolOptionType, TValue extends ToolOptionValue> {
+interface ToolOptionBase<
+  TType extends ToolOptionType,
+  TValue extends ToolOptionValue,
+> {
   key: string;
   label: string;
   type: TType;
@@ -49,14 +68,19 @@ interface ToolOptionBase<TType extends ToolOptionType, TValue extends ToolOption
   helperText?: string;
 }
 
-export interface ToolSelectOption extends ToolOptionBase<"select" | "radio", string> {
+export interface ToolSelectOption extends ToolOptionBase<
+  "select" | "radio",
+  string
+> {
   options: ToolOptionChoice<string>[];
 }
 
 export interface ToolSwitchOption extends ToolOptionBase<"switch", boolean> {}
 
-export interface ToolCheckboxGroupOption
-  extends ToolOptionBase<"checkbox-group", string[]> {
+export interface ToolCheckboxGroupOption extends ToolOptionBase<
+  "checkbox-group",
+  string[]
+> {
   options: ToolOptionChoice<string>[];
 }
 
@@ -141,6 +165,25 @@ export interface CaseVariant {
   value: string;
 }
 
+export interface JwtHeader {
+  alg: string;
+  typ?: string;
+  [key: string]: unknown;
+}
+
+export interface JwtPayload {
+  sub?: string;
+  name?: string;
+  iat?: number;
+  exp?: number;
+  [key: string]: unknown;
+}
+
+export interface DiffLine {
+  type: "add" | "remove" | "context";
+  text: string;
+}
+
 export type ToolResultDetails =
   | {
       kind: "metrics";
@@ -167,6 +210,29 @@ export type ToolResultDetails =
       kind: "case";
       selectedKey: string;
       variants: CaseVariant[];
+    }
+  | {
+      kind: "jwt";
+      header: JwtHeader;
+      payload: JwtPayload;
+      signatureValid: boolean;
+      signatureMessage: string;
+      encoded: {
+        header: string;
+        payload: string;
+        signature: string;
+      };
+    }
+  | {
+      kind: "image";
+      src: string;
+      alt: string;
+      width?: number;
+      height?: number;
+    }
+  | {
+      kind: "diff";
+      lines: DiffLine[];
     };
 
 export interface ToolProcessPayload {

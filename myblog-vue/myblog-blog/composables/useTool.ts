@@ -278,7 +278,11 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
     state.isLoading = true;
 
     try {
-      if (Object.values(inputs.value).every((value) => !value.trim())) {
+      // 仅在工具声明了输入字段且全为空时才跳过（避免纯 options 驱动的工具被误跳过）
+      const isAllInputsEmpty =
+        tool.inputs.length > 0 &&
+        Object.values(inputs.value).every((value) => !value.trim());
+      if (isAllInputsEmpty) {
         console.log("[useTool] processNow skipped — all inputs empty");
         state.output = "";
         state.details = null;

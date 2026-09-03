@@ -24,7 +24,7 @@
         v-if="props.output"
         :model-value="props.output"
         type="textarea"
-        :rows="12"
+        :autosize="{ minRows: 4, maxRows: 16 }"
         readonly
         resize="vertical"
         :input-style="monospaceStyle"
@@ -84,6 +84,49 @@
           </article>
         </div>
       </div>
+
+      <div v-else-if="props.details?.kind === 'image'" class="image-block">
+        <img
+          :src="props.details.src"
+          :alt="props.details.alt"
+          :width="props.details.width"
+          :height="props.details.height"
+          class="image-preview"
+        />
+        <a
+          :href="props.details.src"
+          :download="`qr-${Date.now()}.svg`"
+          class="image-download"
+        >
+          下载 QR 图片
+        </a>
+      </div>
+
+      <div v-else-if="props.details?.kind === 'jwt'" class="jwt-block">
+        <el-alert
+          :type="props.details.signatureValid ? 'success' : 'info'"
+          :closable="false"
+          show-icon
+          :title="props.details.signatureMessage"
+          class="jwt-signature"
+        />
+        <div class="section-title">Header</div>
+        <pre class="json-pre">{{ prettyJson(props.details.header) }}</pre>
+        <div class="section-title">Payload</div>
+        <pre class="json-pre">{{ prettyJson(props.details.payload) }}</pre>
+      </div>
+
+      <div v-else-if="props.details?.kind === 'diff'" class="diff-block">
+        <div
+          v-for="(line, index) in props.details.lines"
+          :key="index"
+          class="diff-line"
+          :class="`diff-line--${line.type}`"
+        >
+          <span class="diff-sign">{{ line.type === "add" ? "+" : line.type === "remove" ? "-" : " " }}</span>
+          <code>{{ line.text }}</code>
+        </div>
+      </div>
     </template>
   </section>
 </template>
@@ -136,6 +179,11 @@ const regexSegments = computed(() => {
 
   return segments.filter((item) => item.value);
 });
+
+/** 格式化 object 为 JSon 字符串（用于 JWT 展示） */
+const prettyJson = (value: unknown) => {
+  return JSON.stringify(value, null, 2);
+};
 </script>
 
 <style lang="scss" scoped>
@@ -239,6 +287,112 @@ const regexSegments = computed(() => {
   background: var(--color-category-soft);
   border-radius: 6px;
   padding: 1px 2px;
+}
+
+/* 二维码图片预览 */
+.image-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.image-preview {
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background: #fff;
+  max-width: 100%;
+}
+
+.image-download {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+
+  &:hover {
+    color: var(--color-category);
+  }
+}
+
+/* JWT 解析 */
+.jwt-block {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.jwt-signature {
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.json-pre {
+  margin: 0;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-hover);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* JSON Diff */
+.diff-block {
+  margin-top: 16px;
+  display: grid;
+  gap: 2px;
+  border-radius: 12px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+}
+
+.diff-line {
+  display: flex;
+  gap: 8px;
+  padding: 2px 12px;
+  line-height: 1.6;
+
+  code {
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-secondary);
+  }
+}
+
+.diff-sign {
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.diff-line--add {
+  background: rgba(63, 191, 47, 0.12);
+
+  .diff-sign {
+    color: var(--color-success);
+  }
+}
+
+.diff-line--remove {
+  background: rgba(245, 108, 108, 0.12);
+
+  .diff-sign {
+    color: var(--color-danger);
+  }
 }
 
 @media (max-width: 768px) {

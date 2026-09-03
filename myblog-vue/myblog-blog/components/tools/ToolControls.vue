@@ -181,29 +181,47 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 
 .option-list {
   display: grid;
-  gap: 16px;
+  /* 选项横向多列排布，随宽度自动换行，避免纵向堆叠造成大空白 */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 20px;
+  align-items: start;
   margin-bottom: 18px;
 }
 
 .option-item {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
+  /* 控件不强行撑满，保持自然宽度，与标签同一行 */
+  justify-items: start;
 }
 
 .option-label {
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 88px;
 }
 
 .option-help {
+  grid-column: 2 / -1;
   color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .action-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* 操作按钮等宽、均匀铺开，避免长短不一、右侧留白显得零乱 */
+.action-list .el-button {
+  flex: 1 1 0;
+  min-width: 96px;
+  max-width: 220px;
 }
 
 @media (max-width: 768px) {

@@ -1,5 +1,6 @@
 <template>
   <ToolInput
+    v-if="tool.inputs && tool.inputs.length > 0"
     :tool="tool"
     :model-value="inputs"
     :total-bytes="totalInputBytes"

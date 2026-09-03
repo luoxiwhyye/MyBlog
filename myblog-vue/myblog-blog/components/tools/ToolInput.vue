@@ -16,7 +16,7 @@
             :id="field.key"
             :model-value="props.modelValue[field.key] ?? ''"
             type="textarea"
-            :rows="field.rows ?? 10"
+            :autosize="{ minRows: Math.min(field.rows ?? 6, 6), maxRows: 14 }"
             :placeholder="field.placeholder"
             resize="vertical"
             :input-style="field.monospace ? monospaceStyle : undefined"

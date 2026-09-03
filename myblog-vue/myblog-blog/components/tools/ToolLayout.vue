@@ -263,6 +263,9 @@ const scrollToSelected = () => {
 .content-stack {
   display: grid;
   gap: 20px;
+  /* 面板只占自身内容高度，不随 grid 行拉伸/容器拉伸留白 */
+  align-content: start;
+  align-items: start;
 }
 
 .desktop-hidden {

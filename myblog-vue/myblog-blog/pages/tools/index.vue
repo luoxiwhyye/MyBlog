@@ -76,11 +76,11 @@
     <section v-for="category in categories" :key="category.id" class="category-section" :id="`cat-${category.id}`">
       <details class="category-block" open>
       <summary class="section-header">
-        <div>
-          <p>{{ category.description }}</p>
+        <div class="section-title-block">
           <h2>{{ category.name }}</h2>
+          <p>{{ category.description }}</p>
+          <span class="section-count">共 {{ category.tools.length }} 个工具</span>
         </div>
-        <el-tag effect="plain">{{ category.tools.length }} 个工具</el-tag>
       </summary>
 
       <div class="tool-grid">
@@ -425,14 +425,34 @@ usePageSeo({
   align-items: center;
 }
 
+.section-header h2 {
+  color: var(--text-primary);
+  font-size: 28px;
+}
+
 .section-header p {
   color: var(--text-muted);
   margin-bottom: 8px;
 }
 
-.section-header h2 {
-  color: var(--text-primary);
-  font-size: 28px;
+/* 分类块标题：分类名在上、描述/计数在下，竖向排列；折叠箭头靠右居中。
+   作用域限定在分类块内，避免影响「我的收藏」等复用 .section-header 的区块 */
+.category-block summary .section-header .section-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.category-block summary .section-header p {
+  margin-bottom: 0;
+}
+
+.section-count {
+  color: var(--text-muted);
+  font-size: 13px;
+  opacity: 0.85;
 }
 
 .tool-tags {

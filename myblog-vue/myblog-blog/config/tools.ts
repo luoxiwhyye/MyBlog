@@ -29,7 +29,8 @@ import type {
 
 const ONE_MB = 1024 * 1024;
 
-const createPath = (category: ToolCategoryId, toolId: ToolMeta["id"]) => `/tools/${category}/${toolId}`;
+const createPath = (category: ToolCategoryId, toolId: ToolMeta["id"]) =>
+  `/tools/${category}/${toolId}`;
 
 const baseFeatures = {
   hasCopy: true,
@@ -200,11 +201,11 @@ const encodingTools: ToolMeta[] = [
 const formatterTools: ToolMeta[] = [
   {
     id: "json",
-    name: "JSON 格式化",
-    description: "校验并格式化 JSON，适合接口调试和配置查看。",
+    name: "JSON 工具",
+    description: "校验并格式化/压缩 JSON，适合接口调试和配置查看。",
     category: "formatter",
     icon: SetUp,
-    keywords: ["json", "formatter", "pretty"],
+    keywords: ["json", "formatter", "pretty", "minify", "压缩"],
     inputs: [
       {
         key: "content",
@@ -217,6 +218,16 @@ const formatterTools: ToolMeta[] = [
     ],
     options: [
       {
+        key: "mode",
+        label: "处理方式",
+        type: "radio",
+        defaultValue: "format",
+        options: [
+          { label: "格式化", value: "format" },
+          { label: "压缩", value: "minify" },
+        ],
+      },
+      {
         key: "indent",
         label: "缩进空格",
         type: "select",
@@ -225,43 +236,18 @@ const formatterTools: ToolMeta[] = [
           { label: "2 空格", value: "2" },
           { label: "4 空格", value: "4" },
         ],
+        helperText: "仅「格式化」模式生效。",
       },
     ],
     features: baseFeatures,
     example: {
       inputs: {
-        content: '{"site":"MyBlog","features":["SEO","Tools"],"published":true}',
+        content:
+          '{"site":"MyBlog","features":["SEO","Tools"],"published":true}',
       },
       options: {
+        mode: "format",
         indent: "2",
-      },
-    },
-    outputFileExtension: "json",
-    outputMimeType: "application/json;charset=utf-8",
-    inputLimitBytes: ONE_MB,
-  },
-  {
-    id: "json-minify",
-    name: "JSON 压缩",
-    description: "移除多余空白并输出紧凑 JSON。",
-    category: "formatter",
-    icon: Crop,
-    keywords: ["json", "minify", "压缩"],
-    inputs: [
-      {
-        key: "content",
-        label: "JSON 输入",
-        type: "textarea",
-        rows: 14,
-        monospace: true,
-        placeholder: "请输入需要压缩的 JSON 内容",
-      },
-    ],
-    options: [],
-    features: baseFeatures,
-    example: {
-      inputs: {
-        content: '{\n  "title": "编程工具箱",\n  "items": [1, 2, 3]\n}',
       },
     },
     outputFileExtension: "json",
@@ -282,7 +268,8 @@ const formatterTools: ToolMeta[] = [
         type: "textarea",
         rows: 14,
         monospace: true,
-        placeholder: "select id,name from users where status = 1 order by created_at desc",
+        placeholder:
+          "select id,name from users where status = 1 order by created_at desc",
       },
     ],
     options: [
@@ -432,7 +419,8 @@ const cryptoTools: ToolMeta[] = [
         label: "输入时间",
         type: "text",
         monospace: true,
-        helperText: "支持 10 位秒级、13 位毫秒级时间戳，或 YYYY-MM-DD HH:mm:ss。",
+        helperText:
+          "支持 10 位秒级、13 位毫秒级时间戳，或 YYYY-MM-DD HH:mm:ss。",
         placeholder: "例如：1735689600 或 2025-01-01 08:00:00",
       },
     ],
@@ -525,7 +513,8 @@ const textTools: ToolMeta[] = [
     features: baseFeatures,
     example: {
       inputs: {
-        content: "Hello MyBlog!\n这是一个编程工具箱示例。\n\n支持统计字符、单词和字节数。",
+        content:
+          "Hello MyBlog!\n这是一个编程工具箱示例。\n\n支持统计字符、单词和字节数。",
       },
     },
     outputFileExtension: "json",
@@ -581,12 +570,12 @@ const textTools: ToolMeta[] = [
 
 const colorTools: ToolMeta[] = [
   {
-    id: "color-convert",
-    name: "HEX ↔ RGB",
-    description: "自动识别 HEX 或 RGB，并给出多种颜色表示。",
+    id: "color",
+    name: "颜色工具",
+    description: "颜色值转换与可视化取色，输出 HEX / RGB / HSL。",
     category: "color",
     icon: Brush,
-    keywords: ["color", "hex", "rgb", "css"],
+    keywords: ["color", "hex", "rgb", "hsl", "picker"],
     inputs: [
       {
         key: "content",
@@ -594,47 +583,27 @@ const colorTools: ToolMeta[] = [
         type: "text",
         monospace: true,
         placeholder: "#409EFF 或 rgb(64, 158, 255)",
+        helperText: "「输入颜色值」模式填写；「可视化取色」用下方选择器。",
       },
-    ],
-    options: [
-      {
-        key: "mode",
-        label: "转换模式",
-        type: "radio",
-        defaultValue: "auto",
-        options: [
-          { label: "自动识别", value: "auto" },
-          { label: "HEX → RGB", value: "hex-to-rgb" },
-          { label: "RGB → HEX", value: "rgb-to-hex" },
-        ],
-      },
-    ],
-    features: { ...baseFeatures, hasSwap: true },
-    example: {
-      inputs: {
-        content: "#409EFF",
-      },
-    },
-    outputFileExtension: "txt",
-    outputMimeType: "text/plain;charset=utf-8",
-    inputLimitBytes: 4096,
-  },
-  {
-    id: "color-picker",
-    name: "颜色选择器",
-    description: "通过可视化颜色选择器输出 HEX / RGB / HSL。",
-    category: "color",
-    icon: MagicStick,
-    keywords: ["picker", "color", "hsl"],
-    inputs: [
       {
         key: "color",
         label: "选择颜色",
         type: "color",
         placeholder: "#409EFF",
+        helperText: "「可视化取色」模式使用。",
       },
     ],
     options: [
+      {
+        key: "mode",
+        label: "输入方式",
+        type: "radio",
+        defaultValue: "convert",
+        options: [
+          { label: "输入颜色值", value: "convert" },
+          { label: "可视化取色", value: "picker" },
+        ],
+      },
       {
         key: "format",
         label: "默认输出",
@@ -647,15 +616,239 @@ const colorTools: ToolMeta[] = [
         ],
       },
     ],
-    features: baseFeatures,
+    features: { ...baseFeatures, hasSwap: true },
     example: {
       inputs: {
+        content: "#409EFF",
         color: "#409EFF",
+      },
+      options: {
+        mode: "convert",
+        format: "hex",
       },
     },
     outputFileExtension: "txt",
     outputMimeType: "text/plain;charset=utf-8",
-    inputLimitBytes: 1024,
+    inputLimitBytes: 4096,
+  },
+];
+
+const devTools: ToolMeta[] = [
+  {
+    id: "jwt-parse",
+    name: "JWT 解析",
+    description: "解析 JWT 的 Header/Payload 并校验 HMAC 签名。",
+    category: "dev",
+    icon: Key,
+    keywords: ["jwt", "token", "decode", "verify", "header"],
+    inputs: [
+      {
+        key: "token",
+        label: "Token",
+        type: "textarea",
+        rows: 8,
+        monospace: true,
+        placeholder: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      },
+      {
+        key: "secret",
+        label: "签名密钥（可选）",
+        type: "text",
+        monospace: true,
+        placeholder: "填入 HMAC 密钥即可校验签名，留空仅解析",
+        helperText: "校验 HS256/384/512；填入后显示签名是否有效。",
+      },
+    ],
+    options: [],
+    features: baseFeatures,
+    example: {
+      inputs: {
+        token:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        secret: "your-256-bit-secret",
+      },
+    },
+    outputFileExtension: "json",
+    outputMimeType: "application/json;charset=utf-8",
+    inputLimitBytes: ONE_MB,
+  },
+  {
+    id: "qr",
+    name: "二维码生成",
+    description: "纯前端生成二维码，支持 SVG 预览与下载。",
+    category: "dev",
+    icon: Postcard,
+    keywords: ["qrcode", "qr", "二维码", "svg"],
+    inputs: [
+      {
+        key: "content",
+        label: "内容",
+        type: "textarea",
+        rows: 6,
+        monospace: true,
+        placeholder: "https://example.com 或任意文本",
+      },
+    ],
+    options: [
+      {
+        key: "size",
+        label: "尺寸",
+        type: "number",
+        defaultValue: 256,
+        min: 64,
+        max: 512,
+        step: 32,
+      },
+    ],
+    features: { ...baseFeatures, hasExport: true },
+    example: {
+      inputs: {
+        content: "https://myblog.example.com",
+      },
+      options: {
+        size: 256,
+      },
+    },
+    outputMimeType: "image/svg+xml",
+  },
+  {
+    id: "password",
+    name: "密码生成器",
+    description: "生成高强度随机密码，支持自定义长度与字符集。",
+    category: "dev",
+    icon: Lock,
+    keywords: ["password", "random", "密码", "生成"],
+    inputs: [],
+    options: [
+      {
+        key: "length",
+        label: "长度",
+        type: "number",
+        defaultValue: 16,
+        min: 4,
+        max: 64,
+        step: 1,
+      },
+      {
+        key: "upper",
+        label: "大写字母",
+        type: "switch",
+        defaultValue: true,
+      },
+      {
+        key: "lower",
+        label: "小写字母",
+        type: "switch",
+        defaultValue: true,
+      },
+      {
+        key: "number",
+        label: "数字",
+        type: "switch",
+        defaultValue: true,
+      },
+      {
+        key: "symbol",
+        label: "特殊符号",
+        type: "switch",
+        defaultValue: true,
+      },
+    ],
+    features: {
+      ...baseFeatures,
+      hasCopy: true,
+      hasClear: false,
+      hasExample: false,
+    },
+    example: {
+      inputs: {},
+      options: {
+        length: 16,
+        upper: true,
+        lower: true,
+        number: true,
+        symbol: true,
+      },
+    },
+    outputFileExtension: "txt",
+    outputMimeType: "text/plain;charset=utf-8",
+  },
+  {
+    id: "cron",
+    name: "Cron 表达式解析",
+    description: "解析 Cron 表达式并计算下次若干次执行时间。",
+    category: "dev",
+    icon: Timer,
+    keywords: ["cron", "schedule", "定时", "表达式"],
+    inputs: [
+      {
+        key: "expression",
+        label: "Cron 表达式",
+        type: "text",
+        monospace: true,
+        placeholder: "0 */5 * * *",
+        helperText: "标准 5 段（分 时 日 月 周）。",
+      },
+    ],
+    options: [
+      {
+        key: "count",
+        label: "生成次数",
+        type: "number",
+        defaultValue: 5,
+        min: 1,
+        max: 20,
+        step: 1,
+      },
+    ],
+    features: { ...baseFeatures, hasSwap: false },
+    example: {
+      inputs: {
+        expression: "0 */5 * * *",
+      },
+      options: {
+        count: 5,
+      },
+    },
+    outputFileExtension: "txt",
+    outputMimeType: "text/plain;charset=utf-8",
+  },
+  {
+    id: "json-diff",
+    name: "JSON Diff",
+    description: "比较两个 JSON 的差异，便于排查变更。",
+    category: "dev",
+    icon: DataAnalysis,
+    keywords: ["json", "diff", "compare", "差异"],
+    inputs: [
+      {
+        key: "left",
+        label: "基准 JSON",
+        type: "textarea",
+        rows: 10,
+        monospace: true,
+        placeholder: '{"name":"A","count":1}',
+      },
+      {
+        key: "right",
+        label: "对比 JSON",
+        type: "textarea",
+        rows: 10,
+        monospace: true,
+        placeholder: '{"name":"B","count":2}',
+      },
+    ],
+    options: [],
+    features: { ...baseFeatures, multiInput: true },
+    example: {
+      inputs: {
+        left: '{"name":"MyBlog","version":1,"tags":["a","b"]}',
+        right: '{"name":"MyBlog","version":2,"tags":["a","c"],"dev":true}',
+      },
+    },
+    outputFileExtension: "txt",
+    outputMimeType: "text/plain;charset=utf-8",
+    inputLimitBytes: ONE_MB,
   },
 ];
 
@@ -700,12 +893,33 @@ export const TOOL_CATEGORIES: ToolCategoryMeta[] = [
     order: 5,
     tools: colorTools,
   },
+  {
+    id: "dev",
+    name: "开发辅助",
+    description: "JWT、二维码、密码、Cron、JSON Diff 等开发常用工具。",
+    icon: SetUp,
+    order: 6,
+    tools: devTools,
+  },
 ];
 
 export const TOOL_LIST = TOOL_CATEGORIES.flatMap((category) => category.tools);
 
+// 旧工具 id → 合并后的新工具 id（避免旧链接直接 404）
+const LEGACY_TOOL_REDIRECT: Record<string, string> = {
+  "json-minify": "json",
+  "color-convert": "color",
+  "color-picker": "color",
+};
+
 export const getToolByRoute = (categoryId: string, toolId: string) => {
-  return TOOL_LIST.find((item) => item.category === categoryId && item.id === toolId) ?? null;
+  // 旧 id 重定向到合并后的工具
+  const normalizedId = LEGACY_TOOL_REDIRECT[toolId] ?? toolId;
+  return (
+    TOOL_LIST.find(
+      (item) => item.category === categoryId && item.id === normalizedId,
+    ) ?? null
+  );
 };
 
 export const getCategoryById = (categoryId: string) => {
@@ -718,7 +932,10 @@ export const getToolPath = (tool: ToolMeta) => {
 
 export const buildDefaultToolInputs = (tool: ToolMeta): ToolInputValues => {
   return Object.fromEntries(
-    tool.inputs.map((input) => [input.key, tool.example.inputs[input.key] ?? ""]),
+    tool.inputs.map((input) => [
+      input.key,
+      tool.example.inputs[input.key] ?? "",
+    ]),
   );
 };
 
