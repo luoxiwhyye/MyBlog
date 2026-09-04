@@ -20,6 +20,16 @@ body,
   min-height: 100%;
 }
 
+// 防横向滚动：移动端常因毛玻璃/绝对定位/长词溢出产生横向滚动条。
+// 用 overflow-x: hidden 在 body 上兜底（具体溢出源各自治理，此处仅防滚动穿透）。
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+}
+
 img {
   max-width: 100%;
   display: block;

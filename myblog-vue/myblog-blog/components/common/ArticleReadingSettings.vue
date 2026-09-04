@@ -179,7 +179,6 @@ watch(model, savePrefs, { deep: true });
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
-
 .reading-settings-btn:hover {
   color: var(--color-accent);
   border-color: var(--color-accent);
@@ -326,5 +325,17 @@ watch(model, savePrefs, { deep: true });
   opacity: 0;
   transform: translateY(-6px);
   pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .reading-settings-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .rs-step {
+    width: 36px;
+    height: 34px;
+  }
 }
 </style>

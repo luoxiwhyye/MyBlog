@@ -547,5 +547,46 @@ const handleReplySubmitted = () => {
     margin-left: 16px;
     padding-left: 10px;
   }
+
+  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
+  .emoji-btn {
+    width: 44px;
+    height: 44px;
+    right: 6px;
+    bottom: 6px;
+    font-size: 18px;
+  }
+
+  /* ===== 评论区移动端排版 ===== */
+  .comment {
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* 昵称与时间分两行：避免挤在同一行过于局促 */
+  .comment-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .date {
+    margin-left: 0;
+  }
+
+  /* 正文满宽、减小内边距，减少频繁换行 */
+  .bubble {
+    padding: 10px 12px;
+  }
+
+  .comment-content {
+    font-size: 14px;
+    line-height: 1.7;
+  }
 }
 </style>

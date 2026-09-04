@@ -108,5 +108,13 @@ usePageSeo({
   .page-header {
     margin-bottom: $spacing-6;
   }
+
+  /* 移动端标签云提升到 44px 触摸目标 */
+  .tag-item {
+    min-height: 44px;
+    padding: 10px 20px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 </style>

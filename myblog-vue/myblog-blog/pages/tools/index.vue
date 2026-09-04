@@ -3,12 +3,11 @@
     <section class="tools-hero">
       <div>
         <p class="tools-eyebrow">MyBlog · 编程工具箱</p>
-        <h1>开发者常用工具，一站直达</h1>
+        <h1>开发者常用工具</h1>
         <p>
-          覆盖编解码、格式化、哈希、文本处理和颜色工具，全部在浏览器端运行，不影响现有博客 SSR/SEO。
+          编程相关工具。
         </p>
       </div>
-      <NuxtLink to="/tools/formatter/json" class="hero-link">从 JSON 格式化开始 →</NuxtLink>
     </section>
 
     <!-- 折叠式胶囊分类导航 -->

@@ -84,14 +84,19 @@ const siteLogo = computed(() => {
 
 <style lang="scss" scoped>
 .header {
-  background: var(--bg-header);
+  /* 不用 backdrop-filter：它会创建 containing block，
+     导致内部 el-drawer 的 position:fixed 被限制在 Header 内（移动端菜单被裁剪）。
+     改用更高不透明度的背景色 + 渐变性边框补偿毛玻璃质感。 */
+  background: linear-gradient(
+    to bottom,
+    var(--bg-header-solid),
+    var(--bg-header)
+  );
   border-bottom: 1px solid var(--glass-border);
   padding: 12px 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   transition: background-color 0.3s, border-color 0.3s;
   box-shadow: var(--shadow-card);
 }
@@ -186,8 +191,9 @@ const siteLogo = computed(() => {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  /* 44px 触摸目标（避免仅 36px 时移动端误触） */
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   color: var(--text-secondary);
   background: var(--bg-card);

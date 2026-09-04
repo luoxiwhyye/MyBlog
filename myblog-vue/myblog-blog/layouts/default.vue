@@ -77,11 +77,14 @@ html.dark .layout {
   background-image: var(--site-bg-dark, var(--site-bg-light));
 }
 
-/* 在移动端使用更轻量的背景处理 */
+/* 在移动端使用更轻量的背景处理：
+   cover 在窄屏会把图片横向裁剪、焦点偏移，改为中心覆盖并锁定两端，
+   保证亮/暗两套背景都能完整显示、焦点居中。 */
 @media (max-width: 768px) {
   .layout {
     background-attachment: scroll;
-    background-size: auto 100%;
+    background-size: cover;
+    background-position: center center;
   }
 }
 </style>

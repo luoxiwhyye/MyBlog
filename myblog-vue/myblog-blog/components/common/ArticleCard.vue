@@ -49,7 +49,7 @@
 <script setup lang="ts">
 import type { Article } from "~/types";
 import { formatDate, estimateReadTime } from "~/utils/format";
-import { getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { getThumbWebpUrl, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain } from "~/utils/markdown";
 
 const props = withDefaults(
@@ -65,7 +65,8 @@ const props = withDefaults(
 
 const readTime = computed(() => estimateReadTime(props.article.content || props.article.summary || ""));
 
-// 封面使用后端预生成的 WebP 主图（1200px, q80），保证清晰度；加载失败回退原图；
+// 封面：hero 重点卡用主图（1200px WebP）保证清晰度；grid 网格卡用缩略图（_thumb.webp 400px）
+// 减轻移动端流量；加载失败统一回退原图；
 // 开发环境将 localhost 前缀归一化为相对路径（手机/局域网可访问）
 const coverFailed = ref(false);
 const coverSrc = computed(() => {
@@ -73,7 +74,7 @@ const coverSrc = computed(() => {
   if (coverFailed.value || !raw) {
     return raw;
   }
-  return getWebpUrl(raw);
+  return props.variant === "hero" ? getWebpUrl(raw) : getThumbWebpUrl(raw);
 });
 
 const handleCoverError = () => {
@@ -309,5 +310,20 @@ watch(
 .views {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* ===== 移动端：卡片收紧内边距、缩小标题（置于主规则之后，避免被覆盖） ===== */
+@media (max-width: 640px) {
+  .article-card .content {
+    padding: $spacing-4;
+  }
+
+  .article-card .title {
+    font-size: 16px;
+  }
+
+  .article-card .summary {
+    font-size: 13px;
+  }
 }
 </style>

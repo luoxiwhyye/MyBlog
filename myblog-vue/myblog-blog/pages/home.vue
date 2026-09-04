@@ -282,8 +282,7 @@ useWebsiteJsonLd();
   gap: 6px;
   padding: 6px 14px;
   border-radius: $border-radius-full;
-  font-size: $font-size-sm;
-  font-weight: 500;
+  font-size: $font-size-sm;  font-weight: 500;
   color: var(--text-secondary);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
@@ -339,6 +338,12 @@ useWebsiteJsonLd();
 @media (max-width: 768px) {
   .filter-chips {
     width: 100%;
+  }
+
+  /* 移动端筛选项提升到 44px 触摸目标，避免误触 */
+  .chip {
+    min-height: 44px;
+    padding: 8px 16px;
   }
 }
 
@@ -506,5 +511,28 @@ useWebsiteJsonLd();
   display: flex;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* ===== 移动端：博主信息卡紧凑排版（置于主规则之后，避免被覆盖） ===== */
+@media (max-width: 768px) {
+  .profile-card {
+    gap: $spacing-4;
+    padding: $spacing-4;
+  }
+
+  .profile-avatar {
+    width: $spacing-16;
+    height: $spacing-16;
+  }
+
+  .profile-name {
+    font-size: $font-size-md;
+  }
+
+  .profile-bio {
+    font-size: $font-size-sm;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
 }
 </style>

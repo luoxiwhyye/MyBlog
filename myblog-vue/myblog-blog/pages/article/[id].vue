@@ -1620,5 +1620,14 @@ useBreadcrumbJsonLd([
     flex-direction: column;
     align-items: flex-start;
   }
+
+  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
+  .emoji-btn {
+    width: 44px;
+    height: 44px;
+    right: 6px;
+    bottom: 6px;
+    font-size: 18px;
+  }
 }
 </style>

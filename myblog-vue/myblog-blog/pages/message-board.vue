@@ -477,5 +477,13 @@ const handleSubmit = async () => {
     left: 0;
     right: auto;
   }
+
+  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
+  .emoji-btn {
+    padding: 12px;
+    font-size: 20px;
+    right: 2px;
+    bottom: 2px;
+  }
 }
 </style>
