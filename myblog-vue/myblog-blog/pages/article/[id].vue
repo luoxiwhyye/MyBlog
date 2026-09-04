@@ -74,7 +74,11 @@
             />
           </div>
 
-          <div class="article-body" v-html="renderContent"></div>
+          <div class="article-toolbar">
+            <ArticleReadingSettings v-model="readingPrefs" />
+          </div>
+
+          <div class="article-body" v-html="renderContent" :style="articleBodyStyle"></div>
         </article>
 
         <section v-if="relatedArticles.length" class="related-articles">
@@ -472,8 +476,8 @@ const buildToc = async () => {
 
 const highlightCodeBlocks = async () => {
   await nextTick();
-  const blocks = document.querySelectorAll(".article-body pre code");
-  if (!blocks.length) return;
+  const preBlocks = document.querySelectorAll<HTMLPreElement>(".article-body pre");
+  if (!preBlocks.length) return;
   try {
     // 根据主题动态加载 highlight.js 样式（暗色使用 atom-one-dark）
     const isDark = document.documentElement.classList.contains("dark");
@@ -483,12 +487,99 @@ const highlightCodeBlocks = async () => {
         : "highlight.js/styles/github.css"
     );
     const hljs = (await import("highlight.js")).default;
-    blocks.forEach((block) => {
-      hljs.highlightElement(block as HTMLElement);
+
+    preBlocks.forEach((pre) => {
+      // 已被增强过的代码块跳过（避免重复包裹）
+      if (pre.closest(".code-block")) return;
+
+      let code = pre.querySelector("code");
+      if (!code) {
+        code = document.createElement("code");
+        code.textContent = pre.textContent || "";
+        pre.textContent = "";
+        pre.appendChild(code);
+      }
+      hljs.highlightElement(code as HTMLElement);
+
+      // 语言名（来自 markdown-it fence 输出的 language-xxx class）
+      const langMatch = code.className.match(/language-([\w-]+)/);
+      const lang = langMatch?.[1] || "code";
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "code-block";
+      wrapper.dataset.codeBlock = "";
+
+      // 头部：语言标签 + 复制按钮
+      const header = document.createElement("div");
+      header.className = "code-block-header";
+      const langSpan = document.createElement("span");
+      langSpan.className = "code-lang";
+      langSpan.textContent = lang;
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "code-copy";
+      copyBtn.setAttribute("aria-label", "复制代码");
+      copyBtn.textContent = "复制";
+      header.appendChild(langSpan);
+      header.appendChild(copyBtn);
+
+      // 主体：行号列 + 代码（行号列固定，代码列可横向滚动）
+      const body = document.createElement("div");
+      body.className = "code-block-body";
+      const lines = document.createElement("span");
+      lines.className = "code-lines";
+      lines.setAttribute("aria-hidden", "true");
+      const lineCount = (code.textContent || "").split("\n").length;
+      lines.textContent = Array.from({ length: lineCount }, (_, i) => i + 1).join("\n");
+      body.appendChild(lines);
+
+      pre.before(wrapper);
+      body.appendChild(pre);
+      wrapper.appendChild(header);
+      wrapper.appendChild(body);
     });
   } catch {
     // highlight.js 加载失败不影响页面渲染
   }
+};
+
+const copyText = async (text: string, btn: HTMLButtonElement) => {
+  const original = btn.dataset.originalText || "复制";
+  btn.dataset.originalText = original;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // 兼容旧浏览器：临时 textarea + execCommand
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    btn.textContent = "已复制";
+    btn.classList.add("copied");
+  } catch {
+    btn.textContent = "复制失败";
+  }
+  window.setTimeout(() => {
+    btn.textContent = original;
+    btn.classList.remove("copied");
+  }, 1500);
+};
+
+// 事件委托：点击任意代码块的复制按钮
+const handleCodeCopyClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  const btn = target.closest<HTMLButtonElement>(".code-copy");
+  if (!btn) return;
+  const wrapper = btn.closest<HTMLElement>(".code-block");
+  const code = wrapper?.querySelector("code");
+  if (!code) return;
+  copyText(code.textContent || "", btn);
 };
 
 const refreshArticleEnhancements = async () => {
@@ -544,6 +635,20 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
+// ===== 阅读设置（字号 / 行距）=====
+interface ReadingPrefs {
+  fontSize: number;
+  lineHeight: number;
+}
+
+const readingPrefs = ref<ReadingPrefs>({ fontSize: 17, lineHeight: 1.75 });
+
+// 将设置映射为 CSS 变量，作用到正文（默认值与现状一致，避免视觉回归）
+const articleBodyStyle = computed(() => ({
+  "--article-font-size": `${readingPrefs.value.fontSize}px`,
+  "--article-line-height": String(readingPrefs.value.lineHeight),
+}));
+
 // ===== 阅读进度 + 目录高亮 + 返回顶部显隐 =====
 const readingProgress = ref(0);
 const activeTocId = ref("");
@@ -561,12 +666,13 @@ const updateReadingProgress = () => {
   showBackTop.value = window.scrollY > 320;
 
   // 目录高亮：找到当前视口内的标题（阈值与 sticky header 高度对齐，避免被遮挡）
+  // 加 4px 容差，避免标题恰好停在 76px 偏移的浮点边界时高亮不切换
   const HEADER_OFFSET = 76;
   let current: string = "";
   const tocElements = document.querySelectorAll(".article-body h1, .article-body h2, .article-body h3");
   tocElements.forEach((node) => {
     const rect = node.getBoundingClientRect();
-    if (rect.top <= HEADER_OFFSET) {
+    if (rect.top <= HEADER_OFFSET + 4) {
       current = node.getAttribute("id") || "";
     }
   });
@@ -589,6 +695,7 @@ onMounted(async () => {
   scrollHandler = () => updateReadingProgress();
   window.addEventListener("scroll", scrollHandler, { passive: true });
   window.addEventListener("resize", scrollHandler, { passive: true });
+  document.addEventListener("click", handleCodeCopyClick);
 });
 
 onBeforeUnmount(() => {
@@ -596,6 +703,7 @@ onBeforeUnmount(() => {
     window.removeEventListener("scroll", scrollHandler);
     window.removeEventListener("resize", scrollHandler);
   }
+  document.removeEventListener("click", handleCodeCopyClick);
 });
 
 watch(articleId, () => {
@@ -609,11 +717,6 @@ watch(
   },
   { flush: "post" },
 );
-
-onMounted(async () => {
-  loadSavedCommentInfo();
-  await refreshArticleEnhancements();
-});
 
 usePageSeo({
   title: computed(() => article.value?.title || "文章详情"),
@@ -924,10 +1027,17 @@ useBreadcrumbJsonLd([
 .article-body {
   max-width: 900px;
   margin: 0 auto;
-  line-height: $line-height-loose;
+  line-height: var(--article-line-height, #{$line-height-loose});
   color: var(--text-primary);
   margin-bottom: 0;
-  font-size: 17px;
+  font-size: var(--article-font-size, 17px);
+}
+
+/* 阅读设置工具栏：右对齐，位于正文上方 */
+.article-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: $spacing-5;
 }
 
 .article-body :deep(img) {
@@ -940,7 +1050,7 @@ useBreadcrumbJsonLd([
 
 .article-body :deep(p) {
   margin-block: 0 $spacing-6;
-  line-height: $line-height-relaxed;
+  line-height: var(--article-line-height, #{$line-height-relaxed});
 }
 
 .article-body :deep(blockquote) {
@@ -1055,6 +1165,91 @@ useBreadcrumbJsonLd([
 
 .article-body :deep(code) {
   font-family: $font-family-code;
+}
+
+/* ===== 代码块（语言标签 + 行号 + 复制按钮）===== */
+.article-body :deep(.code-block) {
+  margin: $spacing-5 0;
+  border: 1px solid var(--border-light);
+  border-radius: $border-radius-base;
+  overflow: hidden;
+  background: var(--bg-code);
+}
+
+.article-body :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-2 $spacing-4;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.article-body :deep(.code-lang) {
+  font-family: $font-family-code;
+  font-size: $font-size-xs;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.article-body :deep(.code-copy) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: $font-size-xs;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.article-body :deep(.code-copy:hover) {
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.article-body :deep(.code-copy.copied) {
+  color: var(--color-success);
+}
+
+.article-body :deep(.code-block-body) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.article-body :deep(.code-lines) {
+  user-select: none;
+  padding: $spacing-4 $spacing-3 $spacing-4 0;
+  min-width: 44px;
+  text-align: right;
+  background: var(--bg-hover);
+  border-right: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-family: $font-family-code;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.article-body :deep(.code-block pre) {
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow-x: auto;
+  padding: $spacing-4;
+  line-height: $line-height-normal;
+}
+
+.article-body :deep(.code-block pre code) {
+  background: transparent;
+  padding: 0;
+  font-size: $font-size-sm;
 }
 
 .comments-section {
