@@ -65,8 +65,11 @@
           <div v-if="article.coverImage" class="cover-image">
             <img
               :src="detailCoverSrc"
+              :srcset="detailCoverSrcSet"
+              :sizes="detailCoverSizes"
               :alt="article.title"
-              loading="lazy"
+              loading="eager"
+              fetchpriority="high"
               decoding="async"
               class="cover-img"
               :class="{ 'cover-fallback': detailCoverFailed }"
@@ -253,7 +256,7 @@ import { articleApi, commentApi } from "~/api";
 import type { Article, Comment as CommentType, PaginatedResponse } from "~/types";
 import { formatDate, formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
-import { getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { buildSrcSet, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain, renderArticleContent } from "~/utils/markdown";
 
 const route = useRoute();
@@ -276,6 +279,10 @@ const detailCoverSrc = computed(() => {
 const handleDetailCoverError = () => {
   detailCoverFailed.value = true;
 };
+
+// 详情页封面是 LCP 目标：用响应式 srcset 按容器宽度选图 + 高优先级加载
+const detailCoverSrcSet = computed(() => buildSrcSet(article.value?.coverImage).srcset);
+const detailCoverSizes = computed(() => "(max-width: 900px) 100vw, 900px");
 
 // 正文渲染：自动识别 Markdown/HTML 并渲染，同时归一化 localhost 图片 URL
 const renderContent = computed(() =>

@@ -53,3 +53,27 @@ export const getWebpUrl = (url?: string) => {
   if (/\.webp($|\?)/i.test(url)) return url;
   return url.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, ".webp$2");
 };
+
+/**
+ * 响应式图片：基于后端的两种 WebP 变体（400px 缩略图 / 1200px 主图）生成 srcset。
+ * 供 <img :src :srcset :sizes> 使用，让浏览器按容器宽度自动选图，避免固定载入大图。
+ *
+ * 注意：若原图本身是 .webp（后端不再生成 _thumb 变体），则 srcset 退化为单一来源，
+ * 以免产生 404。sizes 给出窄屏优先缩略图、大屏优先主图的建议（按需微调）。
+ */
+export const buildSrcSet = (
+  url?: string,
+  sizes = "100vw",
+): { src: string; srcset: string; sizes: string } => {
+  const raw = normalizeAssetUrl(url);
+  if (!raw) return { src: "", srcset: "", sizes };
+  // 已是 webp：无法派生多尺寸，退化为单图
+  if (/\.webp($|\?)/i.test(raw)) return { src: raw, srcset: "", sizes };
+  const thumb = getThumbWebpUrl(raw);
+  const full = getWebpUrl(raw);
+  return {
+    src: full,
+    srcset: `${thumb} 400w, ${full} 1200w`,
+    sizes,
+  };
+};

@@ -5,8 +5,11 @@
         <img
           v-if="article.coverImage"
           :src="coverSrc"
+          :srcset="coverSrcSet"
+          :sizes="coverSizes"
           :alt="article.title"
-          loading="lazy"
+          :loading="variant === 'hero' ? 'eager' : 'lazy'"
+          :fetchpriority="variant === 'hero' ? 'high' : 'auto'"
           decoding="async"
           class="cover-image"
           :class="{ 'cover-fallback': coverFailed }"
@@ -49,7 +52,7 @@
 <script setup lang="ts">
 import type { Article } from "~/types";
 import { formatDate, estimateReadTime } from "~/utils/format";
-import { getThumbWebpUrl, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { buildSrcSet, getThumbWebpUrl, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain } from "~/utils/markdown";
 
 const props = withDefaults(
@@ -76,6 +79,12 @@ const coverSrc = computed(() => {
   }
   return props.variant === "hero" ? getWebpUrl(raw) : getThumbWebpUrl(raw);
 });
+
+// 响应式图片：hero 卡占首屏大头（LCP 目标）用视口宽；grid 卡按网格列数估算
+const coverSrcSet = computed(() => buildSrcSet(props.article.coverImage).srcset);
+const coverSizes = computed(() =>
+  props.variant === "hero" ? "100vw" : "(max-width: 640px) 100vw, (max-width: 900px) 50vw, 33vw",
+);
 
 const handleCoverError = () => {
   coverFailed.value = true;
