@@ -10,7 +10,7 @@
       加载中...
     </div>
     <div v-else class="tags-cloud">
-      <span v-for="tag in tags" :key="tag.id" class="tag-item" @click="goToTag(tag.id)">
+      <span v-for="(tag, i) in tags" :key="tag.id" class="tag-item" v-reveal="i * 30" @click="goToTag(tag.id)">
         {{ tag.labelName }} ({{ tag.articleCount }})
       </span>
     </div>

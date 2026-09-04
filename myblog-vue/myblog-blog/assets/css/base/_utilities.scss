@@ -77,7 +77,9 @@ body,
 .page-leave-active,
 .layout-enter-active,
 .layout-leave-active {
-  transition: opacity 0.25s ease, filter 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    filter 0.25s ease;
 }
 
 .page-enter-from,
@@ -88,6 +90,24 @@ body,
   filter: blur(4px);
 }
 
+// ============ 滚动 reveal（v-reveal 指令驱动） ============
+// 渐进增强：类只在客户端指令判定元素处于视口外时才被加上，
+// 因此 SSR / 无 JS 场景每个元素都按正常状态渲染（不隐藏）。
+// reveal-in 由 IntersectionObserver 在元素进入视口时添加。
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s ease;
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0ms;
+}
+
 // ============ 尊重系统减少动效偏好 ============
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -96,5 +116,13 @@ body,
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  // 兜底：即使 JS 因故异常，也要确保 reveal 元素直接可见
+  .reveal,
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

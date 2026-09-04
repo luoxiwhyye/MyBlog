@@ -2,13 +2,13 @@
   <div class="home-page">
     <div class="home-body">
       <!-- 公告栏：极简毛玻璃横向卡片 -->
-      <section class="announce-card">
+      <section class="announce-card" v-reveal>
         <span class="announce-label">{{ t('home.announcement') }}</span>
         <p class="announce-text">{{ announcement || t('home.announcementEmpty') }}</p>
       </section>
 
       <!-- 博主信息卡：头像 + 简介 + 社交链接 + 关于入口 -->
-      <section class="profile-card">
+      <section class="profile-card" v-reveal="80">
         <div class="profile-avatar">
           <img v-if="profileAvatar" :src="profileAvatar" :alt="authorName" />
           <span v-else class="avatar-fallback">{{ (authorName || 'B').slice(0, 1) }}</span>
@@ -87,6 +87,7 @@
             :article="article"
             :variant="i === 0 && currentPage === 1 && activeTypeId === '' ? 'hero' : 'grid'"
             :badge="i === 0 && currentPage === 1 ? t('home.hero.latestBadge') : ''"
+            v-reveal="i * 60"
           />
         </div>
       </template>

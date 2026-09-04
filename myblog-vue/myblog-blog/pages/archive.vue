@@ -89,7 +89,7 @@
       </div>
 
       <!-- 时间线 -->
-      <div v-for="yearGroup in groupedArticles" :key="yearGroup.year" class="year-group">
+      <div v-for="(yearGroup, gi) in groupedArticles" :key="yearGroup.year" class="year-group" v-reveal="gi * 60">
         <h2 class="year-title">
           <span class="year-badge">{{ yearGroup.year }}</span>
           <span class="year-count">{{ yearGroup.months.reduce((sum, m) => sum + m.articles.length, 0) }} 篇</span>

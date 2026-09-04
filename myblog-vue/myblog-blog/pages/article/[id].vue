@@ -87,10 +87,11 @@
           </div>
           <div class="related-list">
             <NuxtLink
-              v-for="item in relatedArticles"
+              v-for="(item, ri) in relatedArticles"
               :key="item.id"
               :to="`/article/${item.id}`"
               class="related-item"
+              v-reveal="ri * 40"
               :aria-label="item.title"
             >
               <div class="related-cover">

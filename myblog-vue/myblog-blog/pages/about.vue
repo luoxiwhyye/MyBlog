@@ -18,15 +18,15 @@
         <p>{{ t('about.established') }}：{{ new Date().getFullYear() }}</p>
 
         <div class="about-stats">
-          <div class="stat-item">
+          <div class="stat-item" v-reveal>
             <span class="stat-num">{{ stats.articles }}</span>
             <span class="stat-label">{{ t('about.stats.articles') }}</span>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" v-reveal="80">
             <span class="stat-num">{{ stats.categories }}</span>
             <span class="stat-label">{{ t('about.stats.categories') }}</span>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" v-reveal="160">
             <span class="stat-num">{{ stats.tags }}</span>
             <span class="stat-label">{{ t('about.stats.tags') }}</span>
           </div>

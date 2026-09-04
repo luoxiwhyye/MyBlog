@@ -28,7 +28,7 @@
       action-to="/home"
     />
     <div v-else class="articles-grid">
-      <ArticleCard v-for="article in articles" :key="article.id" :article="article" />
+      <ArticleCard v-for="(article, i) in articles" :key="article.id" :article="article" v-reveal="i * 40" />
     </div>
     <Pagination :total="total" :page="currentPage" :page-size="pageSize" @update="handlePageUpdate" />
   </div>

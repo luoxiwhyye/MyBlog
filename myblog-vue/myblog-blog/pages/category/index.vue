@@ -10,7 +10,7 @@
       加载中...
     </div>
     <div v-else class="categories-grid">
-      <div v-for="category in categories" :key="category.id" class="category-card" @click="goToCategory(category.id)">
+      <div v-for="(category, i) in categories" :key="category.id" class="category-card" v-reveal="i * 40" @click="goToCategory(category.id)">
         <h3>{{ category.typeName }}</h3>
         <p>{{ category.articleCount }} 篇文章</p>
       </div>

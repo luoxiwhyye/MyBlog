@@ -17,12 +17,13 @@
     />
     <div v-else class="friends-grid">
       <a
-        v-for="link in links"
+        v-for="(link, i) in links"
         :key="link.id"
         :href="link.url"
         target="_blank"
         rel="noopener noreferrer"
         class="friend-card"
+        v-reveal="i * 40"
       >
         <div class="friend-avatar">
           <img v-if="link.avatar" :src="link.avatar" :alt="link.name" loading="lazy" />
