@@ -474,35 +474,18 @@ useWebsiteJsonLd();
   box-shadow: var(--shadow-glow);
 }
 
-/* ===== 文章网格：规律等宽 3/2/1 列，数据不足时自然留白 ===== */
+/* ===== 文章网格：容器查询 auto-fit 3/2/1 列，数据不足时自然留白 ===== */
 .article-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: $spacing-5;
+  /* 随可用宽度平滑增减列（每列 ≥300px 或容器全宽），间距用 clamp() 流体降级 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: clamp($spacing-4, 2vw, $spacing-6);
   align-items: stretch;
 }
 
 /* 首篇 Featured 重点卡：占满整行（与大屏留白一致），首屏形成 "1 大 + N 小" 层级 */
 .article-grid .article-card--hero {
   grid-column: 1 / -1;
-}
-
-@media (min-width: 1200px) {
-  .article-grid {
-    gap: $spacing-6;
-  }
-}
-
-@media (max-width: 900px) {
-  .article-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .article-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ===== 分页器：自然居中，不与内容脱节 ===== */
@@ -516,8 +499,8 @@ useWebsiteJsonLd();
 /* ===== 移动端：博主信息卡紧凑排版（置于主规则之后，避免被覆盖） ===== */
 @media (max-width: 768px) {
   .profile-card {
-    gap: $spacing-4;
-    padding: $spacing-4;
+    gap: clamp(10px, 2vw, $spacing-4);
+    padding: clamp(10px, 2vw, 16px);
   }
 
   .profile-avatar {
@@ -526,13 +509,51 @@ useWebsiteJsonLd();
   }
 
   .profile-name {
-    font-size: $font-size-md;
+    font-size: clamp(1rem, 4.5vw, 1.29rem);
   }
 
   .profile-bio {
-    font-size: $font-size-sm;
+    font-size: clamp(0.93rem, 3.8vw, 1rem);
     line-height: 1.6;
     max-width: 60ch;
+  }
+}
+
+/* ===== 移动端（375~430px 真机）：整体收紧间距，避免"偏大偏挤" ===== */
+@media (max-width: 480px) {
+  .home-body {
+    gap: clamp(0.86rem, 3vw, $spacing-6);
+  }
+
+  .section-title {
+    font-size: clamp(1rem, 4.5vw, 1.29rem);
+  }
+
+  /* 公告栏：收窄内边距 */
+  .announce-card {
+    gap: clamp(0.57rem, 2vw, 0.86rem);
+    padding: clamp(0.57rem, 2vw, 0.86rem) clamp(0.71rem, 2.5vw, 1rem);
+  }
+
+  .announce-label {
+    font-size: clamp(0.79rem, 3vw, 0.93rem);
+    padding: 2px clamp(0.57rem, 2vw, 0.86rem);
+  }
+
+  /* 公告正文最多显示 2 行，避免长内容撑高卡片 */
+  .announce-text {
+    font-size: clamp(0.86rem, 3.5vw, 1rem);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  /* Chip 触摸目标仍保证 ≥44px，但收窄横向留白 */
+  .chip {
+    padding: 8px clamp(0.57rem, 2.5vw, 1rem);
+    font-size: $font-size-sm;
   }
 }
 </style>

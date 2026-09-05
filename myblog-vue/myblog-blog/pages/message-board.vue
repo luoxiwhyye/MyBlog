@@ -250,7 +250,7 @@ const handleSubmit = async () => {
   margin-bottom: 24px;
 
   h1 {
-    font-size: 32px;
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
     color: var(--text-primary);
     margin: 0 0 8px;
   }

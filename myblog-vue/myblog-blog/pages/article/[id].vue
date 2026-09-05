@@ -246,6 +246,50 @@
         <polyline points="18 15 12 9 6 15" />
       </svg>
     </button>
+
+    <!-- 移动端底部操作栏：目录 / 评论 / 顶部（仅 ≤768px 显示，移动特有交互） -->
+    <nav v-if="article" class="mobile-bottom-bar" aria-label="快捷操作">
+      <button type="button" class="mobile-bar-btn" @click="mobileTocOpen = true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>目录</span>
+      </button>
+      <button type="button" class="mobile-bar-btn" @click="scrollToComments">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>评论</span>
+      </button>
+      <button type="button" class="mobile-bar-btn" @click="scrollToTop">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+        <span>顶部</span>
+      </button>
+    </nav>
+
+    <!-- 移动端目录抽屉（复用 side 栏 tocItems 数据） -->
+    <Transition name="fade">
+      <div v-if="article && mobileTocOpen" class="mobile-toc-mask" @click.self="mobileTocOpen = false">
+        <div class="mobile-toc-sheet" role="dialog" aria-label="目录">
+          <div class="mobile-toc-header">
+            <h4>目录</h4>
+            <button type="button" class="mobile-toc-close" aria-label="关闭目录" @click="mobileTocOpen = false">✕</button>
+          </div>
+          <ul v-if="tocItems.length" class="mobile-toc-list">
+            <li
+              v-for="item in tocItems"
+              :key="item.id"
+              :class="`level-${item.level}`"
+            >
+              <button
+                type="button"
+                :class="{ active: activeTocId === item.id }"
+                @click="scrollToHeading(item.id); mobileTocOpen = false"
+              >
+                {{ item.text }}
+              </button>
+            </li>
+          </ul>
+          <p v-else class="mobile-toc-empty">本文暂无小标题</p>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -643,13 +687,22 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
+// ===== 移动端底部操作栏（目录抽屉 + 评论跳转） =====
+const mobileTocOpen = ref(false);
+const scrollToComments = () => {
+  const el = document.querySelector(".comments-section");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+};
+
 // ===== 阅读设置（字号 / 行距）=====
 interface ReadingPrefs {
   fontSize: number;
   lineHeight: number;
 }
 
-const readingPrefs = ref<ReadingPrefs>({ fontSize: 17, lineHeight: 1.75 });
+const readingPrefs = ref<ReadingPrefs>({ fontSize: 16, lineHeight: 1.75 });
 
 // 将设置映射为 CSS 变量，作用到正文（默认值与现状一致，避免视觉回归）
 const articleBodyStyle = computed(() => ({
@@ -861,7 +914,8 @@ useBreadcrumbJsonLd([
 
 .related-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 容器查询：随宽度平滑增减列（每列 ≥300px 或容器全宽），移动端不再强制单列 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
   gap: $spacing-4;
 }
 
@@ -943,9 +997,28 @@ useBreadcrumbJsonLd([
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 640px) {
-  .related-list {
-    grid-template-columns: 1fr;
+/* 相关文章卡在真机（≤480px）：收窄内边距、封面尺寸、标题字号 */
+@media (max-width: 480px) {
+  .related-item {
+    gap: clamp(8px, 2vw, 12px);
+    padding: clamp(8px, 2vw, 12px);
+  }
+
+  .related-cover {
+    flex: 0 0 clamp(64px, 20vw, 80px);
+    height: clamp(44px, 14vw, 56px);
+  }
+
+  .related-item-title {
+    font-size: clamp(14px, 4vw, 16px);
+  }
+
+  .related-cat {
+    font-size: clamp(12px, 3.5vw, 14px);
+  }
+
+  .related-date {
+    font-size: clamp(11px, 3vw, 12px);
   }
 }
 
@@ -954,9 +1027,9 @@ useBreadcrumbJsonLd([
 }
 
 .article-header h1 {
-  font-size: 32px;
+  font-size: clamp(22px, 4.2vw, 32px);
   color: var(--text-primary);
-  margin-bottom: 15px;
+  margin-bottom: clamp(10px, 2vw, 15px);
   line-height: 1.35;
   text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
@@ -968,6 +1041,26 @@ useBreadcrumbJsonLd([
   gap: 20px;
   color: var(--text-muted);
   margin-bottom: 15px;
+}
+
+/* 文章元信息在真机（≤480px）：折行 + 收紧间距，避免挤在一行 */
+@media (max-width: 480px) {
+  .article-meta {
+    gap: clamp(8px, 2vw, 12px);
+    row-gap: 6px;
+    margin-bottom: clamp(10px, 2vw, 15px);
+  }
+
+  .article-summary {
+    font-size: clamp(13px, 3.8vw, 14px);
+    padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 12px);
+  }
+
+  .category,
+  .tag {
+    font-size: clamp(12px, 3.4vw, 14px);
+    padding: 3px clamp(8px, 2.5vw, 12px);
+  }
 }
 
 .meta-item {
@@ -1109,6 +1202,13 @@ useBreadcrumbJsonLd([
   line-height: $line-height-relaxed;
 }
 
+/* 正文标题在真机（≤480px）收紧：标题 ≤1.25rem（20px），正文不显得过大 */
+@media (max-width: 480px) {
+  .article-body :deep(h1) { font-size: 1.4rem; }
+  .article-body :deep(h2) { font-size: 1.25rem; }
+  .article-body :deep(h3) { font-size: 1.1rem; }
+  .article-body :deep(h4) { font-size: 0.98rem; }
+}
 .article-body :deep(a) {
   color: var(--color-link);
   text-decoration: underline;
@@ -1606,7 +1706,7 @@ useBreadcrumbJsonLd([
 
 @media (max-width: 768px) {
   .article-card-wrap {
-    padding: 20px 16px;
+    padding: clamp(14px, 3vw, 20px) clamp(12px, 3vw, 16px);
     border-radius: 0;
     border-left: none;
     border-right: none;
@@ -1636,5 +1736,180 @@ useBreadcrumbJsonLd([
     bottom: 6px;
     font-size: 18px;
   }
+
+  /* 移动端：底部操作栏接管“返回顶部”，隐藏悬浮圆钮避免重叠 */
+  .back-top-btn {
+    display: none;
+  }
+
+  /* 为固定底部操作栏预留空间，避免遮挡评论区/表单 */
+  .article-detail {
+    padding-bottom: 76px;
+  }
+}
+
+/* 真机（≤480px）：main-content 左右内边距收窄为 clamp(10px,3vw,14px)，
+   此处同步负外边距，使通栏卡片仍与视口边缘对齐 */
+@media (max-width: 480px) {
+  .article-card-wrap {
+    margin-left: calc(-1 * clamp(10px, 3vw, 14px));
+    margin-right: calc(-1 * clamp(10px, 3vw, 14px));
+    padding: clamp(12px, 3vw, 16px) clamp(12px, 3vw, 16px);
+  }
+}
+
+/* ===== 移动端底部操作栏（仅 ≤768px，移动特有交互） ===== */
+.mobile-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: var(--bg-backdrop);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-bar {
+    display: grid;
+  }
+}
+
+.mobile-bar-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.mobile-bar-btn:hover,
+.mobile-bar-btn:active {
+  color: var(--color-category);
+  background: var(--bg-hover);
+}
+
+.mobile-bar-btn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+/* ===== 移动端目录抽屉 ===== */
+.mobile-toc-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+}
+
+.mobile-toc-sheet {
+  width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid var(--glass-border);
+  border-bottom: none;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+.mobile-toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mobile-toc-header h4 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.mobile-toc-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.mobile-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.mobile-toc-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.mobile-toc-list button.active {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.mobile-toc-list li.level-2 {
+  padding-left: 12px;
+}
+
+.mobile-toc-list li.level-3 {
+  padding-left: 24px;
+}
+
+.mobile-toc-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* 目录抽屉展开/收起淡入淡出 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

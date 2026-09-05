@@ -89,13 +89,13 @@ usePageSeo({
 
 .about {
   max-width: 960px;
-  margin: 20px auto;
+  margin: clamp(12px, 3vw, 20px) auto;
 }
 
 .about h1 {
   text-align: center;
-  font-size: 32px;
-  margin-bottom: $spacing-8;
+  font-size: clamp(22px, 4.6vw, 32px);
+  margin-bottom: clamp(16px, 4vw, $spacing-8);
   color: var(--text-primary);
   text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
@@ -129,14 +129,10 @@ usePageSeo({
   transform: translateY(calc($spacing-10 - $spacing-1));
 }
 
-.avatar {
-  display: inline-flex;
-}
-
 .avatar img,
 .avatar-fallback {
-  width: 96px;
-  height: 96px;
+  width: clamp(72px, 18vw, 96px);
+  height: clamp(72px, 18vw, 96px);
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 0 0 4px var(--color-category-soft);
@@ -193,7 +189,8 @@ usePageSeo({
 /* 站点统计：合并为一张宽扁的 Glassmorphism 卡片 */
 .about-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 容器查询：随宽度平滑增减列（每列 ≥160px 或容器全宽），移动端不强制单列 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
   gap: $spacing-2;
   margin-top: $spacing-5;
   padding: $spacing-4;
@@ -235,6 +232,35 @@ usePageSeo({
   .profile-col,
   .info-col {
     transform: none;
+  }
+}
+
+/* ===== 真机（≤480px）：收紧关于页留白与文字 ===== */
+@media (max-width: 480px) {
+  .about-content {
+    gap: clamp(12px, 3vw, $spacing-6);
+  }
+
+  .profile-col,
+  .info-col {
+    padding: clamp(14px, 3vw, $spacing-6);
+  }
+
+  .profile-name {
+    font-size: clamp(17px, 4.6vw, 20px);
+  }
+
+  .bio,
+  .info-col p {
+    font-size: clamp(13px, 3.8vw, 14px);
+  }
+
+  .info-col h3 {
+    font-size: clamp(16px, 4.4vw, 20px);
+  }
+
+  .stat-num {
+    font-size: clamp(18px, 5vw, 24px);
   }
 }
 </style>

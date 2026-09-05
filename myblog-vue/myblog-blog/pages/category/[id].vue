@@ -168,7 +168,7 @@ useBreadcrumbJsonLd([
 }
 
 .category-detail h1 {
-  font-size: 32px;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
   margin-bottom: 8px;
   color: var(--text-primary);
   text-align: center;

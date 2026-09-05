@@ -153,7 +153,7 @@ watch(
 }
 
 .article-card--hero .title {
-  font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+  font-size: clamp(1.25rem, 2.6vw, 1.8rem);
   font-weight: 700;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -321,18 +321,52 @@ watch(
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 移动端：卡片收紧内边距、缩小标题（置于主规则之后，避免被覆盖） ===== */
+/* ===== 移动端：卡片收紧内边距、缩小标题、摘要按断点减行（置于主规则之后，避免被覆盖） ===== */
 @media (max-width: 640px) {
   .article-card .content {
-    padding: $spacing-4;
+    padding: clamp(0.71rem, 2.5vw, $spacing-4);
   }
 
   .article-card .title {
-    font-size: 16px;
+    font-size: 1.14rem;
+  }
+
+  /* 移动端摘要收紧到 1 行，避免整幅宽卡显得大而空 */
+  .article-card .summary {
+    font-size: 0.93rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
+  /* 重点卡同样减少摘要行数，让手机端更紧凑 */
+  .article-card--hero .summary {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .article-card .meta {
+    gap: clamp(0.43rem, 1.5vw, 0.71rem);
+    font-size: clamp(0.79rem, 3.2vw, 1rem);
+  }
+}
+
+/* ===== 真机（375~430px）：进一步收紧标题/元信息，避免偏大偏挤 ===== */
+@media (max-width: 480px) {
+  .article-card .title {
+    /* 移动端标题以 rem 主导（随根字号缩放），上限收紧到 ~14px，实现全局缩小观感 */
+    font-size: clamp(0.95rem, 3.4vw, 1.05rem);
   }
 
   .article-card .summary {
-    font-size: 13px;
+    font-size: clamp(0.86rem, 3.2vw, 0.93rem);
+  }
+
+  .article-card--hero .content {
+    padding: clamp(0.86rem, 3vw, 1.14rem);
+  }
+
+  .article-card--hero .title {
+    font-size: clamp(1.2rem, 4.2vw, 1.4rem);
   }
 }
 </style>

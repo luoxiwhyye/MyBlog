@@ -237,7 +237,8 @@ const scrollToSelected = () => {
 }
 
 .hero-card h1 {
-  font-size: 34px;
+  font-size: clamp(22px, 4.6vw, 34px);
+  line-height: 1.2;
   color: var(--text-primary);
   margin-bottom: 12px;
 }
@@ -334,12 +335,16 @@ const scrollToSelected = () => {
 @media (max-width: 768px) {
   .hero-card {
     flex-direction: column;
-    padding: 22px;
+    padding: clamp(14px, 3vw, 22px);
     border-radius: var(--radius-hero-xl);
   }
 
   .hero-card h1 {
-    font-size: 28px;
+    font-size: clamp(20px, 5vw, 24px);
+  }
+
+  .hero-card p {
+    font-size: clamp(13px, 3.8vw, 14px);
   }
 
   .hero-actions {

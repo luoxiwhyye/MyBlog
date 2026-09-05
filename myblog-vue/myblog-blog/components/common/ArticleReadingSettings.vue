@@ -86,7 +86,8 @@ const model = defineModel<ReadingPrefs>({ required: true });
 const KEY = "myblog:reading-prefs";
 const MIN_FONT = 14;
 const MAX_FONT = 24;
-const DEFAULT: ReadingPrefs = { fontSize: 17, lineHeight: 1.75 };
+// 默认字号 16px：满足真机正文 ≤16px，且接近设计基准；用户仍可在 14~24px 内调整
+const DEFAULT: ReadingPrefs = { fontSize: 16, lineHeight: 1.75 };
 const LINE_OPTIONS = [
   { label: "紧凑", value: 1.5 },
   { label: "标准", value: 1.75 },

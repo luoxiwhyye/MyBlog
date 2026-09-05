@@ -61,6 +61,13 @@ useLayoutSeo();
   position: relative;
   z-index: 1;
 }
+
+/* 真机（≤480px）：收窄左右留白，提升屏幕利用率 */
+@media (max-width: 480px) {
+  .main-content {
+    padding: $spacing-3 clamp(10px, 3vw, 14px) $spacing-6;
+  }
+}
 </style>
 
 <style lang="scss">

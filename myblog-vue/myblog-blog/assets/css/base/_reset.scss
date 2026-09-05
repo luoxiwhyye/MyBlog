@@ -15,6 +15,22 @@ html {
   min-height: 100%;
 }
 
+// ---- 全局字号基准（缩放到全局更紧凑观感的正解）----
+// 根字号是整站 rem 设计的基准：$font-size-*、$spacing-*、$border-radius-*
+// 全部基于 rem，改此值即可让全站字号/间距/圆角一次等比缩放。
+// 桌面 15px（原 16px 偏大，整体收紧一档）；≤480px 依视口线性降到 ~14px。
+// 这等价于给全站套一个“缩到 ~85-90%”的观感（用户反馈“缩到 75% 更舒适”，故整体下调），
+// 而不是只改个别页面。
+html {
+  font-size: clamp(14px, 13.2px + 0.9vw, 15px);
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: clamp(13px, 13px + 0.25vw, 14px);
+  }
+}
+
 body,
 #__nuxt {
   min-height: 100%;

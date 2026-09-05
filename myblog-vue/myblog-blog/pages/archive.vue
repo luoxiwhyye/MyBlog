@@ -277,7 +277,7 @@ useArchiveJsonLd(articles);
 
 .archive h1 {
   text-align: center;
-  font-size: 32px;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
   margin-bottom: 24px;
   margin-top: 8px;
   color: var(--text-primary);
@@ -293,7 +293,8 @@ useArchiveJsonLd(articles);
 /* 汇总卡片 */
 .archive-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 容器查询：随宽度平滑增减列（每列 ≥180px 或容器全宽），移动端不强制单列 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: $spacing-4;
   margin-bottom: $spacing-8;
 }
@@ -302,8 +303,8 @@ useArchiveJsonLd(articles);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 20px 12px;
+  gap: clamp(4px, 1.2vw, 6px);
+  padding: clamp(12px, 2.5vw, 20px) clamp(10px, 2.5vw, 12px);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
@@ -325,7 +326,7 @@ useArchiveJsonLd(articles);
 }
 
 .summary-label {
-  font-size: 13px;
+  font-size: clamp(12px, 3vw, 13px);
   color: var(--text-muted);
 }
 
@@ -509,10 +510,6 @@ useArchiveJsonLd(articles);
 }
 
 @media (max-width: 576px) {
-  .archive-summary {
-    grid-template-columns: 1fr;
-  }
-
   .archive-toolbar {
     flex-direction: column;
   }

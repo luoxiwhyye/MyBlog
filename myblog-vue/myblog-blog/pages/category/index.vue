@@ -69,7 +69,7 @@ usePageSeo({
 
 .category h1 {
   text-align: center;
-  font-size: 32px;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
   margin: 8px 0 0;
   color: var(--text-primary);
   text-shadow: var(--text-shadow-on-bg);

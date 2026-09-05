@@ -29,7 +29,7 @@
           v-for="(tool, i) in favoriteTools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          :class="['quick-card', `tool-span-${toolSpan(i, favoriteTools.length)}`]"
+          class="quick-card"
         >
           <div class="quick-card-top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -50,10 +50,10 @@
 
     <section class="quick-grid">
       <NuxtLink
-        v-for="(tool, i) in hotTools"
+        v-for="tool in hotTools"
         :key="tool.id"
         :to="getToolPath(tool)"
-        :class="['quick-card', `tool-span-${toolSpan(i, hotTools.length)}`]"
+        class="quick-card"
       >
         <div class="quick-card-top">
           <el-icon><component :is="tool.icon" /></el-icon>
@@ -84,10 +84,10 @@
 
       <div class="tool-grid">
         <NuxtLink
-          v-for="(tool, i) in category.tools"
+          v-for="tool in category.tools"
           :key="tool.id"
           :to="getToolPath(tool)"
-          :class="['tool-card', `tool-span-${toolSpan(i, category.tools.length)}`]"
+          class="tool-card"
         >
           <div class="tool-card__top">
             <el-icon><component :is="tool.icon" /></el-icon>
@@ -125,19 +125,8 @@ const FAVORITES_KEY = "myblog:tools:favorites";
 const categories = TOOL_CATEGORIES;
 const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
 
-// Bento 自适应 span：优先三张普通卡（span2）铺满一行；
-// 若最后一行只剩 1~2 张，则分别拉伸为整行/半行，避免网格右侧出现空洞。
-const toolSpan = (i: number, total: number) => {
-  const remainder = total % 3;
-  if (remainder === 1) {
-    return i === total - 1 ? 6 : 2;
-  }
-  if (remainder === 2) {
-    return i >= total - 2 ? 3 : 2;
-  }
-  return 2;
-};
-
+// 网格采用容器查询（auto-fit + minmax(min(100%, 230px), 1fr)）自适应列数，
+// 不再需要按整数列数手动计算 span，卡片随容器宽度平滑增减列。
 // 收藏功能（localStorage 持久化）
 const favoriteIds = ref<string[]>([]);
 
@@ -207,7 +196,8 @@ usePageSeo({
 }
 
 .tools-hero h1 {
-  font-size: 38px;
+  font-size: clamp(1.5rem, 4.5vw, 2.375rem);
+  line-height: 1.2;
   color: var(--text-primary);
   margin-bottom: 14px;
 }
@@ -237,22 +227,18 @@ usePageSeo({
 .quick-grid,
 .tool-grid {
   display: grid;
-  gap: $spacing-5;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-flow: dense;
+  /* 容器查询：随可用宽度平滑增减列（每列 ≥230px 或容器全宽），
+     不再依赖全屏固定断点塌缩，避免手机端“大而空的单列”。 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: clamp(10px, 1.5vw, $spacing-5);
 }
-
-.tool-span-2 { grid-column: span 2; }
-.tool-span-3 { grid-column: span 3; }
-.tool-span-6 { grid-column: span 6; }
-
 .quick-card,
 .tool-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: $spacing-5;
+  gap: clamp(8px, 2vw, 12px);
+  padding: clamp(12px, 2.5vw, $spacing-5);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
@@ -281,6 +267,7 @@ usePageSeo({
 }
 
 .fav-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -292,6 +279,13 @@ usePageSeo({
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* 移动端触摸热区：用 ::before 把 30px 视觉目标的命中区扩展到 44px，避免误触 */
+.fav-btn::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
 }
 
 .fav-btn:hover {
@@ -335,7 +329,7 @@ usePageSeo({
 
 /* ===== 分类块：标题 + 工具卡合并为一个整体卡片，消除割裂感 ===== */
 .category-block {
-  padding: $spacing-6;
+  padding: clamp(12px, 2.5vw, $spacing-6);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
@@ -426,7 +420,7 @@ usePageSeo({
 
 .section-header h2 {
   color: var(--text-primary);
-  font-size: 28px;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
 }
 
 .section-header p {
@@ -464,36 +458,70 @@ usePageSeo({
 @media (max-width: 768px) {
   .tools-hero {
     flex-direction: column;
-    padding: $spacing-6;
+    padding: clamp(0.9rem, 3vw, 1.5rem);
     border-radius: var(--radius-hero-xl);
   }
 
   .tools-hero h1 {
-    font-size: 30px;
+    font-size: clamp(1.25rem, 5vw, 1.6rem);
   }
 }
 
-@media (max-width: 1080px) {
-  .quick-grid,
-  .tool-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* 移动端：分类胶囊导航提升为 44px 触摸目标 */
+@media (max-width: 768px) {
+  .category-caps {
+    padding: 8px;
+    gap: 8px;
   }
-  .tool-span-2,
-  .tool-span-3,
-  .tool-span-6 {
-    grid-column: span 2;
+
+  .category-caps .caps-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 18px;
   }
 }
 
-@media (max-width: 640px) {
-  .quick-grid,
-  .tool-grid {
-    grid-template-columns: 1fr;
+/* ===== 移动端（375~430px 真机）：收紧工具卡片文字与间距 ===== */
+@media (max-width: 480px) {
+  .tools-hero p {
+    font-size: clamp(0.9rem, 3.8vw, 1rem);
   }
-  .tool-span-2,
-  .tool-span-3,
-  .tool-span-6 {
-    grid-column: span 1;
+
+  /* 工具卡描述不超过 2 行，避免单列卡片被撑高呈现大而空 */
+  .tool-card p {
+    font-size: clamp(0.86rem, 3.5vw, 1rem);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .quick-card span {
+    font-size: clamp(0.86rem, 3.5vw, 1rem);
+  }
+
+  .quick-card strong,
+  .tool-card strong {
+    font-size: clamp(1rem, 4vw, 1.14rem);
+  }
+
+  .tool-card__top {
+    font-size: clamp(0.93rem, 3.5vw, 1rem);
+  }
+
+  .section-count {
+    font-size: clamp(0.86rem, 3vw, 0.93rem);
+  }
+
+  .tool-tags {
+    gap: 6px;
+  }
+
+  .tool-tags :deep(.el-tag) {
+    font-size: clamp(0.86rem, 3vw, 0.93rem);
   }
 }
 </style>
