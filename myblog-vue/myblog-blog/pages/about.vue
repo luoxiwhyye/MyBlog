@@ -1,44 +1,109 @@
 <template>
   <div class="about">
     <h1>{{ t('nav.about') }}</h1>
-    <div class="about-content">
-      <aside class="profile-col">
-        <div class="avatar">
-          <img v-if="avatar" :src="avatar" :alt="authorName" />
-          <span v-else class="avatar-fallback">{{ (authorName || "B").slice(0, 1) }}</span>
-        </div>
+
+    <!-- 个人品牌名片墙：头部横排 -->
+    <div class="about-hero">
+      <div class="avatar">
+        <img v-if="avatar" :src="avatar" :alt="authorName" loading="eager" />
+        <span v-else class="avatar-fallback">{{ (authorName || "B").slice(0, 1) }}</span>
+      </div>
+      <div class="hero-info">
         <h2 class="profile-name">{{ authorName }}</h2>
         <p v-if="bio" class="bio">{{ bio }}</p>
-      </aside>
-
-      <section class="info-col">
-        <h3>{{ t('about.siteInfo') }}</h3>
-        <p>{{ t('about.siteName') }}：{{ siteName }}</p>
-        <p>{{ t('about.siteDescription') }}：{{ siteDescription }}</p>
-        <p>{{ t('about.established') }}：{{ new Date().getFullYear() }}</p>
-
-        <div class="about-stats">
-          <div class="stat-item" v-reveal>
-            <span class="stat-num">{{ stats.articles }}</span>
-            <span class="stat-label">{{ t('about.stats.articles') }}</span>
-          </div>
-          <div class="stat-item" v-reveal="80">
-            <span class="stat-num">{{ stats.categories }}</span>
-            <span class="stat-label">{{ t('about.stats.categories') }}</span>
-          </div>
-          <div class="stat-item" v-reveal="160">
-            <span class="stat-num">{{ stats.tags }}</span>
-            <span class="stat-label">{{ t('about.stats.tags') }}</span>
-          </div>
+        <div v-if="socialLinks.length" class="social-links">
+          <a
+            v-for="link in socialLinks"
+            :key="link.url"
+            :href="link.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="social-link"
+            :aria-label="link.name"
+            :title="link.name"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            {{ link.name }}
+          </a>
         </div>
-      </section>
+      </div>
     </div>
+
+    <!-- 站点信息 + 统计：合并为一张宽扁的 Glassmorphism 卡片 -->
+    <section class="about-card">
+      <h3>{{ t('about.siteInfo') }}</h3>
+      <div class="site-meta">
+        <div class="meta-item">
+          <span class="meta-label">{{ t('about.siteName') }}</span>
+          <span class="meta-value">{{ siteName }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">{{ t('about.siteDescription') }}</span>
+          <span class="meta-value">{{ siteDescription }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">{{ t('about.established') }}</span>
+          <span class="meta-value">{{ established }}</span>
+        </div>
+      </div>
+
+      <div class="about-stats">
+        <div class="stat-item" v-reveal>
+          <span class="stat-num">{{ stats.articles }}</span>
+          <span class="stat-label">{{ t('about.stats.articles') }}</span>
+        </div>
+        <div class="stat-item" v-reveal="80">
+          <span class="stat-num">{{ stats.categories }}</span>
+          <span class="stat-label">{{ t('about.stats.categories') }}</span>
+        </div>
+        <div class="stat-item" v-reveal="160">
+          <span class="stat-num">{{ stats.tags }}</span>
+          <span class="stat-label">{{ t('about.stats.tags') }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA：和我说句话（留言板） -->
+    <section class="about-cta">
+      <div class="cta-text">
+        <h3>{{ t('about.ctaTitle') }}</h3>
+        <p>{{ t('about.ctaDesc') }}</p>
+      </div>
+      <NuxtLink to="/message-board" class="cta-btn">
+        {{ t('about.ctaAction') }}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </NuxtLink>
+    </section>
+
+    <!-- 友链子块：非重复建设，仅作入口（复用 friends 数据模式） -->
+    <section v-if="friendLinks.length" class="about-card about-friends">
+      <div class="friends-head">
+        <h3>{{ t('about.friends') }}</h3>
+        <NuxtLink to="/friends" class="friends-more">{{ t('about.friendsMore') }}</NuxtLink>
+      </div>
+      <div class="friends-grid">
+        <a
+          v-for="link in friendLinks.slice(0, 4)"
+          :key="link.id"
+          :href="link.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="friend-chip"
+          :title="link.name"
+        >
+          <img v-if="link.avatar" :src="link.avatar" :alt="link.name" loading="lazy" class="friend-chip-avatar" />
+          <span v-else class="friend-chip-fallback">{{ link.name.slice(0, 1).toUpperCase() }}</span>
+          <span class="friend-chip-name">{{ link.name }}</span>
+        </a>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
-import { articleApi, categoryApi, tagApi } from "~/api";
+import { articleApi, categoryApi, tagApi, friendLinkApi } from "~/api";
+import type { FriendLink } from "~/types";
 
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
@@ -60,12 +125,46 @@ const avatar = computed(() => {
   return raw ? getThumbWebpUrl(raw) : "";
 });
 
+// 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url}]，可空）
+const socialLinks = computed<Array<{ name: string; url: string }>>(() => {
+  const raw = settingsStore.getSetting("social_links");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((i) => i?.name && i?.url);
+    }
+  } catch {
+    // 解析失败视为空
+  }
+  return [];
+});
+
+// 建立年份（修复占位 bug）：优先读 site_established 设置，否则回退到首批文章年份
+const established = ref<string>("");
+const establishedFromSetting = computed(() =>
+  settingsStore.getSetting("site_established"),
+);
+watchEffect(() => {
+  if (establishedFromSetting.value) {
+    established.value = establishedFromSetting.value;
+  }
+});
+
 // 站点统计（真实数据，来自公开列表接口的 total）
 const stats = ref({ articles: 0, categories: 0, tags: 0 });
+const firstArticleYear = ref("");
 await Promise.all([
   articleApi
-    .getList({ page: 1, pageSize: 1, status: "published" })
-    .then((res) => (stats.value.articles = res.data.total || 0))
+    .getList({ page: 1, pageSize: 1, status: "published", sortBy: "created_at" })
+    .then((res) => {
+      stats.value.articles = res.data.total || 0;
+      const first = res.data.list?.[0];
+      if (first?.createdAt) {
+        const y = new Date(first.createdAt).getFullYear();
+        if (!Number.isNaN(y)) firstArticleYear.value = String(y);
+      }
+    })
     .catch(() => {}),
   categoryApi
     .getList({ page: 1, pageSize: 1 })
@@ -77,8 +176,25 @@ await Promise.all([
     .catch(() => {}),
 ]);
 
+// 站点建立年份兜底：设置被清空时回退到最早文章年份（避免"当前年"漂移）
+watchEffect(() => {
+  if (!established.value && firstArticleYear.value) {
+    established.value = firstArticleYear.value;
+  }
+});
+
+// 友链子块：复用独立 friend_link 表（仅取前 4 个做入口）
+const emptyPage = () => ({ list: [], total: 0, page: 1, pageSize: 20 });
+const friendLinks = ref<FriendLink[]>([]);
+try {
+  const res = await friendLinkApi.getList({ page: 1, pageSize: 4 });
+  friendLinks.value = res.data?.list || [];
+} catch {
+  friendLinks.value = [];
+}
+
 usePageSeo({
-  title: t('nav.about'),
+  title: computed(() => t('nav.about')),
   description: computed(() => bio.value || siteDescription.value),
   image: avatar,
 });
@@ -100,57 +216,91 @@ usePageSeo({
   text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
 
-/* 错位两列：左个人资料 + 右站点信息 */
-.about-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: $spacing-6;
-  align-items: start;
+/* 玻璃卡片基类：所有区块统一质感 */
+.about-card {
+  padding: $spacing-6;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card-lg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  transition:
+    box-shadow var(--transition-bounce),
+    border-color 0.3s;
 }
 
-.profile-col {
-  text-align: center;
+.about-card:hover {
+  box-shadow: var(--shadow-glow);
+  border-color: transparent;
+}
+
+.about-card h3 {
+  font-size: 20px;
+  margin-bottom: $spacing-4;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-card h3::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--gradient-brand, linear-gradient(180deg, var(--color-category), var(--color-accent)));
+}
+
+/* ===== 个人品牌头部（头像 + 身份 + 社交链接） ===== */
+.about-hero {
+  display: flex;
+  gap: $spacing-6;
+  align-items: center;
   padding: $spacing-6;
+  margin-bottom: $spacing-6;
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  transform: translateY($spacing-10);
   transition:
     box-shadow var(--transition-bounce),
-    border-color 0.3s,
-    transform var(--transition-bounce);
+    border-color 0.3s;
 }
 
-.profile-col:hover {
+.about-hero:hover {
   box-shadow: var(--shadow-glow);
   border-color: transparent;
-  transform: translateY(calc($spacing-10 - $spacing-1));
 }
 
 .avatar img,
 .avatar-fallback {
-  width: clamp(72px, 18vw, 96px);
-  height: clamp(72px, 18vw, 96px);
+  width: clamp(96px, 22vw, 128px);
+  height: clamp(96px, 22vw, 128px);
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 0 0 4px var(--color-category-soft);
+  box-shadow: 0 0 0 5px var(--color-category-soft);
 }
 
 .avatar-fallback {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 44px;
   font-weight: 700;
   color: #ffffff;
   background: var(--brand-logo-gradient);
 }
 
+.hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .profile-name {
-  margin: 14px 0 8px;
-  font-size: 22px;
+  margin: 0 0 10px;
+  font-size: clamp(20px, 4.4vw, 28px);
   color: var(--text-primary);
 }
 
@@ -159,31 +309,59 @@ usePageSeo({
   line-height: $line-height-relaxed;
 }
 
-.info-col {
-  padding: $spacing-6;
-  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card-lg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  transform: translateY(-$spacing-5);
-  transition: box-shadow var(--transition-bounce), border-color 0.3s, transform var(--transition-bounce);
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-2;
+  margin-top: $spacing-4;
 }
 
-.info-col:hover {
-  box-shadow: var(--shadow-glow);
-  border-color: transparent;
-}
-
-.info-col h3 {
-  font-size: 20px;
-  margin-bottom: $spacing-4;
-  color: var(--text-primary);
-}
-
-.info-col p {
-  margin-bottom: $spacing-3;
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
   color: var(--text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+  transition:
+    background-color $transition-fast,
+    color $transition-fast,
+    border-color $transition-fast;
+}
+
+.social-link:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft, var(--color-category-soft));
+}
+
+/* ===== 站点信息 + 统计 ===== */
+.site-meta {
+  display: grid;
+  gap: $spacing-3;
+  margin-bottom: $spacing-5;
+}
+
+.meta-item {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: baseline;
+  gap: $spacing-2;
+}
+
+.meta-label {
+  color: var(--text-muted);
+  font-size: $font-size-sm;
+  white-space: nowrap;
+}
+
+.meta-value {
+  color: var(--text-primary);
+  line-height: 1.6;
 }
 
 /* 站点统计：合并为一张宽扁的 Glassmorphism 卡片 */
@@ -192,7 +370,6 @@ usePageSeo({
   /* 容器查询：随宽度平滑增减列（每列 ≥160px 或容器全宽），移动端不强制单列 */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
   gap: $spacing-2;
-  margin-top: $spacing-5;
   padding: $spacing-4;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
@@ -224,25 +401,152 @@ usePageSeo({
   color: var(--text-muted);
 }
 
+/* ===== CTA：和我说句话 ===== */
+.about-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  margin-top: $spacing-6;
+  padding: $spacing-5 $spacing-6;
+  border-radius: var(--radius-card-lg);
+  background: linear-gradient(120deg, var(--color-category-soft), var(--color-accent-soft, var(--color-accent-light)));
+  border: 1px solid var(--glass-border);
+}
+
+.cta-text h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.cta-text p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: $font-size-sm;
+  line-height: 1.6;
+}
+
+.cta-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px var(--color-accent-soft, rgba(45, 106, 173, 0.35));
+  transition:
+    transform var(--transition-bounce),
+    box-shadow var(--transition-bounce);
+}
+
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--color-accent-soft, rgba(45, 106, 173, 0.45));
+}
+
+/* ===== 友链子块 ===== */
+.about-friends {
+  margin-top: $spacing-6;
+}
+
+.friends-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+}
+
+.friends-head h3 {
+  margin-bottom: 0;
+}
+
+.friends-more {
+  color: var(--color-accent);
+  font-size: $font-size-sm;
+  text-decoration: none;
+}
+
+.friends-more:hover {
+  text-decoration: underline;
+}
+
+.friends-grid {
+  display: grid;
+  /* 容器查询：平滑增减列，移动端不强制单列 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: $spacing-2;
+}
+
+.friend-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: $spacing-2 $spacing-3;
+  border-radius: $border-radius-md;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  text-decoration: none;
+  overflow: hidden;
+  transition: background-color $transition-fast, border-color $transition-fast;
+}
+
+.friend-chip:hover {
+  background: var(--bg-card);
+  border-color: var(--color-accent);
+}
+
+.friend-chip-avatar,
+.friend-chip-fallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+
+.friend-chip-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--brand-logo-gradient);
+}
+
+.friend-chip-name {
+  color: var(--text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 响应式 ===== */
 @media (max-width: 768px) {
-  .about-content {
-    grid-template-columns: 1fr;
+  .about-hero {
+    flex-direction: column;
+    text-align: center;
   }
 
-  .profile-col,
-  .info-col {
-    transform: none;
+  .hero-info {
+    width: 100%;
+  }
+
+  .social-links,
+  .about-cta {
+    justify-content: center;
   }
 }
 
-/* ===== 真机（≤480px）：收紧关于页留白与文字 ===== */
 @media (max-width: 480px) {
-  .about-content {
-    gap: clamp(12px, 3vw, $spacing-6);
-  }
-
-  .profile-col,
-  .info-col {
+  .about-hero,
+  .about-card {
     padding: clamp(14px, 3vw, $spacing-6);
   }
 
@@ -251,16 +555,31 @@ usePageSeo({
   }
 
   .bio,
-  .info-col p {
+  .meta-value {
     font-size: clamp(13px, 3.8vw, 14px);
   }
 
-  .info-col h3 {
-    font-size: clamp(16px, 4.4vw, 20px);
+  .meta-item {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .meta-label {
+    font-size: 12px;
   }
 
   .stat-num {
     font-size: clamp(18px, 5vw, 24px);
+  }
+
+  .about-cta {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .cta-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

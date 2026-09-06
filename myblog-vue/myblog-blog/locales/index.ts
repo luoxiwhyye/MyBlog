@@ -64,6 +64,11 @@ export const zh = {
     siteName: "网站名称",
     siteDescription: "网站描述",
     established: "建立时间",
+    ctaTitle: "和我说句话",
+    ctaDesc: "如果你对我的内容、经历或想法感兴趣，欢迎在留言板和我聊聊。",
+    ctaAction: "去留言板",
+    friends: "友情链接",
+    friendsMore: "查看全部 →",
     stats: {
       articles: "文章",
       categories: "分类",
@@ -199,6 +204,12 @@ export const en: typeof zh = {
     siteName: "Site Name",
     siteDescription: "Description",
     established: "Established",
+    ctaTitle: "Say Hello",
+    ctaDesc:
+      "If you're curious about my content, journey, or ideas, feel free to drop a note on the message board.",
+    ctaAction: "Visit Guestbook",
+    friends: "Friends",
+    friendsMore: "View all →",
     stats: {
       articles: "Articles",
       categories: "Categories",

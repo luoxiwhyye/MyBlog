@@ -453,6 +453,13 @@ const groups: GroupConfig[] = [
         required: true,
       },
       {
+        key: 'site_established',
+        label: '网站建立年份',
+        type: 'text',
+        placeholder: '如：2020',
+        description: '显示在关于页的「建立时间」，为空时自动取站点最早文章年份。',
+      },
+      {
         key: 'site_description',
         label: '网站描述',
         type: 'textarea',
