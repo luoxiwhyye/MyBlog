@@ -1,6 +1,6 @@
 # MyBlog — Spring Boot 后端
 
-MyBlog 的 Java 后端实现（与 `myblog-express` 功能等价，可按技术栈偏好选择部署）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
+MyBlog 的 Java 后端实现（与 `myblog-express` 前端/设备能力对齐，可按技术栈偏好选择部署）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
 
 ## 技术栈
 
@@ -11,10 +11,21 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 功能等价，可按技术�
 - **认证**: JWT（jjwt）+ BCrypt
 - **缓存**: Spring Data Redis + 内存降级（`CacheStatsService` + `CountingCacheInterceptor` 统计命中率）
 - **文件上传**: MultipartFile + webp-imageio（生成 WebP 变体）
+- **全文搜索**: Meilisearch（不可用自动降级）
 - **邮件通知**: spring-boot-starter-mail（未配置 SMTP 自动降级）
 - **监控**: Actuator + Micrometer / Prometheus
 - **校验**: Jakarta Validation
 - **测试**: Spring Boot Test
+
+## 功能概览
+
+- 文章 / 分类 / 标签 / 友链 / 评论 / **留言板** CRUD
+- **表情包管理**（`EmojiController`）、**仪表盘/未读红点**（`DashboardController`）
+- Redis 缓存（预热 / 命中统计 / 一键清空）、健康检查 `/health`、Actuator 指标端点
+- 图片上传并自动生成 WebP 变体；Meilisearch 全文搜索
+- 评论 / 回复 / @提及邮件通知
+
+> ℹ️ 与 Express 端差异：前端**错误监控上报**（`/error-log`）当前仅 Express 端实现，Spring Boot 暂未提供对应接口。
 
 ## 快速开始
 
@@ -63,9 +74,9 @@ java -jar target/myblog-springboot-0.0.1-SNAPSHOT.jar
 ```
 src/main/java/com/myblog/myblogspringboot/
 ├── config/       # Security、CORS、缓存统计拦截器、限流、初始化
-├── controller/   # REST API（含 cache 运维接口）
+├── controller/   # 控制器（Article、Comment、Emoji、MessageBoard、Dashboard、Cache、Health、Upload...）
 ├── dto/          # 请求/响应 DTO
-├── entity/       # JPA 实体（Article/Comment/FriendLink/...）
+├── entity/       # JPA 实体（Article/Comment/FriendLink/Emoji/MessageBoard/...）
 ├── exception/    # 全局异常处理
 ├── repository/   # Spring Data JPA Repository
 ├── security/     # JWT Token 认证
@@ -74,20 +85,21 @@ src/main/java/com/myblog/myblogspringboot/
 
 ## 环境变量
 
-| 变量                                                                           | 说明                   | 默认值             |
-| ------------------------------------------------------------------------------ | ---------------------- | ------------------ |
-| `PORT`                                                                         | 服务端口               | `3000`             |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`                  | 数据库连接             | —                  |
-| **`JWT_SECRET`**                                                               | JWT 密钥（生产必改）   | —                  |
-| `JWT_EXPIRES_IN`                                                               | Token 有效期（毫秒）   | `604800000`（7天） |
-| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主               | —                  |
-| `FRONTEND_ORIGIN` / `ADMIN_ORIGIN`                                             | CORS 白名单            | —                  |
-| `UPLOAD_PATH`                                                                  | 上传文件目录           | `uploads`          |
-| `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY`                               | Meilisearch            | —                  |
-| `SITE_URL` / `SITE_NAME`                                                       | 站点信息（邮件通知用） | —                  |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`                          | SMTP 邮件通知（可选）  | —                  |
-| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB`                    | Redis 缓存             | —                  |
+| 变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| `PORT` | 服务端口 | `3000` |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — |
+| **`JWT_SECRET`** | JWT 密钥（生产必改） | — |
+| `JWT_EXPIRES_IN` | Token 有效期（毫秒） | `604800000`（7天） |
+| `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |
+| `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` | CORS 白名单 | — |
+| `UPLOAD_PATH` | 上传文件目录 | `uploads` |
+| `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY` | Meilisearch | — |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | Redis 缓存 | — |
+| `SITE_URL` / `SITE_NAME` | 站点信息（邮件通知用） | — |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP 邮件通知（可选） | — |
 
 监控端点：`/actuator/health`、`/actuator/metrics`、`/actuator/prometheus`。
 
 其余说明见项目根目录 [README.md](../README.md)。
+

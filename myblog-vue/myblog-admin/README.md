@@ -1,22 +1,77 @@
 # MyBlog 后台管理系统
 
-基于 Vue 3 + TypeScript + Pinia + Element Plus 的个人博客后台管理系统。
-
-## 项目概述
-
-这是一个完整的博客后台管理系统前端项目，包含文章管理、分类管理、标签管理、评论管理、用户管理和网站配置等功能。后端 API 已准备完毕，前端完全基于 TypeScript 开发。
+基于 **Vue 3 + TypeScript + Pinia + Element Plus** 的个人博客后台管理系统（SPA），对接 Express / Spring Boot 后端 REST API（`/api/v1`）。
 
 ## 技术栈
 
-- **框架**: Vue 3 (Composition API)
+- **框架**: Vue 3（Composition API）
 - **语言**: TypeScript
 - **状态管理**: Pinia
 - **UI 组件库**: Element Plus
 - **HTTP 客户端**: Axios
 - **路由**: Vue Router 4
-- **富文本编辑器**: Vue Quill
+- **富文本编辑器**: Vue Quill（markdown-it 实时预览）
+- **图表**: ECharts 6（仪表盘趋势图，随主题重绘）
 - **构建工具**: Vite
-- **代码规范**: ESLint + Prettier
+- **代码规范**: ESLint + Prettier + vue-tsc
+
+## 功能特性
+
+### 🔐 认证授权
+- JWT Token 认证、登录状态持久化、路由守卫保护、自动获取用户信息
+- 默认账号 `admin` / `admin123`（启动时由后端初始化，**请及时修改**）
+
+### 📝 文章管理
+- 文章列表（分页 / 筛选 / 搜索）、创建与编辑（草稿 / 发布）
+- 富文本 + Markdown 左右分屏实时预览、封面图片上传、分类 / 标签关联
+
+### 🏷️ 分类与标签
+- 分类 / 标签的增删改查、关联文章数量显示、分页展示
+
+### 💬 评论管理
+- 树形评论列表、审核 / 删除 / 恢复、按文章筛选
+
+### 💌 留言板 / 😊 表情包
+- 留言板管理（`MessageBoardManage`）
+- 博主自定义表情包管理（`EmojiManage`）
+
+### 🔗 友链管理
+- 表格 + 对话框增删改、头像上传、简介、站长邮箱、置顶 / 启用开关、点击统计
+
+### 📊 仪表盘与运维
+- 核心数据统计（文章 / 评论 / 浏览 / 待审核）、发布趋势图（ECharts）、阅读排行
+- 运维监控：缓存命中率、响应时间、错误率，一键清空 / 预热缓存（`CacheManage`）
+- **未读红点轮询**：评论 / 留言 / 错误等新消息提醒
+
+### 🛡️ 错误监控
+- 前端聚合错误日志的查看与清空（`ErrorLogManage`），回溯线上用户报错
+
+### ⚙️ 系统设置
+- 分组表单（基本 / 外观 / 社交），校验、保存即生效、JSON 导出/导入
+- **自定义配置** Tab：任意 Key-Value 增删改（含类型 / 描述元数据）
+- 主题色管理（影响前台，按维度 / 亮暗独立）
+
+### 👤 博主资料
+- 博主信息查看与编辑、头像上传、密码修改
+
+## 路由一览
+
+| 路径 | 视图 |
+| --- | --- |
+| `/login` | 登录 |
+| `/admin/dashboard` | 仪表盘 |
+| `/admin/articles`、`/admin/articles/edit/:id?` | 文章列表 / 编辑 |
+| `/admin/types`、`/admin/labels` | 分类 / 标签 |
+| `/admin/friend-links` | 友链 |
+| `/admin/comments` | 评论 |
+| `/admin/message-board` | 留言板 |
+| `/admin/emoji` | 表情包 |
+| `/admin/error-log` | 错误监控 |
+| `/admin/cache` | 缓存运维 |
+| `/admin/profile` | 博主资料 |
+| `/admin/settings` | 系统设置 |
+
+> 除 `/login` 外，所有 `/admin/**` 均由路由守卫保护，未登录自动跳转登录页并携带 `redirect`。
 
 ## 项目结构
 
@@ -24,116 +79,28 @@
 myblog-admin/
 ├── public/                 # 静态资源
 ├── src/
-│   ├── api/               # API 接口定义
-│   │   └── index.ts       # 所有 API 方法
-│   ├── components/        # 公共组件
-│   ├── layouts/           # 布局组件
-│   │   └── AdminLayout.vue # 后台管理布局
-│   ├── router/            # 路由配置
-│   │   └── index.ts       # 路由和守卫
-│   ├── stores/            # Pinia 状态管理
-│   │   └── user.ts        # 用户状态管理
-│   ├── types/             # TypeScript 类型定义
-│   │   └── api.ts         # API 类型定义
-│   ├── utils/             # 工具函数
-│   │   └── request.ts     # Axios 请求封装
-│   ├── views/             # 页面组件
-│   │   ├── Login.vue      # 登录页
-│   │   ├── Dashboard.vue  # 仪表盘
-│   │   ├── article/       # 文章相关页面
-│   │   │   ├── ArticleList.vue    # 文章列表
-│   │   │   └── ArticleEditor.vue  # 文章编辑器
-│   │   ├── TypeManage.vue # 分类管理
-│   │   ├── LabelManage.vue # 标签管理
-│   │   ├── CommentManage.vue # 评论管理
-│   │   ├── Profile.vue    # 个人资料
-│   │   └── Settings.vue   # 网站配置
-│   ├── App.vue            # 根组件
-│   └── main.ts            # 入口文件
+│   ├── api/                # API 封装（含 errorLog/emoji/messageBoard 等模块）
+│   ├── assets/css/         # 设计令牌 + Element Plus 暗色覆盖
+│   ├── components/         # 公共组件
+│   ├── layouts/            # AdminLayout.vue（侧边栏 + 未读红点）
+│   ├── router/             # 路由 + 守卫
+│   ├── stores/             # Pinia（user 等）
+│   ├── types/              # TypeScript 类型（api.ts）
+│   ├── utils/              # request.ts（Axios 封装）等
+│   ├── views/              # 页面组件（article/ Dashboard/ Settings/ EmojiManage/ ErrorLogManage/ ...）
+│   ├── App.vue
+│   └── main.ts
+├── Dockerfile              # 构建 + Nginx 托管
+├── nginx.conf              # SPA 路由回退
 ├── package.json
-├── tsconfig.json
-├── vite.config.ts
 └── README.md
 ```
-
-## 功能特性
-
-### 🔐 认证授权
-
-- JWT Token 认证
-- 登录状态持久化
-- 路由守卫保护
-- 自动 token 刷新
-
-### 📝 文章管理
-
-- 文章列表查看（支持分页、筛选、搜索）
-- 文章创建和编辑
-- 富文本编辑器 + Markdown 切换（左右分屏实时预览）
-- 封面图片上传
-- 草稿和发布状态管理
-- 分类和标签关联
-
-### 🏷️ 分类和标签管理
-
-- 分类/标签的增删改查
-- 关联文章数量显示
-- 分页展示
-
-### 💬 评论管理
-
-- 评论列表查看（树形结构）
-- 评论审核功能
-- 评论删除
-- 按文章筛选评论
-
-### 👤 用户管理
-
-- 博主信息查看和编辑
-- 头像上传
-- 密码修改
-
-### ☑️ 系统设置
-
-- 分组表单（基本/外观/社交），含校验、保存即生效、JSON 导出/导入
-- **自定义配置** Tab：任意 Key-Value 增删改（含类型/描述元数据）
-
-### 🔗 友链管理
-
-- 表格 + 对话框增删改
-- 支持头像上传、简介、站长邮箱
-- 置顶/启用开关、点击统计
-
-### 📊 仪表盘
-
-- 核心数据统计（文章/评论/浏览/待审核）
-- 发布趋势图（ECharts，随主题重绘）+ 阅读排行
-- 运维监控：缓存命中率、响应时间、错误率，一键清空/预热
-
-## API 接口文档
-
-详细的 API 接口定义请参考 `src/types/api.ts` 文件，其中包含：
-
-- 完整的 TypeScript 类型定义
-- 所有接口的请求和响应格式
-- 参数和返回值的详细说明
-
-### 主要接口模块
-
-1. **认证接口** (`/blogger/login`)
-2. **文章管理** (`/articles`)
-3. **分类管理** (`/types`)
-4. **标签管理** (`/labels`)
-5. **评论管理** (`/comments`)
-6. **文件上传** (`/upload/image`)
-7. **网站配置** (`/settings`)
 
 ## 开发指南
 
 ### 环境要求
 
-- Node.js >= 18
-- npm 或 yarn
+- Node.js 20.19+（`^20.19.0 || >=22.12.0`）
 
 ### 安装依赖
 
@@ -144,116 +111,47 @@ npm install
 ### 开发环境运行
 
 ```bash
-npm run dev
+cp .env.example .env        # 配置 VITE_API_BASE（默认 http://localhost:3000/api/v1）
+npm run dev                 # http://localhost:5173
 ```
 
-### 构建生产版本
+> 开发环境 API 走 Vite 代理（相对路径 `/api/v1` → 后端）。手机通过局域网 IP 访问亦可正常请求。
+
+### 构建 / 校验 / 格式化
 
 ```bash
-npm run build
-```
-
-### 类型检查
-
-```bash
-npm run type-check
-```
-
-### 代码格式化
-
-```bash
-npm run format
+npm run build          # type-check + vite build → dist/
+npm run type-check     # vue-tsc --build
+npm run format         # prettier
 ```
 
 ## 后端适配说明
 
-前端项目已完全开发完毕，需要后端提供对应的 REST API 接口。接口规范如下：
-
-### 基础信息
-
-- **基础URL**: `http://localhost:3000/api/v1`
+- **基础 URL**: `http://localhost:3000/api/v1`（可通过 `VITE_API_BASE` 覆盖）
 - **认证方式**: Bearer Token (JWT)
-- **数据格式**: JSON
-- **文件上传**: multipart/form-data
-
-### 响应格式
+- **数据格式**: JSON；**文件上传**: multipart/form-data
+- **响应格式**:
 
 ```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {}
-}
+{ "code": 200, "message": "操作成功", "data": {} }
 ```
 
-### 权限控制
+- **权限控制**: 博主（所有操作）/ 访客（查看、评论）
+- **分页参数**: `page` / `pageSize`；**日期格式**: `YYYY-MM-DD HH:mm:ss`
+- **图片 URL**: 返回完整可访问 URL
 
-- 博主权限：所有操作
-- 访客权限：查看、评论
+### 主要接口模块
 
-### 数据库表结构
-
-项目使用了以下数据表：
-
-- `blogger` - 博主信息
-- `article` - 文章
-- `type` - 分类
-- `label` - 标签
-- `article_label` - 文章标签关联
-- `comment` - 评论
-- `setting` - 网站配置
-
-详细的建表语句请参考后端项目的数据库文件。
-
-## 注意事项
-
-1. **Token 管理**: 前端会在 localStorage 中存储 token，请确保后端正确验证 JWT
-2. **文件上传**: 支持图片上传，统一使用 `/upload/image` 接口
-3. **分页参数**: 统一使用 `page` 和 `pageSize`
-4. **日期格式**: 统一使用 `YYYY-MM-DD HH:mm:ss`
-5. **图片URL**: 返回完整的可访问URL
-6. **错误处理**: 后端错误时请返回相应的 `code` 和 `message`
+1. 认证 `/blogger/login` · 2. 文章 `/articles` · 3. 分类 `/types` · 4. 标签 `/labels` · 5. 评论 `/comments` · 6. 留言板 `/message-board` · 7. 表情 `/emoji` · 8. 友链 `/friend-links` · 9. 上传 `/upload/image` · 10. 配置 `/settings` · 11. 缓存 `/cache` · 12. 错误日志 `/error-log`
 
 ## 部署说明
 
-1. 构建生产版本：`npm run build`
-2. 将 `dist` 目录部署到 Web 服务器
-3. 配置反向代理，确保 API 请求正确转发到后端
-4. 设置正确的 `baseURL`（默认为 `http://localhost:3000/api/v1`）
+1. 构建生产版本：`npm run build`（产物在 `dist/`）
+2. 将 `dist/` 部署到 Web 服务器，配置反向代理，确保 API 请求正确转发到后端
+3. 设置正确的 `VITE_API_BASE`（Docker 场景可在构建参数注入）
+4. Docker 场景请参考仓库根目录 [docker-compose.yml](../../docker-compose.yml) 与 [DEPLOY.md](../../DEPLOY.md)
 
 ## 许可证
 
-MIT License
+MIT
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
