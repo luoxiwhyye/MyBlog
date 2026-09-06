@@ -141,6 +141,7 @@ public class UploadService {
             case "article-cover" -> "article/cover";
             case "article-content" -> "article/content";
             case "setting", "settings", "setting-image" -> "setting/image";
+            case "emoji" -> "emoji";
             default -> "article/content";
         };
     }

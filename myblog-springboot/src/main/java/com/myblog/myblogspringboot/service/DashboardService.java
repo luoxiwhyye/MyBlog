@@ -1,22 +1,30 @@
 package com.myblog.myblogspringboot.service;
 
-import com.myblog.myblogspringboot.repository.ArticleRepository;
-import com.myblog.myblogspringboot.repository.CommentRepository;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.myblog.myblogspringboot.repository.ArticleRepository;
+import com.myblog.myblogspringboot.repository.CommentRepository;
+import com.myblog.myblogspringboot.repository.MessageBoardRepository;
 
 @Service
 public class DashboardService {
 
     private final ArticleRepository articleRepository;
     private final CommentRepository commentRepository;
+    private final MessageBoardRepository messageBoardRepository;
 
-    public DashboardService(ArticleRepository articleRepository, CommentRepository commentRepository) {
+    public DashboardService(ArticleRepository articleRepository, CommentRepository commentRepository,
+                            MessageBoardRepository messageBoardRepository) {
         this.articleRepository = articleRepository;
         this.commentRepository = commentRepository;
+        this.messageBoardRepository = messageBoardRepository;
     }
 
     public Map<String, Object> getStats() {
@@ -38,6 +46,20 @@ public class DashboardService {
         stats.put("pendingComments", pendingComments);
 
         return stats;
+    }
+
+    /**
+     * 未读提醒统计（评论/留言待审核数）— 仅供后台侧边栏红点高频轮询
+     */
+    public Map<String, Object> getUnreadCounts() {
+        long comments = commentRepository.count(
+                (root, query, cb) -> cb.equal(root.get("status"), "pending"));
+        long messages = messageBoardRepository.countByStatus("pending");
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("comments", comments);
+        result.put("messages", messages);
+        return result;
     }
 
     public Map<String, Object> getCharts(int days, String scope) {

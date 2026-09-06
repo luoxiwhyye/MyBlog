@@ -1,11 +1,15 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.service.DashboardService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/dashboard")
@@ -29,5 +33,11 @@ public class DashboardController {
             @RequestParam(defaultValue = "published") String scope) {
         Map<String, Object> charts = dashboardService.getCharts(days, scope);
         return ResponseEntity.ok(ApiResponse.success(charts));
+    }
+
+    @GetMapping("/unread-counts")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUnreadCounts() {
+        Map<String, Object> counts = dashboardService.getUnreadCounts();
+        return ResponseEntity.ok(ApiResponse.success(counts));
     }
 }
