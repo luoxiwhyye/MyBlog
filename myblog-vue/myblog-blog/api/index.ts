@@ -1,6 +1,9 @@
 import request from "~/utils/request";
 import type {
   Article,
+  ArticleNav,
+  AdjacentArticles,
+  RelatedArticle,
   Category,
   Tag,
   Comment,
@@ -28,6 +31,12 @@ export const articleApi = {
 
   getDetail: (id: number): Promise<ApiResponse<Article>> =>
     request.get(`/articles/${id}`),
+
+  getAdjacent: (id: number): Promise<ApiResponse<AdjacentArticles>> =>
+    request.get(`/articles/${id}/adjacent`),
+
+  getRelated: (id: number): Promise<ApiResponse<RelatedArticle[]>> =>
+    request.get(`/articles/${id}/related`),
 };
 
 export const categoryApi = {

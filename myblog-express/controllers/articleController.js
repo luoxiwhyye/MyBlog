@@ -90,6 +90,33 @@ const getArticleById = async (req, res, next) => {
 };
 
 /**
+ * 获取上一篇 / 下一篇（公开，含草稿鉴权判断）
+ */
+const getArticleAdjacent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const data = await articleModel.getAdjacentArticles(id);
+    success(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 获取相关推荐（公开，按标签/分类聚合）
+ */
+const getArticleRelated = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 4, 1), 12);
+    const data = await articleModel.getRelatedArticles(id, limit);
+    success(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * 创建文章
  */
 const createArticle = async (req, res, next) => {
@@ -336,6 +363,8 @@ const getTrashArticles = async (req, res, next) => {
 module.exports = {
   getArticles,
   getArticleById,
+  getArticleAdjacent,
+  getArticleRelated,
   createArticle,
   updateArticle,
   batchUpdateStatus,

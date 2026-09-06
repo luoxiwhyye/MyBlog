@@ -84,6 +84,51 @@
           <div class="article-body" v-html="renderContent" :style="articleBodyStyle"></div>
         </article>
 
+        <!-- 上一篇 / 下一篇：按 id 排序取相邻，促内链留存与阅读连续性 -->
+        <nav class="article-pagination" aria-label="文章导航">
+          <NuxtLink
+            v-if="adjacent.prev"
+            :to="`/article/${adjacent.prev.id}`"
+            class="pagination-card pagination-prev"
+            :aria-label="'上一篇：' + adjacent.prev.title"
+          >
+            <span class="pagination-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+              上一篇
+            </span>
+            <span class="pagination-title">{{ adjacent.prev.title }}</span>
+            <time class="pagination-date">{{ formatDate(adjacent.prev.createdAt) }}</time>
+          </NuxtLink>
+          <span v-else class="pagination-card pagination-disabled pagination-prev">
+            <span class="pagination-label">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+              上一篇
+            </span>
+            <span class="pagination-title">已是第一篇</span>
+          </span>
+
+          <NuxtLink
+            v-if="adjacent.next"
+            :to="`/article/${adjacent.next.id}`"
+            class="pagination-card pagination-next"
+            :aria-label="'下一篇：' + adjacent.next.title"
+          >
+            <span class="pagination-label">
+              下一篇
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </span>
+            <span class="pagination-title">{{ adjacent.next.title }}</span>
+            <time class="pagination-date">{{ formatDate(adjacent.next.createdAt) }}</time>
+          </NuxtLink>
+          <span v-else class="pagination-card pagination-disabled pagination-next">
+            <span class="pagination-label">
+              下一篇
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </span>
+            <span class="pagination-title">已是最后一篇</span>
+          </span>
+        </nav>
+
         <section v-if="relatedArticles.length" class="related-articles">
           <div class="related-header">
             <h3 class="related-title">相关文章</h3>
@@ -105,10 +150,10 @@
                   loading="lazy"
                   decoding="async"
                 />
-                <div v-else class="related-cover-fallback">{{ item.type.typeName }}</div>
+                <div v-else class="related-cover-fallback">{{ item.type?.typeName || "文章" }}</div>
               </div>
               <div class="related-info">
-                <span class="related-cat">{{ item.type.typeName }}</span>
+                <span class="related-cat">{{ item.type?.typeName || "" }}</span>
                 <h4 class="related-item-title">{{ item.title }}</h4>
                 <time class="related-date">{{ formatDate(item.createdAt) }}</time>
               </div>
@@ -304,6 +349,7 @@ import { buildSrcSet, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain, renderArticleContent } from "~/utils/markdown";
 
 const route = useRoute();
+const runtimeConfig = useRuntimeConfig();
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
 
@@ -442,20 +488,15 @@ const { data: article, pending: articlePending } = await useAsyncData(
   },
 );
 
-// 相关文章推荐：同分类 + 排除当前文章（客户端再过滤，前端无需扩展 API）
+// 相关推荐：后端按 共享标签 + 同分类 聚合评分（标签权重高、分类次之）
 const { data: relatedArticles } = await useAsyncData(
   () => `related-${articleId.value}`,
   async () => {
     const current = article.value;
     if (!current) return [];
     try {
-      const res = await articleApi.getList({
-        page: 1,
-        pageSize: 5,
-        status: "published",
-        typeId: current.type.id,
-      });
-      return (res.data.list || [])
+      const res = await articleApi.getRelated(articleId.value);
+      return (res.data || [])
         .filter((a) => a.id !== current.id)
         .slice(0, 4);
     } catch {
@@ -463,6 +504,21 @@ const { data: relatedArticles } = await useAsyncData(
     }
   },
   { watch: [article], default: () => [] },
+);
+
+// 上一篇 / 下一篇：按 id 排序取相邻（prev=小 id，next=大 id）
+const { data: adjacent } = await useAsyncData(
+  () => `adjacent-${articleId.value}`,
+  async () => {
+    if (!articleId.value) return { prev: null, next: null };
+    try {
+      const res = await articleApi.getAdjacent(articleId.value);
+      return res.data;
+    } catch {
+      return { prev: null, next: null };
+    }
+  },
+  { watch: [articleId], default: () => ({ prev: null, next: null }) },
 );
 
 const { data: commentPage, refresh: refreshComments } = await useAsyncData(
@@ -806,6 +862,20 @@ useBreadcrumbJsonLd([
     : []),
   ...(article.value ? [{ name: article.value.title, url: `/article/${article.value.id}` }] : []),
 ]);
+
+// 上一篇 / 下一篇 SEO 内链（<link rel="prev"> / <link rel="next">），利于搜索引擎连续抓取与内链留存
+useHead(() => {
+  if (!article.value) return { link: [] };
+  const links: Array<{ rel: "prev" | "next"; href: string }> = [];
+  const siteUrl = runtimeConfig.public.siteUrl || "http://localhost:3001";
+  if (adjacent.value?.prev) {
+    links.push({ rel: "prev", href: `${siteUrl}/article/${adjacent.value.prev.id}` });
+  }
+  if (adjacent.value?.next) {
+    links.push({ rel: "next", href: `${siteUrl}/article/${adjacent.value.next.id}` });
+  }
+  return { link: links };
+});
 </script>
 
 <style lang="scss" scoped>
@@ -1019,6 +1089,107 @@ useBreadcrumbJsonLd([
 
   .related-date {
     font-size: clamp(11px, 3vw, 12px);
+  }
+}
+
+/* ===== 上一篇 / 下一篇 ===== */
+.article-pagination {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-4;
+  margin-top: $spacing-8;
+}
+
+.pagination-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: $spacing-4 $spacing-5;
+  border-radius: $border-radius-md;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  text-decoration: none;
+  min-width: 0;
+  transition:
+    background-color $transition-fast,
+    border-color $transition-fast,
+    box-shadow var(--transition-bounce),
+    transform var(--transition-bounce);
+}
+
+.pagination-card:hover {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+}
+
+.pagination-prev {
+  text-align: left;
+}
+
+.pagination-next {
+  text-align: right;
+}
+
+.pagination-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-accent);
+  font-size: $font-size-xs;
+  font-weight: 600;
+}
+
+.pagination-next .pagination-label {
+  justify-content: flex-end;
+}
+
+.pagination-title {
+  color: var(--text-primary);
+  font-size: $font-size-base;
+  font-weight: 500;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.pagination-date {
+  color: var(--text-muted);
+  font-size: $font-size-xs;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-disabled {
+  background: var(--bg-hover);
+  border-style: dashed;
+  pointer-events: none;
+}
+
+.pagination-disabled .pagination-title {
+  color: var(--text-muted);
+}
+
+.pagination-disabled .pagination-label {
+  color: var(--text-muted);
+}
+
+/* 真机（≤480px）：单列堆叠，保证可读性 */
+@media (max-width: 480px) {
+  .article-pagination {
+    grid-template-columns: 1fr;
+    gap: clamp(8px, 2vw, 12px);
+  }
+
+  .pagination-card {
+    padding: clamp(10px, 3vw, 16px);
+  }
+
+  .pagination-title {
+    font-size: clamp(14px, 4vw, 15px);
   }
 }
 

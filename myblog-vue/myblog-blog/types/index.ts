@@ -14,6 +14,25 @@ export interface Article {
   updatedAt?: string;
 }
 
+/** 文章导航（上一篇/下一篇 / 相关推荐）轻量结构 */
+export interface ArticleNav {
+  id: number;
+  title: string;
+  summary?: string;
+  coverImage?: string;
+  viewCount?: number;
+  createdAt: string;
+  type: Category | null;
+}
+
+export interface AdjacentArticles {
+  prev: ArticleNav | null;
+  next: ArticleNav | null;
+}
+
+/** 相关推荐列表项 */
+export type RelatedArticle = ArticleNav;
+
 export interface Category {
   id: number;
   typeName: string;

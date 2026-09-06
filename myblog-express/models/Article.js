@@ -379,10 +379,116 @@ const getArticlesByIds = async (ids) => {
   return ids.map((id) => rowMap.get(id)).filter(Boolean);
 };
 
+/**
+ * 上一篇 / 下一篇（按 id 排序取相邻已发布文章）
+ * prev：小于当前 id 的最近一篇；next：大于当前 id 的最近一篇
+ */
+const getAdjacentArticles = async (id) => {
+  const selectBase = `
+    SELECT a.id, a.title, a.summary, a.cover_image, a.created_at,
+           t.id AS type_id, t.type_name
+    FROM article a
+    LEFT JOIN \`type\` t ON a.type_id = t.id
+    WHERE a.deleted_at IS NULL AND a.status = 'published'
+  `;
+  const [prevRows] = await pool.query(
+    `${selectBase} AND a.id < ? ORDER BY a.id DESC LIMIT 1`,
+    [id],
+  );
+  const [nextRows] = await pool.query(
+    `${selectBase} AND a.id > ? ORDER BY a.id ASC LIMIT 1`,
+    [id],
+  );
+
+  const formatNav = (row) =>
+    row
+      ? {
+          id: row.id,
+          title: row.title,
+          summary: row.summary,
+          coverImage: row.cover_image,
+          createdAt: row.created_at,
+          type: row.type_id
+            ? { id: row.type_id, typeName: row.type_name }
+            : null,
+        }
+      : null;
+
+  return {
+    prev: formatNav(prevRows[0]),
+    next: formatNav(nextRows[0]),
+  };
+};
+
+/**
+ * 相关推荐：按 共享标签 + 同分类 聚合评分（标签权重 2、分类权重 1）取前 limit 篇
+ * LIMIT 使用已裁剪的整数字面量插值，避免 mysql2 对 LIMIT ? 预编译报错
+ */
+const getRelatedArticles = async (id, limit = 4) => {
+  const safeLimit = Math.min(Math.max(Number(limit) || 4, 1), 12);
+
+  const [currentRows] = await pool.query(
+    `SELECT a.type_id, GROUP_CONCAT(al.label_id) AS label_ids
+     FROM article a
+     LEFT JOIN article_label al ON a.id = al.article_id
+     WHERE a.id = ? AND a.deleted_at IS NULL
+     GROUP BY a.id`,
+    [id],
+  );
+  if (!currentRows.length) return [];
+
+  const current = currentRows[0];
+  const currentLabelIds = (current.label_ids || "")
+    .split(",")
+    .map((v) => parseInt(v, 10))
+    .filter((v) => Number.isInteger(v) && v > 0);
+
+  const labelPlaceholders = currentLabelIds.map(() => "?").join(",");
+  const labelScore = currentLabelIds.length
+    ? `SUM(CASE WHEN al.label_id IN (${labelPlaceholders}) THEN 1 ELSE 0 END)`
+    : "0";
+  const typeScore = current.type_id
+    ? "+ (CASE WHEN a.type_id = ? THEN 1 ELSE 0 END)"
+    : "";
+
+  // 占位符顺序：标签列表 → 分类 → 当前文章 id（与 params 顺序保持一致）
+  const params = [...currentLabelIds];
+  if (current.type_id) params.push(current.type_id);
+  params.push(id);
+
+  const [rows] = await pool.query(
+    `SELECT a.id, a.title, a.summary, a.cover_image, a.view_count, a.created_at,
+            t.id AS type_id, t.type_name,
+            (${labelScore} * 2 ${typeScore}) AS relevance_score
+     FROM article a
+     LEFT JOIN \`type\` t ON a.type_id = t.id
+     LEFT JOIN article_label al ON a.id = al.article_id
+     WHERE a.deleted_at IS NULL
+       AND a.status = 'published'
+       AND a.id != ?
+     GROUP BY a.id
+     ORDER BY relevance_score DESC, a.created_at DESC, a.id DESC
+     LIMIT ${safeLimit}`,
+    params,
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    summary: row.summary,
+    coverImage: row.cover_image,
+    viewCount: row.view_count,
+    createdAt: row.created_at,
+    type: row.type_id ? { id: row.type_id, typeName: row.type_name } : null,
+  }));
+};
+
 module.exports = {
   getArticles,
   getArticlesCount,
   getArticleById,
+  getAdjacentArticles,
+  getRelatedArticles,
   getArticlesByIds,
   createArticle,
   updateArticle,

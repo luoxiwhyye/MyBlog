@@ -30,6 +30,24 @@ router.get(
   articleController.getTrashArticles,
 );
 
+// 获取上一篇 / 下一篇（公开）
+router.get(
+  "/:id/adjacent",
+  auth.optionalAuth,
+  validateIntId,
+  handleValidationErrors,
+  articleController.getArticleAdjacent,
+);
+
+// 获取相关推荐（公开）
+router.get(
+  "/:id/related",
+  auth.optionalAuth,
+  validateIntId,
+  handleValidationErrors,
+  articleController.getArticleRelated,
+);
+
 // 获取文章详情（公开，但博主可看草稿）
 router.get(
   "/:id",

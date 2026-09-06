@@ -357,7 +357,10 @@ usePageSeo({
   padding: 10px;
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
-  border-radius: 999px;
+  /* 父容器是可换行(flex-wrap)的多行容器，若用 999px 全胶囊圆角，
+     左右两端会被拉成夸张胶囊、与内部多行子项错配割裂。
+     改用常规固定圆角(跟随设计令牌)，子项 .caps-pill 仍保持 999px 胶囊。 */
+  border-radius: var(--radius-card-lg);
   backdrop-filter: blur(var(--glass-blur));
 }
 
