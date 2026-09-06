@@ -81,10 +81,20 @@ const uploadLimiter = rateLimit({
   message: RATE_LIMIT_MESSAGE,
 });
 
+/** 前端错误上报限流（访客免登录，防止刷库） */
+const errorReportLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 分钟
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: RATE_LIMIT_MESSAGE,
+});
+
 module.exports = {
   apiLimiter,
   loginLimiter,
   commentLimiter,
   messageLimiter,
   uploadLimiter,
+  errorReportLimiter,
 };

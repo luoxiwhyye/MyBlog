@@ -52,6 +52,10 @@
             <el-icon><Star /></el-icon>
             <template #title>表情管理</template>
           </el-menu-item>
+          <el-menu-item index="/admin/error-log">
+            <el-icon><Warning /></el-icon>
+            <template #title>错误监控</template>
+          </el-menu-item>
         </el-menu-item-group>
 
         <el-menu-item-group title="链接">
@@ -153,6 +157,7 @@ import {
   ChatDotRound,
   Message,
   Star,
+  Warning,
   Odometer,
   User,
   Setting,
@@ -226,6 +231,7 @@ const routeTitles: Record<string, string> = {
   '/admin/comments': '评论管理',
   '/admin/message-board': '留言管理',
   '/admin/emoji': '表情管理',
+  '/admin/error-log': '错误监控',
   '/admin/cache': '运维监控',
   '/admin/profile': '个人资料',
   '/admin/settings': '系统设置',

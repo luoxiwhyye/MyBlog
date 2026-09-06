@@ -545,3 +545,32 @@ export const metrics = {
     return request.get('/metrics')
   },
 }
+
+// 前端错误监控日志（管理员查看/清空）
+export const errorLog = {
+  getList: (params?: {
+    page?: number
+    pageSize?: number
+    type?: string
+  }): Promise<
+    ApiResponse<
+      PaginatedResponse<{
+        id: number
+        title: string
+        message: string
+        source: string
+        line: number | null
+        col: number | null
+        url: string
+        component: string
+        ua: string
+        occurredAt: string
+      }>
+    >
+  > => {
+    return request.get('/error-log', { params })
+  },
+  clear: (): Promise<ApiResponse<{ affected: number }>> => {
+    return request.delete('/error-log')
+  },
+}

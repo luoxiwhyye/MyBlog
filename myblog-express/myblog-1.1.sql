@@ -230,6 +230,26 @@ CREATE TABLE `emoji`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '表情库（支持文本/图片表情）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for client_error_log
+-- ----------------------------
+DROP TABLE IF EXISTS `client_error_log`;
+CREATE TABLE `client_error_log`  (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志ID',
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '错误类型（VueError/window:error等）',
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '错误信息',
+  `source` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '出错文件/URL',
+  `line` int NULL DEFAULT NULL COMMENT '行号',
+  `col` int NULL DEFAULT NULL COMMENT '列号',
+  `url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '出错页面URL',
+  `component` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '触发组件/来源',
+  `ua` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT '' COMMENT '浏览器UA',
+  `occurred_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发生时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_error_log_occurred`(`occurred_at` ASC) USING BTREE,
+  INDEX `idx_error_log_title`(`title` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '前端错误监控上报' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Records of message_board
 -- ----------------------------
 

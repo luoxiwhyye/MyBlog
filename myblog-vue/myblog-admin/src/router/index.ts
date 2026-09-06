@@ -61,6 +61,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/EmojiManage.vue'),
       },
       {
+        path: 'error-log',
+        name: 'ErrorLogManage',
+        component: () => import('@/views/ErrorLogManage.vue'),
+      },
+      {
         path: 'cache',
         name: 'CacheManage',
         component: () => import('@/views/CacheManage.vue'),
