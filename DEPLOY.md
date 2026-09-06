@@ -271,27 +271,56 @@ docker compose exec mysql mysql -uroot -p
 docker compose exec redis redis-cli
 ```
 
-### 数据库操作
+### 数据库操作（备份 · 校验 · 恢复，完整闭环）
+
+推荐使用仓库内置脚本（会自动【备份 → 生成校验和 → 立即校验】闭环，杜绝坏备份）：
 
 ```bash
-# 备份数据库
-docker compose exec mysql mysqldump -uroot -p myblog > backup.sql
+# 进入 myblog-backup 容器（脚本已挂载，含 cron 定时任务）
+docker compose exec myblog-backup sh
 
-# 恢复数据库
-docker compose exec -T mysql mysql -uroot -p myblog < backup.sql
+# ▸ 手动备份（生成 .sql.gz + 同名 .sha256 校验和，并立即校验）
+bash /scripts/backup.sh
+
+# ▸ 只校验最近一次备份（不触发新备份）
+VERIFY_ONLY=1 bash /scripts/backup.sh
+
+# ▸ 校验任意备份文件 / 目录下全部备份
+bash /scripts/verify-backup.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+bash /scripts/verify-backup.sh
+
+# ▸ 恢复（会先校验 sha256 + gzip 完整性，通过才导入；需确认或 CONFIRM=1）
+bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+```
+
+> 备份目录挂载在 Docker 卷 `backup-data`，容器宿主机也可挂载到本地持久化目录。
+> 定时备份默认每天 `02:00` 触发（`BACKUP_CRON` 可在 `.env.docker` 覆盖），
+> 保留最近 `BACKUP_RETENTION_DAYS`（默认 14）天并自动清理。
+
+如需在宿主机直接执行（不使用容器）：
+
+```bash
+# 备份（宿主机需安装 mysqldump / gzip / sha256sum）
+DB_HOST=localhost DB_PORT=3307 DB_USER=root DB_PASSWORD=yourpass DB_NAME=myblog \
+  bash scripts/backup.sh
+
+# 恢复
+DB_HOST=localhost DB_PORT=3307 DB_USER=root DB_PASSWORD=yourpass DB_NAME=myblog \
+  CONFIRM=1 bash scripts/restore.sh ./backups/myblog_YYYYMMDD_HHMMSS.sql.gz
 ```
 
 ---
 
 ## 数据持久化
 
-Docker Compose 定义了 3 个命名数据卷，容器删除后数据不会丢失：
+Docker Compose 定义了 4 个命名数据卷，容器删除后数据不会丢失：
 
-| 数据卷         | 路径             | 说明                       |
-| -------------- | ---------------- | -------------------------- |
-| `mysql-data`   | MySQL 数据目录   | 文章、评论、用户等全部数据 |
-| `redis-data`   | Redis 持久化文件 | 缓存数据                   |
-| `uploads-data` | 上传文件目录     | 文章封面、头像、站点图片   |
+| 数据卷          | 路径             | 说明                                    |
+| --------------- | ---------------- | --------------------------------------- |
+| `mysql-data`    | MySQL 数据目录   | 文章、评论、用户等全部数据              |
+| `redis-data`    | Redis 持久化文件 | 缓存数据                                |
+| `uploads-data`  | 上传文件目录     | 文章封面、头像、站点图片                |
+| `backup-data`   | 数据库备份文件   | 定时备份生成的 `.sql.gz` + `.sha256` 校验和 |
 
 ```bash
 # 查看数据卷
@@ -344,7 +373,12 @@ server {
 - ✅ 修改 `.env.docker` 中所有默认密码和密钥
 - ✅ 使用 `openssl rand -hex 32` 生成强随机 JWT 密钥
 - ✅ 限制端口暴露：如果使用反向代理，可移除 `docker-compose.yml` 中 `myblog-blog` 和 `myblog-admin` 的 `ports` 映射
-- ✅ 定期备份数据库：设置 cron 定时执行 `mysqldump`
+- ✅ 定期备份数据库：使用仓库内置 `scripts/backup.sh`（备份后自动生成校验和并校验），
+  或启用 docker-compose 的 `myblog-backup` 服务（默认每天 02:00 自动备份）
+- ✅ 校验备份完整性：定期执行 `bash scripts/verify-backup.sh`，
+  确保备份未被静默损坏 / 传输错误
+- ✅ 恢复演练：定期用 `bash scripts/restore.sh` 在测试库恢复一次，
+  验证「备份可恢复」而非「只有备份文件」
 - ✅ 启用防火墙：仅开放 80/443 端口
 
 ### 3. 资源限制

@@ -238,6 +238,40 @@ services:
     networks:
       - myblog-net
 
+  # ==========================================
+  # 定时数据库备份（cron，每天 02:00 执行 backup.sh）
+  # ==========================================
+  myblog-backup:
+    build:
+      context: ./scripts
+      dockerfile: backup.Dockerfile
+    container_name: myblog-backup
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-myblog}
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      # cron 表达式（容器内 crond 解析），默认每天 02:00
+      BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+    volumes:
+      - backup-data:/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # 用 crond 前台模式，但通过 entrypoint 注入自定义 cron 表
+    entrypoint: >
+      /bin/sh -c "
+      echo \"$${BACKUP_CRON} /bin/bash /scripts/backup.sh >> /var/log/myblog-backup.log 2>&1\" > /etc/crontabs/root &&
+      crond -f -l 8
+      "
+    networks:
+      - myblog-net
+
 # ==========================================
 # 数据卷
 # ==========================================
@@ -249,6 +283,8 @@ volumes:
   meili-data:
     driver: local
   uploads-data:
+    driver: local
+  backup-data:
     driver: local
 
 # ==========================================
