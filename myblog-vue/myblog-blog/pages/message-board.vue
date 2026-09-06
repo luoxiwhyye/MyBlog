@@ -33,7 +33,15 @@
               <button :class="{ active: emojiTab === 'kaomoji' }" type="button" @click="emojiTab = 'kaomoji'">颜文字</button>
             </div>
             <div v-if="emojiTab === 'emoji'" class="emoji-grid">
-              <button v-for="emoji in emojiList" :key="emoji" type="button" class="emoji-item" @click="insertEmoji(emoji)">{{ emoji }}</button>
+              <button v-for="(emoji, ei) in emojiList" :key="`t${ei}`" type="button" class="emoji-item" @click="insertEmoji(emoji)">{{ emoji }}</button>
+              <button
+                v-for="(img, ii) in imageEmojiList"
+                :key="`i${ii}`"
+                type="button"
+                class="emoji-item emoji-item--image"
+                :title="'自定义图片表情'"
+                @click="insertEmoji(img)"
+              ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
             </div>
             <div v-else class="kaomoji-grid">
               <button v-for="kao in kaomojiList" :key="kao" type="button" class="kaomoji-item" @click="insertEmoji(kao)">{{ kao }}</button>
@@ -109,6 +117,7 @@ import { messageBoardApi } from "~/api";
 import type { MessageBoard, PaginatedResponse } from "~/types";
 import { formatDateTime } from "~/utils/format";
 import { getGravatarUrl } from "~/utils/gravatar";
+import { useEmoji } from "~/composables/useEmoji";
 
 usePageSeo({
   title: "留言板",
@@ -178,20 +187,11 @@ const submitted = ref(false);
 const emojiOpen = ref(false);
 const emojiTab = ref<"emoji" | "kaomoji">("emoji");
 
-const emojiList = [
-  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😋","😛","😜","🤪",
-  "😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
-  "👍","👎","👏","🙌","🤝","💪","👀","🧠","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💖","💗",
-  "🔥","⭐","✨","🎉","🎊","🙏","💯","✅","❌","❓","❗","💡","📌","🔗","💻","📱","🖥️","⌨️","🎵","🌈",
-  "🍀","🌻","🌙","☁️","🚀","🌊","🎈","🎁","🍰","☕","🐱","🐶","🦋","🌸","🌿","🍃","🎨","🎬","📚","✈️",
-];
-
-const kaomojiList = [
-  "(｡･ω･｡)","(◕‿◕)","(◠‿◠)","(≧◡≦)","(⌒‿⌒)","(＾▽＾)","(◍•ᴗ•◍)","(づ｡◕‿‿◕｡)づ",
-  "(╥_╥)","(╯︵╰,)","(╥﹏╥)","(个_个)","(¬_¬)","(ーー;)","(￣ω￣)","(＾～＾)",
-  "(╯°□°）╯︵ ┻━┻","┐(￣ヘ￣)┌","¯\\_(ツ)_/¯","( ´ ▽ ` )ﾉ","(☞ﾟヮﾟ)☞",
-  "( ͡° ͜ʖ ͡°)","(⌐■_■)","(＃￣0￣)","(˘▽˘)っ♨","(^_−)☆","(•̀ᴗ•́)و","ರ_ರ","(ᗒᗣᗕ)՞",
-];
+// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
+const { emojiList, kaomojiList, imageEmojiList, loadEmoji } = useEmoji();
+onMounted(() => {
+  void loadEmoji();
+});
 
 const insertEmoji = (text: string) => {
   form.content += text;
@@ -393,6 +393,22 @@ const handleSubmit = async () => {
   &:hover {
     background: var(--bg-hover);
   }
+}
+
+.emoji-item--image {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+}
+
+.emoji-item-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 3px;
 }
 
 .message-form-actions {

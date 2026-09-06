@@ -1,5 +1,6 @@
 const articleModel = require("../models/Article");
 const commentModel = require("../models/Comment");
+const messageBoardModel = require("../models/MessageBoard");
 const { success } = require("../utils/response");
 
 const padNumber = (num) => String(num).padStart(2, "0");
@@ -36,6 +37,23 @@ const getStats = async (req, res, next) => {
     );
 
     success(res, { totalArticles, totalComments, totalViews, pendingComments });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 未读提醒统计（评论/留言待审核数）
+ * 仅供后台侧边栏红点高频轮询使用，仅两个 COUNT，轻量无负担。
+ */
+const getUnreadCounts = async (req, res, next) => {
+  try {
+    const [comments, messages] = await Promise.all([
+      commentModel.getCommentsCount({ status: "pending" }, true),
+      messageBoardModel.countPending(),
+    ]);
+
+    success(res, { comments, messages });
   } catch (err) {
     next(err);
   }
@@ -81,4 +99,5 @@ const getCharts = async (req, res, next) => {
 module.exports = {
   getStats,
   getCharts,
+  getUnreadCounts,
 };

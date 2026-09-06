@@ -36,11 +36,21 @@
           </el-menu-item>
           <el-menu-item index="/admin/comments">
             <el-icon><ChatDotRound /></el-icon>
-            <template #title>评论管理</template>
+            <template #title>
+              评论管理
+              <span v-if="unread.comments > 0" class="unread-badge" :title="`${unread.comments} 条待审核评论`">{{ unread.comments > 99 ? '99+' : unread.comments }}</span>
+            </template>
           </el-menu-item>
           <el-menu-item index="/admin/message-board">
             <el-icon><Message /></el-icon>
-            <template #title>留言管理</template>
+            <template #title>
+              留言管理
+              <span v-if="unread.messages > 0" class="unread-badge" :title="`${unread.messages} 条待审核留言`">{{ unread.messages > 99 ? '99+' : unread.messages }}</span>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="/admin/emoji">
+            <el-icon><Star /></el-icon>
+            <template #title>表情管理</template>
           </el-menu-item>
         </el-menu-item-group>
 
@@ -132,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   HomeFilled,
@@ -142,6 +152,7 @@ import {
   Link,
   ChatDotRound,
   Message,
+  Star,
   Odometer,
   User,
   Setting,
@@ -153,6 +164,7 @@ import { useUserStore } from '@/stores/user'
 import { useSettingsStore } from '@/stores/settings'
 import { useThemeStore } from '@/stores/theme'
 import { ElMessageBox } from 'element-plus'
+import { dashboard } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -164,6 +176,46 @@ const isCollapse = ref(false)
 const siteName = computed(() => settingsStore.getSetting('site_name') || 'MyBlog')
 const siteLogo = computed(() => settingsStore.getSetting('site_logo'))
 
+// ===== 未读提醒（评论 / 留言待审核红点）=====
+const unread = ref<{ comments: number; messages: number }>({ comments: 0, messages: 0 })
+let unreadTimer: number | null = null
+
+const fetchUnread = async () => {
+  // 未登录时不请求
+  if (!userStore.token) {
+    return
+  }
+  try {
+    const res = await dashboard.getUnreadCounts()
+    if (res.code === 200) {
+      unread.value = {
+        comments: res.data.comments,
+        messages: res.data.messages,
+      }
+    }
+  } catch {
+    // 静默失败，下次轮询重试
+  }
+}
+
+const startUnreadPolling = () => {
+  void fetchUnread()
+  unreadTimer = window.setInterval(fetchUnread, 60000)
+}
+
+// 进入评论/留言管理页后清除对应红点（表示已读）
+const clearUnreadOnVisit = () => {
+  if (route.path.startsWith('/admin/comments')) {
+    if (unread.value.comments > 0) {
+      unread.value.comments = 0
+    }
+  } else if (route.path.startsWith('/admin/message-board')) {
+    if (unread.value.messages > 0) {
+      unread.value.messages = 0
+    }
+  }
+}
+
 const routeTitles: Record<string, string> = {
   '/admin/dashboard': '仪表盘',
   '/admin/articles': '文章管理',
@@ -173,6 +225,7 @@ const routeTitles: Record<string, string> = {
   '/admin/friend-links': '友链管理',
   '/admin/comments': '评论管理',
   '/admin/message-board': '留言管理',
+  '/admin/emoji': '表情管理',
   '/admin/cache': '运维监控',
   '/admin/profile': '个人资料',
   '/admin/settings': '系统设置',
@@ -210,7 +263,25 @@ onMounted(() => {
   if (!settingsStore.settings.site_name && !settingsStore.settings.site_logo) {
     settingsStore.fetchSettings()
   }
+  // 未读提醒：启动轮询 + 进入评论/留言页时清除红点
+  startUnreadPolling()
+  clearUnreadOnVisit()
 })
+
+onBeforeUnmount(() => {
+  if (unreadTimer) {
+    window.clearInterval(unreadTimer)
+    unreadTimer = null
+  }
+})
+
+// 路由变化时：非评论/留言页恢复红点轮询；进入评论/留言页清除对应红点
+watch(
+  () => route.path,
+  () => {
+    clearUnreadOnVisit()
+  },
+)
 </script>
 
 <style lang="scss" scoped>
@@ -299,6 +370,24 @@ onMounted(() => {
 .sidebar-menu :deep(.el-menu-item.is-active) {
   background: var(--color-accent-light);
   color: var(--color-accent);
+}
+
+/* 未读红点徽标（评论/留言待审核） */
+.unread-badge {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--el-color-danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .header {

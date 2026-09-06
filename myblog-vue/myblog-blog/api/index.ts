@@ -98,6 +98,18 @@ export const messageBoardApi = {
     request.post("/message-board", data),
 };
 
+export interface EmojiItem {
+  id: number;
+  content: string;
+  type: "emoji" | "kaomoji";
+  isCustom: number;
+}
+
+export const emojiApi = {
+  getEnabled: (): Promise<ApiResponse<EmojiItem[]>> =>
+    request.get("/emoji/enabled"),
+};
+
 export const settingsApi = {
   getAll: (): Promise<ApiResponse<Settings>> => request.get("/settings"),
 };

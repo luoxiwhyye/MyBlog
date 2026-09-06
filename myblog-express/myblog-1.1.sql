@@ -214,6 +214,22 @@ CREATE TABLE `message_board`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '留言板（访客免登录，单层留言）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for emoji
+-- ----------------------------
+DROP TABLE IF EXISTS `emoji`;
+CREATE TABLE `emoji`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '表情ID',
+  `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '表情内容（文本或图片URL）',
+  `type` enum('emoji','kaomoji') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'emoji' COMMENT '类型：emoji/颜文字',
+  `is_custom` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否博主自定义（0=内置，1=自定义）',
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_emoji_enabled`(`enabled` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '表情库（支持文本/图片表情）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Records of message_board
 -- ----------------------------
 

@@ -16,6 +16,7 @@ const SCENE_DIR_MAP = {
   setting: ["setting", "image"],
   settings: ["setting", "image"],
   "setting-image": ["setting", "image"],
+  emoji: ["emoji"],
 };
 
 const ensureDirExists = (dirPath) => {
@@ -55,6 +56,7 @@ const REQUIRED_SCENES_FOR_UPLOAD_API = [
   "article-cover",
   "article-content",
   "setting-image",
+  "emoji",
 ];
 
 const isUploadImageApi = (req) => {

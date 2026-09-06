@@ -71,12 +71,20 @@
               </div>
               <div v-if="replyEmojiTab === 'emoji'" class="emoji-grid">
                 <button
-                  v-for="emoji in replyEmojiList"
-                  :key="emoji"
+                  v-for="(emoji, ei) in replyEmojiList"
+                  :key="`t${ei}`"
                   type="button"
                   class="emoji-item"
                   @click="insertReplyEmoji(emoji)"
                 >{{ emoji }}</button>
+                <button
+                  v-for="(img, ii) in replyImageEmojiList"
+                  :key="`i${ii}`"
+                  type="button"
+                  class="emoji-item emoji-item--image"
+                  :title="'自定义图片表情'"
+                  @click="insertReplyEmoji(img)"
+                ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
               </div>
               <div v-else class="kaomoji-grid">
                 <button
@@ -115,6 +123,7 @@ import { ElMessage } from "element-plus";
 import { commentApi } from "~/api";
 import type { Comment } from "~/types";
 import { formatDateTime } from "~/utils/format";
+import { useEmoji } from "~/composables/useEmoji";
 import { getGravatarUrl } from "~/utils/gravatar";
 
 defineOptions({
@@ -136,19 +145,11 @@ const likeCount = ref(props.comment.likeCount);
 const replyEmojiOpen = ref(false);
 const replyEmojiTab = ref<"emoji" | "kaomoji">("emoji");
 
-const replyEmojiList = [
-  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😋","😛","😜","🤪",
-  "😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
-  "👍","👎","👏","🙌","🤝","💪","👀","🧠","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💖","💗",
-  "🔥","⭐","✨","🎉","🎊","🙏","💯","✅","❌","❓","❗","💡","📌","🔗","💻","📱","🖥️","⌨️","🎵","🌈",
-];
-
-const replyKaomojiList = [
-  "(｡･ω･｡)","(◕‿◕)","(◠‿◠)","(≧◡≦)","(⌒‿⌒)","(＾▽＾)","(◍•ᴗ•◍)","(づ｡◕‿‿◕｡)づ",
-  "(╥_╥)","(╯︵╰,)","(╥﹏╥)","(个_个)","(¬_¬)","(ーー;)","(￣ω￣)","(＾～＾)",
-  "(╯°□°）╯︵ ┻━┻","┐(￣ヘ￣)┌","¯\\_(ツ)_/¯","( ´ ▽ ` )ﾉ","(☞ﾟヮﾟ)☞",
-  "( ͡° ͜ʖ ͡°)","(⌐■_■)","(＃￣0￣)","(˘▽˘)っ♨","(^_−)☆","(•̀ᴗ•́)و","ರ_ರ","(ᗒᗣᗕ)՞",
-];
+// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
+const { emojiList: replyEmojiList, kaomojiList: replyKaomojiList, imageEmojiList: replyImageEmojiList, loadEmoji } = useEmoji();
+onMounted(() => {
+  void loadEmoji();
+});
 
 const insertReplyEmoji = (text: string) => {
   replyForm.content += text;
@@ -478,6 +479,22 @@ const handleReplySubmitted = () => {
 
 .emoji-item:hover {
   background: var(--bg-hover);
+}
+
+.emoji-item--image {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+}
+
+.emoji-item-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 3px;
 }
 
 .kaomoji-grid {

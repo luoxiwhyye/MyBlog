@@ -10,6 +10,7 @@ import type {
   ToolOptionValues,
   ToolProcessPayload,
   ToolProcessResult,
+  ToolResultDetails,
   ToolState,
 } from "~/types/tool";
 import { processTool } from "~/utils/tools/processor";
@@ -53,6 +54,22 @@ const supportsRequestIdleCallback = () => {
 
 const getPersistKey = (tool: ToolMeta) =>
   `myblog:tool:${tool.category}:${tool.id}`;
+
+// 历史快照存储 key（独立于输入持久化，可回退到之前的处理结果）
+const getHistoryKey = (tool: ToolMeta) =>
+  `myblog:tool:history:${tool.category}:${tool.id}`;
+
+// 历史快照上限
+const HISTORY_LIMIT = 10;
+
+// 保存一次处理结果的快照
+export interface ToolHistorySnapshot {
+  ts: number;
+  output: string;
+  details: ToolResultDetails | null;
+  inputs: ToolInputValues;
+  options: ToolOptionValues;
+}
 
 const ensureWorker = () => {
   if (!import.meta.client || typeof Worker === "undefined") {
@@ -187,6 +204,92 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
 
   const hasOutput = computed(() => Boolean(state.output || state.details));
 
+  /* ===== 历史快照（结果回退） ===== */
+  const history = ref<ToolHistorySnapshot[]>([]);
+  const historyIndex = ref(-1); // 当前指向的快照下标（-1 表示实时结果，未在历史中）
+
+  const loadHistory = () => {
+    if (!import.meta.client) {
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(getHistoryKey(tool));
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw) as ToolHistorySnapshot[];
+      if (Array.isArray(parsed)) {
+        history.value = parsed.slice(0, HISTORY_LIMIT);
+      }
+    } catch {
+      localStorage.removeItem(getHistoryKey(tool));
+    }
+  };
+
+  const saveHistory = () => {
+    if (!import.meta.client) {
+      return;
+    }
+    localStorage.setItem(getHistoryKey(tool), JSON.stringify(history.value));
+  };
+
+  // 在每次成功生成输出时记录快照（去重：内容相同、或即将被回退覆盖时不重复记）
+  const pushSnapshot = () => {
+    if (!import.meta.client) {
+      return;
+    }
+    const snapshot: ToolHistorySnapshot = {
+      ts: Date.now(),
+      output: state.output,
+      details: state.details,
+      inputs: { ...inputs.value },
+      options: { ...state.options },
+    };
+
+    // 与最新快照内容相同则跳过
+    const last = history.value[history.value.length - 1];
+    if (
+      last &&
+      last.output === snapshot.output &&
+      JSON.stringify(last.options) === JSON.stringify(snapshot.options)
+    ) {
+      return;
+    }
+
+    history.value.push(snapshot);
+    historyIndex.value = history.value.length - 1;
+    if (history.value.length > HISTORY_LIMIT) {
+      history.value.shift();
+      historyIndex.value = history.value.length - 1;
+    }
+    saveHistory();
+  };
+
+  // 回退到某条历史快照（index 为 history 数组下标）
+  const restoreSnapshot = (index: number) => {
+    const snapshot = history.value[index];
+    if (!snapshot) {
+      return;
+    }
+    inputs.value = { ...snapshot.inputs };
+    state.options = { ...snapshot.options };
+    state.output = snapshot.output;
+    state.details = snapshot.details;
+    state.error = null;
+    syncInputSnapshot();
+    historyIndex.value = index;
+    persistState();
+  };
+
+  // 清空历史
+  const clearHistory = () => {
+    history.value = [];
+    historyIndex.value = -1;
+    if (import.meta.client) {
+      localStorage.removeItem(getHistoryKey(tool));
+    }
+  };
+
   const syncInputSnapshot = () => {
     state.input = inputs.value[primaryInputKey] ?? "";
     state.extraInputs = Object.fromEntries(
@@ -310,6 +413,7 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
         output: result.output.substring(0, 100),
         details: JSON.stringify(result.details).substring(0, 200),
       });
+      pushSnapshot();
       options.onProcess?.(result);
     } catch (error) {
       if (currentRunId !== latestRunId) {
@@ -500,6 +604,7 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
       hasStored: hadStoredState,
     });
     ensureWorker();
+    loadHistory();
     hydrateFromStorage();
     if (
       !hadStoredState &&
@@ -538,5 +643,10 @@ export const useTool = (tool: ToolMeta, options: UseToolOptions = {}) => {
     copyToClipboard,
     exportResult,
     saveToCloud,
+    // 历史快照
+    history,
+    historyIndex,
+    restoreSnapshot,
+    clearHistory,
   };
 };

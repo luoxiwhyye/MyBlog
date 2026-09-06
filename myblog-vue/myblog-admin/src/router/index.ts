@@ -56,6 +56,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/MessageBoardManage.vue'),
       },
       {
+        path: 'emoji',
+        name: 'EmojiManage',
+        component: () => import('@/views/EmojiManage.vue'),
+      },
+      {
         path: 'cache',
         name: 'CacheManage',
         component: () => import('@/views/CacheManage.vue'),

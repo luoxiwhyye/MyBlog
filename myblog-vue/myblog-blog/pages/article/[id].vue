@@ -200,12 +200,20 @@
                   </div>
                   <div v-if="emojiTab === 'emoji'" class="emoji-grid">
                     <button
-                      v-for="emoji in emojiList"
-                      :key="emoji"
+                      v-for="(emoji, ei) in emojiList"
+                      :key="`t${ei}`"
                       type="button"
                       class="emoji-item"
                       @click="insertEmoji(emoji)"
                     >{{ emoji }}</button>
+                    <button
+                      v-for="(img, ii) in imageEmojiList"
+                      :key="`i${ii}`"
+                      type="button"
+                      class="emoji-item emoji-item--image"
+                      :title="'自定义图片表情'"
+                      @click="insertEmoji(img)"
+                    ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
                   </div>
                   <div v-else class="kaomoji-grid">
                     <button
@@ -347,6 +355,7 @@ import { formatDate, formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
 import { buildSrcSet, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain, renderArticleContent } from "~/utils/markdown";
+import { useEmoji } from "~/composables/useEmoji";
 
 const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
@@ -386,19 +395,11 @@ const emojiTab = ref<"emoji" | "kaomoji">("emoji");
 const commentTextareaRef = ref<any>(null);
 const tocItems = ref<Array<{ id: string; text: string; level: number }>>([]);
 
-const emojiList = [
-  "😀","😃","😄","😁","😅","😂","🤣","😊","😇","🙂","😉","😌","😍","🥰","😘","😗","😋","😛","😜","🤪",
-  "😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
-  "👍","👎","👏","🙌","🤝","💪","👀","🧠","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💖","💗",
-  "🔥","⭐","✨","🎉","🎊","🙏","💯","✅","❌","❓","❗","💡","📌","🔗","💻","📱","🖥️","⌨️","🎵","🌈",
-];
-
-const kaomojiList = [
-  "(｡･ω･｡)","(◕‿◕)","(◠‿◠)","(≧◡≦)","(⌒‿⌒)","(＾▽＾)","(◍•ᴗ•◍)","(づ｡◕‿‿◕｡)づ",
-  "(╥_╥)","(╯︵╰,)","(╥﹏╥)","(个_个)","(¬_¬)","(ーー;)","(￣ω￣)","(＾～＾)",
-  "(╯°□°）╯︵ ┻━┻","┐(￣ヘ￣)┌","¯\\_(ツ)_/¯","( ´ ▽ ` )ﾉ","(☞ﾟヮﾟ)☞",
-  "( ͡° ͜ʖ ͡°)","(⌐■_■)","(＃￣0￣)","(˘▽˘)っ♨","(^_−)☆","(•̀ᴗ•́)و","ರ_ರ","(ᗒᗣᗕ)՞",
-];
+// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
+const { emojiList, kaomojiList, imageEmojiList, loadEmoji } = useEmoji();
+onMounted(() => {
+  void loadEmoji();
+});
 
 const insertEmoji = (text: string) => {
   commentForm.value.content += text;
@@ -1175,6 +1176,23 @@ useHead(() => {
 
 .pagination-disabled .pagination-label {
   color: var(--text-muted);
+}
+
+/* 自定义图片表情（评论区 emoji-picker） */
+.emoji-item--image {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 2px;
+}
+
+.emoji-item-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 3px;
 }
 
 /* 真机（≤480px）：单列堆叠，保证可读性 */

@@ -400,7 +400,12 @@ export const friendLink = {
 export const upload = {
   image: (
     file: File,
-    scene: 'avatar' | 'article-cover' | 'article-content' | 'setting-image' = 'article-content',
+    scene:
+      | 'avatar'
+      | 'article-cover'
+      | 'article-content'
+      | 'setting-image'
+      | 'emoji' = 'article-content',
     options?: { settingKey?: string },
   ): Promise<ApiResponse<{ url: string }>> => {
     const formData = new FormData()
@@ -412,6 +417,59 @@ export const upload = {
     return request.post('/upload/image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+  },
+}
+
+// 表情管理（管理员 CRUD + 公开 enabled 列表）
+export const emoji = {
+  getList: (params?: {
+    page?: number
+    pageSize?: number
+    type?: string
+    enabled?: boolean
+  }): Promise<
+    ApiResponse<
+      PaginatedResponse<{
+        id: number
+        content: string
+        type: 'emoji' | 'kaomoji'
+        isCustom: number
+        enabled: number
+        sortOrder: number
+        createdAt: string
+      }>
+    >
+  > => {
+    return request.get('/emoji', { params })
+  },
+  getEnabled: (): Promise<
+    ApiResponse<Array<{ id: number; content: string; type: 'emoji' | 'kaomoji'; isCustom: number }>>
+  > => {
+    return request.get('/emoji/enabled')
+  },
+  create: (data: {
+    content: string
+    type?: 'emoji' | 'kaomoji'
+    isCustom?: boolean
+    enabled?: boolean
+    sortOrder?: number
+  }): Promise<ApiResponse<{ id: number }>> => {
+    return request.post('/emoji', data)
+  },
+  update: (
+    id: number,
+    data: {
+      content?: string
+      type?: 'emoji' | 'kaomoji'
+      isCustom?: boolean
+      enabled?: boolean
+      sortOrder?: number
+    },
+  ): Promise<ApiResponse> => {
+    return request.put(`/emoji/${id}`, data)
+  },
+  delete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/emoji/${id}`)
   },
 }
 
@@ -438,6 +496,9 @@ export const dashboard = {
     }>
   > => {
     return request.get('/dashboard/charts', { params })
+  },
+  getUnreadCounts: (): Promise<ApiResponse<{ comments: number; messages: number }>> => {
+    return request.get('/dashboard/unread-counts')
   },
 }
 

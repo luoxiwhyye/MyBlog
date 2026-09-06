@@ -2,7 +2,9 @@
   <section class="tool-panel">
     <div class="panel-header">
       <h2>控制台</h2>
-      <span class="shortcut-tip">Ctrl / Cmd + K 快速切换工具</span>
+      <span class="shortcut-tip">
+        Ctrl / Cmd + K 切换工具 · Ctrl / Cmd + Enter 运行 · Ctrl / Cmd + Shift + E 导出
+      </span>
     </div>
 
     <div v-if="props.tool.options.length" class="option-list">
@@ -177,6 +179,14 @@ const getNumberStep = (option: ToolOptionDefinition) => {
 .shortcut-tip {
   color: var(--text-muted);
   font-size: 13px;
+  text-align: right;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .shortcut-tip {
+    font-size: 12px;
+  }
 }
 
 .option-list {
