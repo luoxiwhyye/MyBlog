@@ -52,6 +52,13 @@
     <div v-if="pending" class="message-loading">
       <el-skeleton animated :rows="4" />
     </div>
+    <AppError
+      v-else-if="loadError"
+      :title="t('error.loadTitle')"
+      :description="t('error.loadDesc')"
+      :retry-text="t('error.retry')"
+      @retry="retryLoad"
+    />
     <EmptyState
       v-else-if="messages.length === 0"
       :message="t('messageBoard.title')"
@@ -119,20 +126,18 @@ const emptyPage = (): PaginatedResponse<MessageBoard> => ({
   pageSize: PAGE_SIZE,
 });
 
-const { data, pending, refresh } = await useAsyncData(
+const { data, pending, error: listError, refresh } = await useAsyncData(
   "message-board",
-  async () => {
-    try {
-      const res = await messageBoardApi.getList({ page: 1, pageSize: PAGE_SIZE });
-      return res.data;
-    } catch {
-      return emptyPage();
-    }
-  },
+  () =>
+    messageBoardApi
+      .getList({ page: 1, pageSize: PAGE_SIZE })
+      .then((res) => res.data),
   { default: emptyPage },
 );
 
 const messages = computed(() => data.value.list || []);
+const loadError = computed(() => !!listError.value);
+const retryLoad = () => refresh();
 const hasMore = computed(() => data.value.list.length < data.value.total);
 const loadingMore = ref(false);
 

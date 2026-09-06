@@ -75,6 +75,11 @@ export const zh = {
       tags: "标签",
     },
   },
+  error: {
+    loadTitle: "加载失败",
+    loadDesc: "数据加载出现异常，请稍后重试。",
+    retry: "重试",
+  },
   article: {
     loading: "加载中...",
     notFound: "文章不存在",
@@ -215,6 +220,11 @@ export const en: typeof zh = {
       categories: "Categories",
       tags: "Tags",
     },
+  },
+  error: {
+    loadTitle: "Failed to load",
+    loadDesc: "Something went wrong while loading. Please try again later.",
+    retry: "Retry",
   },
   article: {
     loading: "Loading...",

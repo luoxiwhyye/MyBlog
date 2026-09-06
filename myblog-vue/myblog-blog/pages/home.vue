@@ -33,20 +33,16 @@
       <!-- 文章列表：规律等宽网格，数据少时允许自然留白 -->
       <div v-if="loading" class="loading-skeleton" aria-label="加载中">
         <div class="article-grid">
-          <div v-for="n in 3" :key="n" class="skeleton-card">
-            <el-skeleton animated>
-              <template #template>
-                <div class="skeleton-cover"></div>
-                <div class="skeleton-line">
-                  <el-skeleton-item variant="h3" style="width: 60%" />
-                  <el-skeleton-item variant="text" style="width: 90%" />
-                  <el-skeleton-item variant="text" style="width: 75%" />
-                </div>
-              </template>
-            </el-skeleton>
-          </div>
+          <SkeletonCard v-for="n in 3" :key="n" />
         </div>
       </div>
+      <AppError
+        v-else-if="loadError"
+        :title="t('error.loadTitle')"
+        :description="t('error.loadDesc')"
+        :retry-text="t('error.retry')"
+        @retry="retryLoad"
+      />
       <EmptyState
         v-else-if="articles.length === 0"
         :message="t('archive.noArticles')"
@@ -136,7 +132,12 @@ const emptyArticlePage = (): PaginatedResponse<Article> => ({
   pageSize: 6,
 });
 
-const { data: articlePage, pending } = await useAsyncData(
+const {
+  data: articlePage,
+  pending,
+  error: articlesError,
+  refresh: refreshHome,
+} = await useAsyncData(
   () => `home-articles-${currentPage.value}-${pageSize.value}-${activeTypeId.value}`,
   () =>
     articleApi
@@ -151,8 +152,11 @@ const { data: articlePage, pending } = await useAsyncData(
 );
 
 const loading = computed(() => pending.value);
+const loadError = computed(() => !!articlesError.value);
 const articles = computed(() => articlePage.value.list);
 const total = computed(() => articlePage.value.total);
+
+const retryLoad = () => refreshHome();
 
 /* ===== 公告 / 博主信息（动态配置，无硬编码假数据） =====
    - 公告：settings 中的 `announcement` 配置项（可空）
@@ -226,29 +230,6 @@ useWebsiteJsonLd();
 }
 
 /* 骨架屏加载态：复用文章网格，保持页面结构感 */
-.loading-skeleton .skeleton-card {
-  padding: $spacing-5;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card-lg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-}
-
-.skeleton-cover {
-  height: 0;
-  padding-bottom: 62.5%; /* 16/10 封面比例 */
-  border-radius: $border-radius-sm;
-  background: var(--bg-code);
-  margin-bottom: $spacing-4;
-}
-
-.skeleton-line {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-3;
-}
-
 .section-title {
   font-size: $font-size-lg;
   font-weight: 700;

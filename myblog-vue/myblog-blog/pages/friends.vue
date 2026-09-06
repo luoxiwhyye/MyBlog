@@ -8,6 +8,13 @@
     <div v-if="pending" class="friends-loading">
       <el-skeleton animated :rows="3" />
     </div>
+    <AppError
+      v-else-if="loadError"
+      :title="t('error.loadTitle')"
+      :description="t('error.loadDesc')"
+      :retry-text="t('error.retry')"
+      @retry="retryLoad"
+    />
     <EmptyState
       v-else-if="links.length === 0"
       :message="t('friends.title')"
@@ -54,20 +61,23 @@ const emptyPage = (): PaginatedResponse<FriendLink> => ({
   pageSize: 20,
 });
 
-const { data, pending } = await useAsyncData(
+const {
+  data,
+  pending,
+  error: friendsError,
+  refresh: refreshFriends,
+} = await useAsyncData(
   () => "friend-links",
-  async () => {
-    try {
-      const res = await friendLinkApi.getList({ page: 1, pageSize: 100 });
-      return res.data;
-    } catch {
-      return emptyPage();
-    }
-  },
+  () =>
+    friendLinkApi
+      .getList({ page: 1, pageSize: 100 })
+      .then((res) => res.data),
   { default: emptyPage },
 );
 
 const links = computed<FriendLink[]>(() => data.value?.list || []);
+const loadError = computed(() => !!friendsError.value);
+const retryLoad = () => refreshFriends();
 
 const displayUrl = (url: string) => {
   try {
