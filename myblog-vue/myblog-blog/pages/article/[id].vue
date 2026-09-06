@@ -343,6 +343,52 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 正文图片灯箱（Lightbox）：点击放大 + 缩放 + 关闭 + 图集切换 -->
+    <Teleport to="body">
+      <Transition name="lightbox">
+        <div
+          v-if="lightbox.open"
+          class="lightbox-overlay"
+          role="dialog"
+          aria-label="图片预览"
+          @click.self="closeLightbox"
+        >
+          <button type="button" class="lightbox-close" aria-label="关闭预览" @click="closeLightbox">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <button
+            v-if="lightbox.srcs.length > 1"
+            type="button"
+            class="lightbox-nav lightbox-prev"
+            aria-label="上一张"
+            @click="prevLightbox"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div class="lightbox-stage">
+            <img
+              :src="lightbox.srcs[lightbox.index]"
+              :alt="'预览图 ' + (lightbox.index + 1)"
+              class="lightbox-img"
+              :class="{ 'lightbox-zoomed': lightbox.zoomed }"
+              @click="toggleZoom"
+            />
+            <span v-if="lightbox.zoomed" class="lightbox-hint" aria-hidden="true">已放大（点击还原）</span>
+          </div>
+          <button
+            v-if="lightbox.srcs.length > 1"
+            type="button"
+            class="lightbox-nav lightbox-next"
+            aria-label="下一张"
+            @click="nextLightbox"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <div v-if="lightbox.srcs.length > 1" class="lightbox-counter">{{ lightbox.index + 1 }} / {{ lightbox.srcs.length }}</div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -691,12 +737,97 @@ const handleCodeCopyClick = (e: MouseEvent) => {
   copyText(code.textContent || "", btn);
 };
 
+// ===== 正文图片灯箱（Lightbox）=====
+interface LightboxState {
+  open: boolean;
+  index: number;
+  srcs: string[];
+  zoomed: boolean;
+}
+
+const lightbox = reactive<LightboxState>({
+  open: false,
+  index: 0,
+  srcs: [],
+  zoomed: false,
+});
+
+let lightboxBodyScrollLocked = false;
+
+// 收集正文图片 src 列表，并给图片标记索引供事件委托定位
+const initImageLightbox = () => {
+  if (!process.client || !article.value) return;
+  const imgs = document.querySelectorAll<HTMLImageElement>(".article-body img");
+  lightbox.srcs = Array.from(imgs)
+    .map((img) => img.getAttribute("src") || "")
+    .filter(Boolean);
+  imgs.forEach((img, i) => {
+    img.dataset.lightboxIndex = String(i);
+    img.classList.add("lightbox-trigger");
+  });
+};
+
+const openLightbox = (index: number) => {
+  if (!lightbox.srcs.length || index < 0) return;
+  lightbox.open = true;
+  lightbox.index = index;
+  lightbox.zoomed = false;
+  if (!lightboxBodyScrollLocked) {
+    document.body.style.overflow = "hidden";
+    lightboxBodyScrollLocked = true;
+  }
+};
+
+const closeLightbox = () => {
+  lightbox.open = false;
+  if (lightboxBodyScrollLocked) {
+    document.body.style.overflow = "";
+    lightboxBodyScrollLocked = false;
+  }
+};
+
+const nextLightbox = () => {
+  if (lightbox.srcs.length < 2) return;
+  lightbox.index = (lightbox.index + 1) % lightbox.srcs.length;
+};
+
+const prevLightbox = () => {
+  if (lightbox.srcs.length < 2) return;
+  lightbox.index = (lightbox.index - 1 + lightbox.srcs.length) % lightbox.srcs.length;
+};
+
+const toggleZoom = () => {
+  lightbox.zoomed = !lightbox.zoomed;
+};
+
+// 事件委托：点击正文图片打开灯箱
+const handleLightboxClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+  if (!target.classList.contains("lightbox-trigger")) return;
+  const idx = Number(target.dataset.lightboxIndex);
+  if (!Number.isNaN(idx)) {
+    openLightbox(idx);
+  }
+};
+
+// 键盘：ESC 关闭，方向键切换
+const handleLightboxKey = (e: KeyboardEvent) => {
+  if (!lightbox.open) return;
+  if (e.key === "Escape") {
+    closeLightbox();
+  } else if (e.key === "ArrowRight") {
+    nextLightbox();
+  } else if (e.key === "ArrowLeft") {
+    prevLightbox();
+  }
+};
+
 const refreshArticleEnhancements = async () => {
   if (!process.client || !article.value) {
     return;
   }
 
-  await Promise.all([buildToc(), highlightCodeBlocks()]);
+  await Promise.all([buildToc(), highlightCodeBlocks(), initImageLightbox()]);
 };
 
 const handleComment = async () => {
@@ -814,6 +945,8 @@ onMounted(async () => {
   window.addEventListener("scroll", scrollHandler, { passive: true });
   window.addEventListener("resize", scrollHandler, { passive: true });
   document.addEventListener("click", handleCodeCopyClick);
+  document.addEventListener("click", handleLightboxClick);
+  document.addEventListener("keydown", handleLightboxKey);
 });
 
 onBeforeUnmount(() => {
@@ -822,6 +955,11 @@ onBeforeUnmount(() => {
     window.removeEventListener("resize", scrollHandler);
   }
   document.removeEventListener("click", handleCodeCopyClick);
+  document.removeEventListener("click", handleLightboxClick);
+  document.removeEventListener("keydown", handleLightboxKey);
+  if (lightboxBodyScrollLocked) {
+    document.body.style.overflow = "";
+  }
 });
 
 watch(articleId, () => {
@@ -1193,6 +1331,153 @@ useHead(() => {
   height: 22px;
   object-fit: contain;
   border-radius: 3px;
+}
+
+/* ===== 正文图片灯箱（Lightbox）===== */
+.article-body :deep(img.lightbox-trigger) {
+  cursor: zoom-in;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 20, 0.92);
+  backdrop-filter: blur(4px);
+}
+
+.lightbox-stage {
+  position: relative;
+  max-width: 92vw;
+  max-height: 88vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 88vh;
+  border-radius: 6px;
+  object-fit: contain;
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-img.lightbox-zoomed {
+  transform: scale(1.8);
+  cursor: zoom-out;
+}
+
+.lightbox-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.lightbox-prev {
+  left: 20px;
+}
+
+.lightbox-next {
+  right: 20px;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.lightbox-enter-active,
+.lightbox-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.lightbox-enter-from,
+.lightbox-leave-to {
+  opacity: 0;
+}
+
+/* 移动端：收起导航按钮尺寸、关闭按钮位置 */
+@media (max-width: 640px) {
+  .lightbox-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .lightbox-prev {
+    left: 8px;
+  }
+
+  .lightbox-next {
+    right: 8px;
+  }
+
+  .lightbox-close {
+    top: 12px;
+    right: 12px;
+  }
 }
 
 /* 真机（≤480px）：单列堆叠，保证可读性 */
