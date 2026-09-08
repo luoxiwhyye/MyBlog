@@ -1,5 +1,7 @@
 <template>
-  <div v-if="toolMeta">
+  <FeatureDisabled v-if="featureDisabled" feature="工具箱" />
+
+  <div v-else-if="toolMeta">
     <ToolLayout
       :title="toolMeta.name"
       :description="toolMeta.description"
@@ -27,6 +29,13 @@ definePageMeta({
   layout: "tools",
   ssr: false,
 });
+
+const settingsStore = useSettingsStore();
+
+// 工具页为客户端渲染，设置在 layout/tools.vue 已 await 加载
+const featureDisabled = computed(
+  () => settingsStore.getSetting("enable_tools") === "false",
+);
 
 const route = useRoute();
 const categories = TOOL_CATEGORIES;

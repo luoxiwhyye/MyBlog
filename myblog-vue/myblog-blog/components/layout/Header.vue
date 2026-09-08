@@ -55,16 +55,26 @@ const { t } = useI18n();
 await settingsStore.ensureSettings();
 
 // 主导航项：桌面内联展示，移动端抽屉复用
-const navItems = computed(() => [
-  { to: "/home", label: t("nav.home") },
-  { to: "/category", label: t("nav.category") },
-  { to: "/tag", label: t("nav.tag") },
-  { to: "/archive", label: t("nav.archive") },
-  { to: "/tools", label: t("nav.tools") },
-  { to: "/friends", label: t("nav.friends") },
-  { to: "/message-board", label: t("nav.messageBoard") },
-  { to: "/about", label: t("nav.about") },
-]);
+// 功能开关：未配置（''）视为启用；仅显式 'false' 才隐藏对应入口
+const featureEnabled = (key: string) => settingsStore.getSetting(key) !== "false";
+
+const navItems = computed(() => {
+  const base = [
+    { to: "/home", label: t("nav.home") },
+    { to: "/category", label: t("nav.category") },
+    { to: "/tag", label: t("nav.tag") },
+    { to: "/archive", label: t("nav.archive") },
+    { to: "/tools", label: t("nav.tools") },
+    { to: "/friends", label: t("nav.friends") },
+    { to: "/message-board", label: t("nav.messageBoard") },
+    { to: "/about", label: t("nav.about") },
+  ];
+  return base.filter((item) => {
+    if (item.to === "/tools") return featureEnabled("enable_tools");
+    if (item.to === "/message-board") return featureEnabled("enable_message_board");
+    return true;
+  });
+});
 
 // 路由变化时收起移动端抽屉
 watch(

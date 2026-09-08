@@ -1,5 +1,8 @@
 <template>
   <div class="message-board-page">
+    <FeatureDisabled v-if="featureDisabled" feature="留言板" />
+
+    <template v-else>
     <div class="page-header">
       <h1>{{ t('messageBoard.title') }}</h1>
       <p class="page-desc">{{ t('messageBoard.description') }}</p>
@@ -107,6 +110,7 @@
         </el-button>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -125,6 +129,16 @@ usePageSeo({
 });
 
 const { t } = useI18n();
+
+const settingsStore = useSettingsStore();
+
+// 等待设置加载完成，确保功能开关判断准确
+await settingsStore.ensureSettings();
+
+// 功能开关：未配置（''）视为启用；仅显式 'false' 才禁用
+const featureDisabled = computed(
+  () => settingsStore.getSetting("enable_message_board") === "false",
+);
 
 const PAGE_SIZE = 20;
 

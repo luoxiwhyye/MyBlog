@@ -11,6 +11,16 @@ export const zh = {
     search: "搜索文章...",
     openMenu: "打开菜单",
   },
+  featureDisabled: {
+    title: "「{feature}」功能已关闭",
+    desc: "博主暂时关闭了此功能，感谢您的理解与支持。",
+    goHome: "返回首页",
+  },
+  maintenance: {
+    title: "站点维护中",
+    desc: "博主正在进行站点维护与升级，暂时无法访问。",
+    hint: "请稍后再来，感谢您的耐心等待。",
+  },
   friends: {
     title: "友情链接",
     description: "收获的每一份友谊，都是旅途中的星光。",
@@ -155,6 +165,16 @@ export const en: typeof zh = {
     about: "About",
     search: "Search articles...",
     openMenu: "Open menu",
+  },
+  featureDisabled: {
+    title: '"{feature}" is Disabled',
+    desc: "The owner has temporarily disabled this feature. Thanks for your understanding.",
+    goHome: "Back to Home",
+  },
+  maintenance: {
+    title: "Site Under Maintenance",
+    desc: "The site is undergoing maintenance and upgrades, and is temporarily unavailable.",
+    hint: "Please check back later. Thanks for your patience.",
   },
   friends: {
     title: "Friends",

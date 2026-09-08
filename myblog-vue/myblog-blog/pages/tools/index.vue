@@ -1,5 +1,8 @@
 <template>
   <div class="tools-home">
+    <FeatureDisabled v-if="featureDisabled" feature="工具箱" />
+
+    <template v-else>
     <section class="tools-hero">
       <div>
         <p class="tools-eyebrow">MyBlog · 编程工具箱</p>
@@ -109,6 +112,7 @@
       </div>
       </details>
     </section>
+    </template>
   </div>
 </template>
 
@@ -119,6 +123,13 @@ definePageMeta({
   layout: "tools",
   ssr: false,
 });
+
+const settingsStore = useSettingsStore();
+
+// 工具页为客户端渲染，设置在 layout/tools.vue 已 await 加载
+const featureDisabled = computed(
+  () => settingsStore.getSetting("enable_tools") === "false",
+);
 
 const FAVORITES_KEY = "myblog:tools:favorites";
 

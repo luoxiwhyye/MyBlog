@@ -472,6 +472,24 @@ const groups: GroupConfig[] = [
         placeholder: '如：京ICP备XXXXXXXX号',
         description: '显示在页脚，为空则不显示。',
       },
+      {
+        key: 'enable_tools',
+        label: '启用工具箱',
+        type: 'boolean',
+        description: '关闭后前台隐藏工具箱入口，直接访问 /tools 显示关闭提示。',
+      },
+      {
+        key: 'enable_message_board',
+        label: '启用留言板',
+        type: 'boolean',
+        description: '关闭后前台隐藏留言板入口，直接访问 /message-board 显示关闭提示。',
+      },
+      {
+        key: 'site_maintenance',
+        label: '全站维护模式',
+        type: 'boolean',
+        description: '开启后前台所有页面跳转到维护页（可通过 ?bypass=maintenance 预览）。',
+      },
     ],
   },
   {
