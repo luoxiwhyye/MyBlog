@@ -118,13 +118,29 @@
           </div>
 
           <div v-else class="md-editor">
-            <el-input
-              v-model="form.content"
-              type="textarea"
-              class="md-editor-input"
-              :rows="18"
-              placeholder="使用 Markdown 语法编写内容...&#10;&#10;### 标题&#10;**加粗** *斜体*&#10;- 列表项&#10;&#96;&#96;&#96;代码块&#96;&#96;&#96;&#10;&#10;![图片](URL)"
-            />
+            <div class="md-editor-left">
+              <div class="md-toolbar" role="toolbar" aria-label="Markdown 工具栏">
+                <button type="button" class="md-tool-btn" title="加粗" @click="mdWrap('**', '**', '加粗文本')">B</button>
+                <button type="button" class="md-tool-btn" title="斜体" @click="mdWrap('*', '*', '斜体文本')">I</button>
+                <button type="button" class="md-tool-btn" title="标题" @click="mdLinePrefix('## ')">H</button>
+                <button type="button" class="md-tool-btn" title="行内代码" @click="mdWrap('`', '`', 'code')">`</button>
+                <button type="button" class="md-tool-btn" title="代码块" @click="mdWrap('\n```\n', '\n```\n', '代码块')">```</button>
+                <button type="button" class="md-tool-btn" title="链接" @click="mdWrap('[', '](https://example.com)', '链接文本')">🔗</button>
+                <button type="button" class="md-tool-btn" title="插入图片" @click="mdInsertImage">🖼</button>
+                <button type="button" class="md-tool-btn" title="无序列表" @click="mdLinePrefix('- ')">•</button>
+                <button type="button" class="md-tool-btn" title="有序列表" @click="mdLinePrefix('1. ')">1.</button>
+                <button type="button" class="md-tool-btn" title="引用" @click="mdLinePrefix('> ')">❝</button>
+                <button type="button" class="md-tool-btn" title="分隔线" @click="mdInsert('\n\n---\n\n')">—</button>
+              </div>
+              <el-input
+                ref="mdInputRef"
+                v-model="form.content"
+                type="textarea"
+                class="md-editor-input"
+                :rows="18"
+                placeholder="使用 Markdown 语法编写内容...&#10;&#10;### 标题&#10;**加粗** *斜体*&#10;- 列表项&#10;&#96;&#96;&#96;代码块&#96;&#96;&#96;&#10;&#10;![图片](URL)"
+              />
+            </div>
             <div class="md-editor-preview" v-html="markdownPreview"></div>
           </div>
         </el-form-item>
@@ -171,7 +187,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { View } from '@element-plus/icons-vue'
@@ -268,6 +284,108 @@ const handleModeChange = (newMode: 'richtext' | 'markdown') => {
 
 const formRef = ref()
 const uploadRef = ref()
+
+// Markdown 模式的原生 textarea 引用（用于光标插入）
+const mdInputRef = ref<any>(null)
+
+/** 获取 Markdown 编辑区原生 textarea 元素（Element Plus el-input 暴露 .textarea） */
+const getMdTextarea = (): HTMLTextAreaElement | null => {
+  const el = mdInputRef.value
+  if (!el) return null
+  return (
+    (el.textarea as HTMLTextAreaElement) ||
+    (el.$el?.querySelector('textarea') as HTMLTextAreaElement) ||
+    null
+  )
+}
+
+/** 在光标处插入原始文本（如分隔线） */
+const mdInsert = (raw: string) => {
+  const ta = getMdTextarea()
+  if (!ta) {
+    form.content += raw
+    return
+  }
+  const start = ta.selectionStart ?? form.content.length
+  const newValue = form.content.slice(0, start) + raw + form.content.slice(start)
+  form.content = newValue
+  nextTick(() => {
+    const caret = start + raw.length
+    ta.focus()
+    ta.setSelectionRange(caret, caret)
+  })
+}
+
+/** 包裹选中文本：before + selected + after（未选中则用 placeholder） */
+const mdWrap = (before: string, after: string, placeholder: string) => {
+  const ta = getMdTextarea()
+  if (!ta) {
+    form.content += before + placeholder + after
+    return
+  }
+  const start = ta.selectionStart ?? form.content.length
+  const end = ta.selectionEnd ?? start
+  const selected = form.content.slice(start, end) || placeholder
+  const insert = before + selected + after
+  const newValue = form.content.slice(0, start) + insert + form.content.slice(end)
+  form.content = newValue
+  nextTick(() => {
+    const caret = start + before.length + selected.length
+    ta.focus()
+    ta.setSelectionRange(caret, caret)
+  })
+}
+
+/** 在当前行首添加前缀（标题/列表/引用） */
+const mdLinePrefix = (prefix: string) => {
+  const ta = getMdTextarea()
+  if (!ta) {
+    form.content = prefix + form.content
+    return
+  }
+  const start = ta.selectionStart ?? 0
+  const content = form.content
+  const lineStart = content.lastIndexOf('\n', start - 1) + 1
+  const newValue = content.slice(0, lineStart) + prefix + content.slice(lineStart)
+  form.content = newValue
+  nextTick(() => {
+    const caret = lineStart + prefix.length
+    ta.focus()
+    ta.setSelectionRange(caret, caret)
+  })
+}
+
+/** Markdown 模式插入图片：上传后在光标处插入 ![alt](url) */
+const mdInsertImage = async () => {
+  const input = document.createElement('input')
+  input.setAttribute('type', 'file')
+  input.setAttribute('accept', 'image/*')
+  input.click()
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    try {
+      const response = await upload.image(file, 'article-content')
+      if (response.code !== 200 && response.code !== 201) {
+        ElMessage.error(response.message || '图片上传失败')
+        return
+      }
+      const imageUrl = response.data?.url
+      if (!imageUrl) {
+        ElMessage.error('上传结果缺少图片地址')
+        return
+      }
+      // 在光标处插入 Markdown 图片语法
+      mdWrap('![', `](${imageUrl})`, '图片描述')
+      ElMessage.success('图片上传成功')
+    } catch (err) {
+      console.error('Markdown 图片上传失败', err)
+      ElMessage.error('图片上传失败')
+    } finally {
+      input.value = ''
+    }
+  }
+}
 
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -680,6 +798,54 @@ onBeforeUnmount(() => {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   width: 100%;
+  align-items: start;
+}
+
+.md-editor-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Markdown 最小工具栏 */
+.md-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.md-tool-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #475569;
+  font-size: 13px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.md-tool-btn:hover {
+  background: #eef2f7;
+  border-color: #d1d5db;
+  color: #0f172a;
+}
+
+.md-tool-btn:active {
+  background: #e2e8f0;
+}
+
+.md-tool-btn--code {
+  font-size: 12px;
 }
 
 .md-editor-input :deep(.el-textarea__inner) {
