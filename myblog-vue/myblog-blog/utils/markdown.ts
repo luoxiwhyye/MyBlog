@@ -35,14 +35,30 @@ export const looksLikeMarkdown = (content?: string): boolean => {
 };
 
 /**
- * 渲染正文：根据内容自动识别是否用 Markdown 渲染，输出 HTML。
+ * 渲染正文：按文章声明的 content_format 决定渲染方式，输出 HTML。
+ *   - 'markdown'：用 markdown-it 渲染为 HTML
+ *   - 'html'：按既有 HTML 原样输出（归一化图片 URL）
+ *   - 未声明（undefined）：回退到旧「自动识别」逻辑（兼容未回填的存量数据）
  * 渲染后再归一化正文中的图片 URL（localhost -> 相对路径）。
  */
-export const renderArticleContent = (content?: string): string => {
+export const renderArticleContent = (
+  content?: string,
+  contentFormat?: string,
+): string => {
   if (!content) return "";
-  const html = looksLikeMarkdown(content)
-    ? md.render(unwrapRichText(content))
-    : content;
+
+  let html: string;
+  if (contentFormat === "markdown") {
+    html = md.render(content);
+  } else if (contentFormat === "html") {
+    html = content;
+  } else {
+    // 兼容未标记格式的存量文章（按内容自动识别）
+    html = looksLikeMarkdown(content)
+      ? md.render(unwrapRichText(content))
+      : content;
+  }
+
   return normalizeContentUrls(html);
 };
 

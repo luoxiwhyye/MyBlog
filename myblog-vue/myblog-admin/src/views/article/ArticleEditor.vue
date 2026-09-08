@@ -98,7 +98,7 @@
 
         <el-form-item label="内容" prop="content">
           <div class="editor-mode-bar">
-            <el-radio-group v-model="editorMode" size="small">
+            <el-radio-group v-model="editorMode" size="small" @change="handleModeChange">
               <el-radio-button value="richtext">富文本</el-radio-button>
               <el-radio-button value="markdown">Markdown</el-radio-button>
             </el-radio-group>
@@ -173,11 +173,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { View } from '@element-plus/icons-vue'
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import MarkdownIt from 'markdown-it'
+import TurndownService from 'turndown'
 import { article, type as typeApi, label as labelApi, upload } from '@/api'
 
 const route = useRoute()
@@ -185,6 +186,10 @@ const router = useRouter()
 
 // 编辑模式：richtext（富文本，默认） | markdown（Markdown）
 const editorMode = ref<'richtext' | 'markdown'>('richtext')
+// 记录切换前的模式，用于取消时回退与转换方向判断
+const prevEditorMode = ref<'richtext' | 'markdown'>('richtext')
+// 防止确认对话框未决时重复触发
+const modeChangePending = ref(false)
 
 // markdown-it 单例（html 关闭以规避 XSS；linkify 开启）
 const md = new MarkdownIt({
@@ -193,12 +198,73 @@ const md = new MarkdownIt({
   breaks: true,
 })
 
+// turndown 单例：富文本 HTML -> Markdown
+const turndown = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+  bulletListMarker: '-',
+})
+
 // Markdown 模式实时预览
 const markdownPreview = computed(() => {
   const content = form.content || ''
   // Markdown 模式但内容看起来像富文本（如粘贴了 HTML）时，仍按 Markdown 处理
   return md.render(content) || '<p style="color:#94a3b8">暂无内容</p>'
 })
+
+// 保持 contentFormat 与当前编辑模式一致（草稿恢复/提交时使用）
+// editorMode: richtext/markdown；content_format 入库值为 html/markdown
+watch(editorMode, (mode) => {
+  form.contentFormat = mode === 'richtext' ? 'html' : 'markdown'
+})
+
+/**
+ * 切换编辑模式：富文本 <-> Markdown。
+ * 富文本内容为 HTML，Markdown 内容为 MD 语法。
+ * 切换时二次确认，并做一次可选转换（HTML→MD 用 turndown，MD→HTML 用 markdown-it）。
+ */
+const handleModeChange = (newMode: 'richtext' | 'markdown') => {
+  const fromMode = prevEditorMode.value
+  if (fromMode === newMode) return
+  if (modeChangePending.value) {
+    editorMode.value = fromMode
+    return
+  }
+
+  const content = form.content || ''
+  if (!content.trim()) {
+    prevEditorMode.value = newMode
+    return
+  }
+
+  modeChangePending.value = true
+  const isToMarkdown = fromMode === 'richtext' && newMode === 'markdown'
+  const message = isToMarkdown
+    ? '当前为富文本内容，切换到 Markdown 将尝试把 HTML 转换为 Markdown 语法（可能存在格式损耗）。是否转换？'
+    : '当前为 Markdown 内容，切换到富文本将尝试渲染为 HTML（可能存在格式损耗）。是否转换？'
+
+  ElMessageBox.confirm(message, '切换编辑器模式', {
+    type: 'warning',
+    confirmButtonText: '转换并切换',
+    cancelButtonText: '取消（返回原模式）',
+  })
+    .then(() => {
+      if (isToMarkdown) {
+        form.content = turndown.turndown(content)
+      } else {
+        // markdown -> richtext：把 MD 渲染为 HTML 供 Quill 展示
+        form.content = md.render(content)
+      }
+      prevEditorMode.value = newMode
+    })
+    .catch(() => {
+      // 取消：回退到原模式，内容保持不变
+      editorMode.value = fromMode
+    })
+    .finally(() => {
+      modeChangePending.value = false
+    })
+}
 
 const formRef = ref()
 const uploadRef = ref()
@@ -227,6 +293,7 @@ const form = reactive({
   coverImage: '',
   summary: '',
   content: '',
+  contentFormat: 'html' as 'html' | 'markdown',
   status: 'draft'
 })
 
@@ -254,6 +321,7 @@ const restoreDraft = () => {
     if (!raw) return
     const saved = JSON.parse(raw)
     if (saved?.title || saved?.content) {
+      const isMarkdown = saved.contentFormat === 'markdown'
       Object.assign(form, {
         title: saved.title || '',
         typeId: saved.typeId ?? null,
@@ -261,8 +329,11 @@ const restoreDraft = () => {
         coverImage: saved.coverImage || '',
         summary: saved.summary || '',
         content: saved.content || '',
+        contentFormat: isMarkdown ? 'markdown' : 'html',
         status: saved.status || 'draft',
       })
+      editorMode.value = isMarkdown ? 'markdown' : 'richtext'
+      prevEditorMode.value = isMarkdown ? 'markdown' : 'richtext'
     }
   } catch {
     // 忽略损坏的草稿
@@ -430,8 +501,12 @@ const fetchArticle = async (id: number) => {
         coverImage: data.coverImage,
         summary: data.summary,
         content: data.content,
+        contentFormat: data.contentFormat === 'markdown' ? 'markdown' : 'html',
         status: data.status
       })
+      const fmt = data.contentFormat === 'markdown' ? 'markdown' : 'richtext'
+      editorMode.value = fmt
+      prevEditorMode.value = fmt
     }
   } catch (error) {
     ElMessage.error('获取文章详情失败')
@@ -469,6 +544,7 @@ const submitArticle = async () => {
         formData.append('title', form.title)
         formData.append('typeId', (form.typeId || 0).toString())
         formData.append('content', form.content)
+        formData.append('contentFormat', form.contentFormat)
         formData.append('summary', form.summary || '')
         formData.append('status', form.status)
         formData.append('labelIds', form.labelIds.join(','))

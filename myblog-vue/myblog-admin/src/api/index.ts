@@ -91,6 +91,7 @@ export const article = {
       title: string
       summary: string
       content: string
+      contentFormat: 'html' | 'markdown'
       coverImage: string
       typeId: number
       labelIds: number[]

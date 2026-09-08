@@ -8,6 +8,7 @@ public class ArticleDTO {
     private String title;
     private String summary;
     private String content;
+    private String contentFormat;
     private String coverImage;
     private Integer viewCount;
     private String status;
@@ -50,6 +51,8 @@ public class ArticleDTO {
     public void setSummary(String summary) { this.summary = summary; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+    public String getContentFormat() { return contentFormat; }
+    public void setContentFormat(String contentFormat) { this.contentFormat = contentFormat; }
     public String getCoverImage() { return coverImage; }
     public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
     public Integer getViewCount() { return viewCount; }

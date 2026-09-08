@@ -121,7 +121,8 @@ const getArticleRelated = async (req, res, next) => {
  */
 const createArticle = async (req, res, next) => {
   try {
-    const { title, content, summary, typeId, labelIds, status } = req.body;
+    const { title, content, summary, typeId, labelIds, status, contentFormat } =
+      req.body;
 
     // 验证必填字段
     if (!title || !content || !typeId) {
@@ -141,6 +142,7 @@ const createArticle = async (req, res, next) => {
     const articleData = {
       title,
       content,
+      contentFormat: contentFormat === "markdown" ? "markdown" : "html",
       summary: summary || "",
       coverImage,
       typeId,
@@ -181,7 +183,8 @@ const createArticle = async (req, res, next) => {
 const updateArticle = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, content, summary, typeId, labelIds, status } = req.body;
+    const { title, content, summary, typeId, labelIds, status, contentFormat } =
+      req.body;
 
     const article = await articleModel.getArticleById(id);
     if (!article) {
@@ -191,6 +194,9 @@ const updateArticle = async (req, res, next) => {
     const articleData = {};
     if (title !== undefined) articleData.title = title;
     if (content !== undefined) articleData.content = content;
+    if (contentFormat !== undefined)
+      articleData.contentFormat =
+        contentFormat === "markdown" ? "markdown" : "html";
     if (summary !== undefined) articleData.summary = summary;
     if (typeId !== undefined) articleData.typeId = typeId;
     if (status !== undefined) articleData.status = status;

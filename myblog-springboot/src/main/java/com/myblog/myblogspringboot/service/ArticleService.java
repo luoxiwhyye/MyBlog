@@ -142,7 +142,7 @@ public class ArticleService {
     @Transactional
     @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO createArticle(String title, String content, String summary, Integer typeId,
-                                     String coverImage, String status, List<Integer> labelIds) {
+                                     String coverImage, String status, String contentFormat, List<Integer> labelIds) {
         if (title == null || title.isBlank() || content == null || content.isBlank() || typeId == null) {
             throw new BusinessException(400, "标题、内容和分类不能为空");
         }
@@ -150,6 +150,7 @@ public class ArticleService {
         Article article = new Article();
         article.setTitle(title);
         article.setContent(content);
+        article.setContentFormat(contentFormat != null ? contentFormat : "html");
         article.setSummary(summary != null ? summary : "");
         article.setTypeId(typeId);
         article.setCoverImage(coverImage != null ? coverImage : "");
@@ -172,12 +173,14 @@ public class ArticleService {
     @Transactional
     @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO updateArticle(Integer id, String title, String content, String summary,
-                                     Integer typeId, String coverImage, String status, List<Integer> labelIds) {
+                                     Integer typeId, String coverImage, String status,
+                                     String contentFormat, List<Integer> labelIds) {
         Article article = articleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));
 
         if (title != null) article.setTitle(title);
         if (content != null) article.setContent(content);
+        if (contentFormat != null) article.setContentFormat(contentFormat);
         if (summary != null) article.setSummary(summary);
         if (typeId != null) article.setTypeId(typeId);
         if (coverImage != null) article.setCoverImage(coverImage);
@@ -262,6 +265,7 @@ public class ArticleService {
         dto.setTitle(article.getTitle());
         dto.setSummary(article.getSummary());
         dto.setContent(article.getContent());
+        dto.setContentFormat(article.getContentFormat());
         dto.setCoverImage(article.getCoverImage());
         dto.setViewCount(article.getViewCount());
         dto.setStatus(article.getStatus());

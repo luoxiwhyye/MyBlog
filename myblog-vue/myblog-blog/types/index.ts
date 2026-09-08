@@ -3,6 +3,7 @@ export interface Article {
   title: string;
   summary: string;
   content?: string;
+  contentFormat?: "html" | "markdown" | string;
   coverImage?: string;
   viewCount: number;
   status: "published" | "draft";

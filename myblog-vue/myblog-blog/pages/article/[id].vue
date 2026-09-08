@@ -431,7 +431,7 @@ const detailCoverSizes = computed(() => "(max-width: 900px) 100vw, 900px");
 
 // 正文渲染：自动识别 Markdown/HTML 并渲染，同时归一化 localhost 图片 URL
 const renderContent = computed(() =>
-  renderArticleContent(article.value?.content || ""),
+  renderArticleContent(article.value?.content || "", article.value?.contentFormat),
 );
 
 const articleId = computed(() => Number(route.params.id));

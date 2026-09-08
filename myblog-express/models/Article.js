@@ -21,6 +21,7 @@ const formatArticle = (row) => {
     title: row.title,
     summary: row.summary,
     content: row.content,
+    contentFormat: row.content_format || "html",
     coverImage: row.cover_image,
     viewCount: row.view_count,
     status: row.status,
@@ -38,7 +39,7 @@ const formatArticle = (row) => {
 
 const getArticles = async (offset, limit, filters = {}) => {
   let query = `
-    SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
+    SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
            a.is_pinned, a.is_featured,
            a.type_id, a.created_at, a.updated_at, a.deleted_at,
            t.type_name,
@@ -178,7 +179,7 @@ const getTypeArticleDistribution = async (scope = "published") => {
 
 const getArticleById = async (id) => {
   const [rows] = await pool.query(
-    `SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
+    `SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
             a.is_pinned, a.is_featured,
             a.type_id, a.created_at, a.updated_at, a.deleted_at,
             t.type_name,
@@ -199,13 +200,14 @@ const getArticleById = async (id) => {
 const createArticle = async (articleData) => {
   const [result] = await pool.query(
     `INSERT INTO article
-      (type_id, title, summary, content, cover_image, view_count, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      (type_id, title, summary, content, content_format, cover_image, view_count, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       articleData.typeId,
       articleData.title,
       articleData.summary || null,
       articleData.content,
+      articleData.contentFormat || "html",
       articleData.coverImage || null,
       articleData.viewCount || 0,
       articleData.status || "draft",
@@ -234,6 +236,10 @@ const updateArticle = async (id, articleData) => {
   if (articleData.content !== undefined) {
     updates.push("content = ?");
     params.push(articleData.content);
+  }
+  if (articleData.contentFormat !== undefined) {
+    updates.push("content_format = ?");
+    params.push(articleData.contentFormat);
   }
   if (articleData.coverImage !== undefined) {
     updates.push("cover_image = ?");

@@ -38,6 +38,9 @@ public class Article {
     @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
+    @Column(name = "content_format", columnDefinition = "varchar(10) DEFAULT 'html'")
+    private String contentFormat = "html";
+
     @Column(name = "cover_image", length = 500)
     private String coverImage;
 
@@ -100,6 +103,9 @@ public class Article {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public String getContentFormat() { return contentFormat; }
+    public void setContentFormat(String contentFormat) { this.contentFormat = contentFormat; }
 
     public String getCoverImage() { return coverImage; }
     public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
