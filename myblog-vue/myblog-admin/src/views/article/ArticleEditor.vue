@@ -415,8 +415,9 @@ const form = reactive({
   status: 'draft'
 })
 
-// 防抖自动保存草稿到 localStorage
+// 防抖自动保存草稿到 localStorage（仅"写文章"未提交场景；编辑已有文章不写，避免污染草稿恢复）
 const scheduleDraftSave = () => {
+  if (isEdit.value) return
   draftSaved.value = false
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
@@ -701,17 +702,52 @@ const goBack = () => {
   router.push('/admin/articles')
 }
 
-onMounted(async () => {
-  await fetchOptions()
+// 重置表单为初始（写文章）状态
+const resetForm = () => {
+  form.title = ''
+  form.typeId = null
+  form.labelIds = []
+  form.coverImage = ''
+  form.summary = ''
+  form.content = ''
+  form.contentFormat = 'html'
+  form.status = 'draft'
+  editorMode.value = 'richtext'
+  prevEditorMode.value = 'richtext'
+}
 
+// 初始化编辑器：根据当前路由是否有 id 决定「编辑」或「写文章」
+const initEditor = async () => {
   const id = route.params.id
   if (id) {
     isEdit.value = true
     await fetchArticle(Number(id))
   } else {
+    isEdit.value = false
+    // 写文章：清掉上一篇残留（表单 + 前一篇文章的草稿），再恢复本地草稿（仅新建时）
+    resetForm()
     restoreDraft()
   }
+}
+
+onMounted(async () => {
+  await fetchOptions()
+  await initEditor()
 })
+
+// 关键：编辑/写文章共用同一组件实例（articles/edit/:id?），
+// 从「编辑」切到「写文章」(id 消失) 时组件复用不复位，必须监听路由参数变化重置表单。
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId === oldId) return
+    // 从编辑（有 id）切到写文章（无 id）：先清旧草稿，避免把上一篇内容带进来
+    if (!newId && oldId !== undefined) {
+      clearDraft()
+    }
+    void initEditor()
+  },
+)
 
 onBeforeUnmount(() => {
   if (saveTimer) clearTimeout(saveTimer)

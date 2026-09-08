@@ -53,11 +53,13 @@ const sanitizeKey = (key) => (typeof key === "string" ? key.trim() : "");
 const validateKey = (key) => {
   if (!key) return "配置键不能为空";
   if (key.length > 100) return "配置键长度不能超过 100";
-  if (!SETTING_KEY_PATTERN.test(key)) return "配置键只能包含字母、数字、下划线、点、连字符";
+  if (!SETTING_KEY_PATTERN.test(key))
+    return "配置键只能包含字母、数字、下划线、点、连字符";
   return null;
 };
 
-const validateType = (type) => (type && !SETTING_TYPES.has(type) ? "配置类型非法" : null);
+const validateType = (type) =>
+  type && !SETTING_TYPES.has(type) ? "配置类型非法" : null;
 
 const validateDescription = (description) =>
   description && description.length > 255 ? "配置描述长度不能超过 255" : null;
@@ -71,7 +73,11 @@ const validateDescription = (description) =>
 const extractStructuredSettings = (body) => {
   const result = [];
 
-  if (body?.settings && typeof body.settings === "object" && !Array.isArray(body.settings)) {
+  if (
+    body?.settings &&
+    typeof body.settings === "object" &&
+    !Array.isArray(body.settings)
+  ) {
     // 仅当存在对象值时才视为“结构化”；纯字符串仍走旧版扁平路径，避免重复处理
     const hasObjectValue = Object.values(body.settings).some(
       (v) => v && typeof v === "object",
@@ -83,10 +89,16 @@ const extractStructuredSettings = (body) => {
             key: sanitizeKey(key),
             value: value.value != null ? String(value.value) : "",
             type: value.type || "text",
-            description: typeof value.description === "string" ? value.description : "",
+            description:
+              typeof value.description === "string" ? value.description : "",
           });
         } else if (typeof value === "string") {
-          result.push({ key: sanitizeKey(key), value, type: "text", description: "" });
+          result.push({
+            key: sanitizeKey(key),
+            value,
+            type: "text",
+            description: "",
+          });
         }
       }
       return result;
@@ -98,7 +110,8 @@ const extractStructuredSettings = (body) => {
       key: sanitizeKey(item?.key),
       value: item?.value != null ? String(item.value) : "",
       type: item?.type || "text",
-      description: typeof item?.description === "string" ? item.description : "",
+      description:
+        typeof item?.description === "string" ? item.description : "",
     }));
   }
 
@@ -203,7 +216,11 @@ const updateSettings = async (req, res, next) => {
       const description =
         item.description || currentSettings[item.key]?.description || "";
 
-      if (item.type === "image" && previousValue && previousValue !== item.value) {
+      if (
+        item.type === "image" &&
+        previousValue &&
+        previousValue !== item.value
+      ) {
         deleteUploadedUrl(previousValue);
       }
 
@@ -216,7 +233,7 @@ const updateSettings = async (req, res, next) => {
     }
 
     // 清除 settings 缓存
-    cache.invalidate("settings");
+    await cache.invalidate("settings");
 
     success(res, null, "配置更新成功");
   } catch (err) {
@@ -233,7 +250,8 @@ const createSetting = async (req, res, next) => {
     const key = sanitizeKey(req.body?.key);
     const value = req.body?.value != null ? String(req.body.value) : "";
     const type = req.body?.type || "text";
-    const description = typeof req.body?.description === "string" ? req.body.description : "";
+    const description =
+      typeof req.body?.description === "string" ? req.body.description : "";
 
     const keyError = validateKey(key);
     if (keyError) return error(res, keyError, 400);
@@ -248,7 +266,7 @@ const createSetting = async (req, res, next) => {
     }
 
     await settingModel.upsertSetting(key, value, type, description);
-    cache.invalidate("settings");
+    await cache.invalidate("settings");
 
     success(res, { key, value, type, description }, "配置创建成功", 201);
   } catch (err) {
@@ -273,7 +291,9 @@ const updateSettingByKey = async (req, res, next) => {
     }
 
     const value =
-      req.body?.value != null ? String(req.body.value) : existing.settingValue || "";
+      req.body?.value != null
+        ? String(req.body.value)
+        : existing.settingValue || "";
     const type = req.body?.type || existing.settingType || "text";
     const description =
       typeof req.body?.description === "string"
@@ -285,12 +305,16 @@ const updateSettingByKey = async (req, res, next) => {
     const descError = validateDescription(description);
     if (descError) return error(res, descError, 400);
 
-    if (type === "image" && existing.settingValue && existing.settingValue !== value) {
+    if (
+      type === "image" &&
+      existing.settingValue &&
+      existing.settingValue !== value
+    ) {
       deleteUploadedUrl(existing.settingValue);
     }
 
     await settingModel.upsertSetting(key, value, type, description);
-    cache.invalidate("settings");
+    await cache.invalidate("settings");
 
     success(res, { key, value, type, description }, "配置更新成功");
   } catch (err) {
@@ -317,7 +341,7 @@ const deleteSetting = async (req, res, next) => {
     }
 
     await settingModel.deleteSetting(key);
-    cache.invalidate("settings");
+    await cache.invalidate("settings");
 
     success(res, null, "配置删除成功");
   } catch (err) {

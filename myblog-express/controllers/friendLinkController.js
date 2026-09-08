@@ -91,7 +91,7 @@ const createFriendLink = async (req, res, next) => {
       status: req.body.status,
       isSticky: req.body.isSticky,
     });
-    cache.invalidate("friend-links");
+    await cache.invalidate("friend-links");
     success(res, { id }, "友链创建成功", 201);
   } catch (err) {
     next(err);
@@ -126,7 +126,7 @@ const updateFriendLink = async (req, res, next) => {
     if (!updated) {
       return error(res, "友链更新失败", 500);
     }
-    cache.invalidate("friend-links");
+    await cache.invalidate("friend-links");
     success(res, null, "友链更新成功");
   } catch (err) {
     next(err);
@@ -148,7 +148,7 @@ const deleteFriendLink = async (req, res, next) => {
     if (!deleted) {
       return error(res, "友链删除失败", 500);
     }
-    cache.invalidate("friend-links");
+    await cache.invalidate("friend-links");
     success(res, null, "友链删除成功");
   } catch (err) {
     next(err);

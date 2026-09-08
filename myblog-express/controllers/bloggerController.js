@@ -121,8 +121,8 @@ const reset = async (req, res, next) => {
     // 清空相关缓存
     try {
       const cache = require("../middleware/cache");
-      cache.invalidate("settings");
-      cache.invalidate("friend-links");
+      await cache.invalidate("settings");
+      await cache.invalidate("friend-links");
     } catch (_) {
       // 缓存模块可失败，忽略
     }

@@ -39,7 +39,8 @@ const createLabel = async (req, res, next) => {
     }
 
     const labelId = await labelModel.createLabel(labelName);
-    cache.invalidate("labels");
+    // 必须 await：确保清缓存完成后再返回，否则前端刷新列表仍命中旧缓存
+    await cache.invalidate("labels");
     success(res, { id: labelId }, "标签创建成功", 201);
   } catch (err) {
     next(err);
@@ -68,7 +69,7 @@ const updateLabel = async (req, res, next) => {
       return error(res, "标签更新失败", 500);
     }
 
-    cache.invalidate("labels");
+    await cache.invalidate("labels");
     success(res, null, "标签更新成功");
   } catch (err) {
     next(err);
@@ -97,7 +98,7 @@ const deleteLabel = async (req, res, next) => {
       return error(res, "标签删除失败", 500);
     }
 
-    cache.invalidate("labels");
+    await cache.invalidate("labels");
     success(res, null, "标签删除成功");
   } catch (err) {
     next(err);
