@@ -189,7 +189,8 @@ useBreadcrumbJsonLd([
 
 .articles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  /* auto-fill 保留空轨道：仅一篇时卡片不拉伸占满整个容器，自然留白 */
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: $spacing-5;
   margin-bottom: $spacing-5;
 }

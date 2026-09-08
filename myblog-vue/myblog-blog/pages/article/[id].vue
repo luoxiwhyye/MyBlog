@@ -1123,8 +1123,8 @@ useHead(() => {
 
 .related-list {
   display: grid;
-  /* 容器查询：随宽度平滑增减列（每列 ≥300px 或容器全宽），移动端不再强制单列 */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  /* auto-fill 保留空轨道：相关推荐仅一条时卡片不被拉伸占满，自然留白 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: $spacing-4;
 }
 
@@ -2283,10 +2283,20 @@ useHead(() => {
   line-height: 1;
   cursor: pointer;
   border-radius: 12px;
+  /* 去掉 iOS/移动端点击瞬间的灰色高亮蒙层（常亮观感来源之二） */
+  -webkit-tap-highlight-color: transparent;
   transition: color 0.2s, background-color 0.2s;
 }
 
-.mobile-bar-btn:hover,
+/* 仅对“可悬停”设备启用 hover，避免触屏点击后 hover 粘滞导致按钮常亮 */
+@media (hover: hover) and (pointer: fine) {
+  .mobile-bar-btn:hover {
+    color: var(--color-category);
+    background: var(--bg-hover);
+  }
+}
+
+/* 触屏：:active 是按下瞬间的短暂反馈，松手即恢复，不会常亮 */
 .mobile-bar-btn:active {
   color: var(--color-category);
   background: var(--bg-hover);

@@ -106,6 +106,46 @@
                 :inactive-value="'false'"
               />
 
+              <!-- 社交链接：可视化编辑器（名称 / URL / 图标） -->
+              <div v-else-if="field.type === 'social_links'" class="social-links-editor">
+                <div v-for="(item, idx) in socialLinkRows" :key="idx" class="social-link-row">
+                  <el-input
+                    v-model="item.name"
+                    placeholder="名称，如 GitHub"
+                    class="social-link-name"
+                  />
+                  <el-input
+                    v-model="item.url"
+                    placeholder="https://..."
+                    class="social-link-url"
+                  />
+                  <el-select
+                    v-model="item.icon"
+                    placeholder="图标"
+                    clearable
+                    class="social-link-icon"
+                  >
+                    <el-option
+                      v-for="opt in SOCIAL_ICON_OPTIONS"
+                      :key="opt.key"
+                      :label="opt.label"
+                      :value="opt.key"
+                    />
+                  </el-select>
+                  <el-button
+                    type="danger"
+                    plain
+                    :icon="Delete"
+                    :disabled="socialLinkRows.length <= 1"
+                    @click="removeSocialLink(idx)"
+                  />
+                </div>
+                <div class="social-link-actions">
+                  <el-button :icon="Plus" @click="addSocialLink">添加一条</el-button>
+                  <span class="social-link-hint">仅保留格式合法的条目（名称与链接均非空）</span>
+                </div>
+              </div>
+
               <!-- 说明 -->
               <div v-if="field.description" class="field-desc">{{ field.description }}</div>
             </el-form-item>
@@ -289,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Download, Upload, UploadFilled, Check, Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
 import { setting, upload } from '@/api'
@@ -297,11 +337,27 @@ import { setting, upload } from '@/api'
 interface FieldConfig {
   key: string
   label: string
-  type: 'text' | 'textarea' | 'image' | 'boolean' | 'color'
+  type: 'text' | 'textarea' | 'image' | 'boolean' | 'color' | 'social_links'
   placeholder?: string
   description?: string
   required?: boolean
 }
+
+// 社交链接图标候选项（与前台 myblog-blog/utils/socialIcons.ts 的 SOCIAL_ICON_KEYS 保持键名一致）
+const SOCIAL_ICON_OPTIONS = [
+  { key: '', label: '无图标' },
+  { key: 'github', label: 'GitHub' },
+  { key: 'gitee', label: 'Gitee' },
+  { key: 'weibo', label: '微博' },
+  { key: 'bilibili', label: '哔哩哔哩' },
+  { key: 'zhihu', label: '知乎' },
+  { key: 'juejin', label: '掘金' },
+  { key: 'x', label: 'X (Twitter)' },
+  { key: 'email', label: '邮箱' },
+  { key: 'rss', label: 'RSS' },
+  { key: 'douban', label: '豆瓣' },
+  { key: 'telegram', label: 'Telegram' },
+] as const
 
 interface GroupConfig {
   key: string
@@ -541,9 +597,9 @@ const groups: GroupConfig[] = [
       {
         key: 'social_links',
         label: '社交链接',
-        type: 'textarea',
+        type: 'social_links',
         placeholder: '[{"name":"GitHub","url":"https://github.com/"}]',
-        description: '首页展示的社交链接，JSON 数组格式：[{"name":"名称","url":"链接"}]，推荐 3 个以内。',
+        description: '首页展示的社交链接。可逐条维护「名称 / 链接 / 图标」；图标为空时前台回退为文本显示。推荐 3 个以内。',
       },
     ],
   },
@@ -738,23 +794,20 @@ const formRules = computed<FormRules>(() => {
     if (field.key === 'social_links') {
       rules[field.key] = [
         {
-          validator: (_rule, value: string, callback) => {
-            if (!value) {
-              callback()
-              return
-            }
+          validator: (_rule, _value: string, callback) => {
+            // 行数据由可视化编辑器维护并自动序列化为 JSON；只需校验序列化结果合法
             try {
-              const parsed = JSON.parse(value)
+              const parsed = JSON.parse(socialLinkRows.value.length ? JSON.stringify(socialLinkRows.value) : '[]')
               if (!Array.isArray(parsed)) {
-                callback(new Error('必须为 JSON 数组'))
+                callback(new Error('格式不正确'))
                 return
               }
               callback()
             } catch {
-              callback(new Error('JSON 格式不正确'))
+              callback(new Error('格式不正确'))
             }
           },
-          trigger: 'blur',
+          trigger: 'change',
         },
       ]
     }
@@ -776,6 +829,7 @@ const fetchSettings = async () => {
       Object.keys(settings.value).forEach((key) => {
         formData[key] = settings.value[key].value
       })
+      syncSocialRowsFromForm()
     }
   } catch (error) {
     ElMessage.error('获取配置失败')
@@ -848,10 +902,68 @@ const saveSettings = async () => {
   }
 }
 
+// ===== 社交链接可视化编辑器：行数据 <-> formData.social_links (JSON 字符串) =====
+interface SocialLinkRow {
+  name: string
+  url: string
+  icon: string
+}
+
+const socialLinkRows = ref<SocialLinkRow[]>([])
+
+// 解析 formData.social_links（JSON 字符串）为行数组；非法内容回退空
+const parseSocialLinks = (value: string | undefined): SocialLinkRow[] => {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((item: any) => ({
+      name: typeof item?.name === 'string' ? item.name : '',
+      url: typeof item?.url === 'string' ? item.url : '',
+      icon: typeof item?.icon === 'string' ? item.icon : '',
+    }))
+  } catch {
+    return []
+  }
+}
+
+// 从 formData 同步行数据（加载 / 导入 / 重置后调用）
+const syncSocialRowsFromForm = () => {
+  const rows = parseSocialLinks(formData.social_links)
+  socialLinkRows.value = rows.length ? rows : [
+    { name: '', url: '', icon: '' },
+  ]
+}
+
+// 把行数据序列化回 formData.social_links；仅保留名称与链接均非空的条目
+const syncSocialRowsToForm = () => {
+  const valid = socialLinkRows.value
+    .map((row) => ({
+      name: row.name.trim(),
+      url: row.url.trim(),
+      ...(row.icon ? { icon: row.icon } : {}),
+    }))
+    .filter((item) => item.name && item.url)
+  formData.social_links = JSON.stringify(valid)
+}
+
+watch(socialLinkRows, syncSocialRowsToForm, { deep: true })
+
+const addSocialLink = () => {
+  socialLinkRows.value.push({ name: '', url: '', icon: '' })
+}
+
+const removeSocialLink = (index: number) => {
+  if (socialLinkRows.value.length > 1) {
+    socialLinkRows.value.splice(index, 1)
+  }
+}
+
 const resetForm = () => {
   Object.keys(settings.value).forEach((key) => {
     formData[key] = settings.value[key].value
   })
+  syncSocialRowsFromForm()
   Object.values(formRefs.value).forEach((form) => form?.clearValidate())
   ElMessage.info('已恢复为已保存的配置')
 }
@@ -914,6 +1026,7 @@ const handleImportFile = async (file: any) => {
     validEntries.forEach(([key, val]: [string, any]) => {
       formData[key] = val.value
     })
+    syncSocialRowsFromForm()
     ElMessage.success('已导入，请点击"保存所有配置"使其生效')
   } catch (error: any) {
     ElMessage.error(error?.message?.includes('JSON') ? '导入失败：JSON 格式不正确' : '导入失败')
@@ -926,6 +1039,49 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.social-links-editor {
+  width: 100%;
+}
+
+.social-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  .social-link-name {
+    /* 名称一般较短，给予相对紧凑宽度 */
+    flex: 0 0 120px;
+  }
+
+  .social-link-url {
+    /* 链接一般较长，占满剩余空间 */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .social-link-icon {
+    /* 图标选项名也较短，收紧宽度 */
+    flex: 0 0 110px;
+  }
+
+  .el-button {
+    flex-shrink: 0;
+  }
+}
+
+.social-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+
+  .social-link-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
 .settings {
   .panel-card {
     border-radius: 12px;

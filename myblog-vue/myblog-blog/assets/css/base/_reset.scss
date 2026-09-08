@@ -60,6 +60,14 @@ a {
   color: inherit;
 }
 
+// ---- 移动端点击体验兜底（防按钮 hover 粘滞 "常亮"）----
+// iOS 默认会给被点元素加灰色高亮蒙层，点击后会停留在元素上形成 "常亮" 观感，
+// 全局置为透明消除之（真正消除 hover 粘滞需在组件内用 hover:media 查询包裹
+// 自身的 :hover 规则，如文章页移动端底部操作栏 .mobile-bar-btn）。
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
 // 键盘可达性：仅在键盘导航时显示清晰焦点轮廓
 :where(a, button, [tabindex], input, select, textarea):focus-visible {
   outline: 2px solid var(--color-category);

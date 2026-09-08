@@ -20,8 +20,8 @@
           rel="noopener noreferrer"
           class="welcome-link"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-          {{ link.name }}
+          <SocialIcon :icon="link.icon" :size="14" />
+          <span>{{ link.name }}</span>
         </a>
       </div>
 
@@ -32,7 +32,6 @@
 
 <script setup lang="ts">
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
-import type { FriendLink } from "~/types";
 
 definePageMeta({
   layout: "landing",
@@ -67,8 +66,8 @@ const showAuthor = computed(() => {
   return !site.includes(author);
 });
 
-// 极简社交链接：复用 social_links（结构 {name,url}），取前 3 个
-const socialLinks = computed<FriendLink[]>(() => {
+// 极简社交链接：复用 social_links（结构 {name,url,icon?}），取前 3 个
+const socialLinks = computed<Array<{ name: string; url: string; icon?: string }>>(() => {
   const raw = settingsStore.getSetting("social_links");
   if (!raw) {
     return [{ name: "GitHub", url: "https://github.com/" }];

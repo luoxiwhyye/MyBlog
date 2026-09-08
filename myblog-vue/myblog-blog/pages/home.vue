@@ -24,7 +24,12 @@
               target="_blank"
               rel="noopener noreferrer"
               class="profile-link"
-            >{{ link.name }}</a>
+              :title="link.name"
+              :aria-label="link.name"
+            >
+              <SocialIcon :icon="link.icon" class="profile-link-icon" />
+              <span>{{ link.name }}</span>
+            </a>
           </div>
         </div>
         <NuxtLink to="/about" class="profile-more">{{ t('home.viewProfile') }}</NuxtLink>
@@ -81,7 +86,7 @@
             v-for="(article, i) in articles"
             :key="article.id"
             :article="article"
-            :variant="i === 0 && currentPage === 1 && activeTypeId === '' ? 'hero' : 'grid'"
+            :variant="showHero && i === 0 ? 'hero' : 'grid'"
             :badge="i === 0 && currentPage === 1 ? t('home.hero.latestBadge') : ''"
             v-reveal="i * 60"
           />
@@ -156,6 +161,12 @@ const loadError = computed(() => !!articlesError.value);
 const articles = computed(() => articlePage.value.list);
 const total = computed(() => articlePage.value.total);
 
+// 首页首篇重点卡（hero）：仅在首页第一页、无分类筛选、且文章不止一篇时启用；
+// 否则单篇文章时 hero 卡会占满整行、其余区域大面积留白（第五轮评估 P2-8）
+const showHero = computed(
+  () => currentPage.value === 1 && activeTypeId.value === "" && articles.value.length > 1,
+);
+
 const retryLoad = () => refreshHome();
 
 /* ===== 公告 / 博主信息（动态配置，无硬编码假数据） =====
@@ -163,7 +174,7 @@ const retryLoad = () => refreshHome();
    - 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url}]，可空） */
 const announcement = computed(() => settingsStore.getSetting("announcement"));
 
-const socialLinks = computed<Array<{ name: string; url: string }>>(() => {
+const socialLinks = computed<Array<{ name: string; url: string; icon?: string }>>(() => {
   const raw = settingsStore.getSetting("social_links");
   if (!raw) return [];
   try {
@@ -458,8 +469,8 @@ useWebsiteJsonLd();
 /* ===== 文章网格：容器查询 auto-fit 3/2/1 列，数据不足时自然留白 ===== */
 .article-grid {
   display: grid;
-  /* 随可用宽度平滑增减列（每列 ≥300px 或容器全宽），间距用 clamp() 流体降级 */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  /* auto-fill 保留空轨道：数据不足一行时卡片不拉伸占满，自然留白 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: clamp($spacing-4, 2vw, $spacing-6);
   align-items: stretch;
 }
