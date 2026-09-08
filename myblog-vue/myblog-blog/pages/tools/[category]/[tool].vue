@@ -44,6 +44,17 @@ const categoryParam = computed(() => String(route.params.category ?? ""));
 const toolParam = computed(() => String(route.params.tool ?? ""));
 const toolMeta = computed(() => getToolByRoute(categoryParam.value, toolParam.value));
 
+// 记录「最近使用」：写入 localStorage，供工具箱首页快捷区展示。
+// 用 watch 而非 onMounted，保证在工具间切换（组件复用）时也能记录。
+const { recordRecentTool } = useRecentTools();
+watch(
+  () => toolMeta.value?.id,
+  (id) => {
+    if (id) recordRecentTool(id);
+  },
+  { immediate: true },
+);
+
 useSeoMeta({
   title: () => (toolMeta.value ? `${toolMeta.value.name} - 编程工具箱` : "工具不存在"),
   description: () =>

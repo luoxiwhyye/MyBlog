@@ -18,61 +18,48 @@
       <a v-for="cat in categories" :key="cat.id" class="caps-pill" :href="`#cat-${cat.id}`">{{ cat.name }}</a>
     </nav>
 
-    <!-- 我的收藏 -->
-    <section v-if="favoriteTools.length" class="favorite-section">
-      <header class="section-header">
-        <div>
-          <p>一键收藏的常用工具</p>
-          <h2>⭐ 我的收藏</h2>
-        </div>
-        <el-tag effect="plain">{{ favoriteTools.length }} 个工具</el-tag>
-      </header>
-      <div class="quick-grid">
-        <NuxtLink
-          v-for="(tool, i) in favoriteTools"
-          :key="tool.id"
-          :to="getToolPath(tool)"
-          class="quick-card"
-        >
-          <div class="quick-card-top">
-            <el-icon><component :is="tool.icon" /></el-icon>
-            <button
-              type="button"
-              class="fav-btn active"
-              :title="'取消收藏 ' + tool.name"
-              @click.prevent.stop="toggleFavorite(tool.id)"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
+    <!-- 我的收藏：区块结构/卡片样式与下方分类区保持统一 -->
+    <section v-if="favoriteTools.length" class="category-section">
+      <details class="category-block" open>
+        <summary class="section-header">
+          <div class="section-title-block">
+            <h2>⭐ 我的收藏</h2>
+            <p>一键收藏的常用工具</p>
+            <span class="section-count">共 {{ favoriteTools.length }} 个工具</span>
           </div>
-          <strong>{{ tool.name }}</strong>
-          <span>{{ tool.description }}</span>
-        </NuxtLink>
-      </div>
+        </summary>
+        <div class="quick-grid">
+          <ToolCard
+            v-for="tool in favoriteTools"
+            :key="tool.id"
+            :tool="tool"
+            :favorite="true"
+            @toggle-favorite="toggleFavorite"
+          />
+        </div>
+      </details>
     </section>
 
-    <section class="quick-grid">
-      <NuxtLink
-        v-for="tool in hotTools"
-        :key="tool.id"
-        :to="getToolPath(tool)"
-        class="quick-card"
-      >
-        <div class="quick-card-top">
-          <el-icon><component :is="tool.icon" /></el-icon>
-          <button
-            type="button"
-            class="fav-btn"
-            :class="{ active: isFavorite(tool.id) }"
-            :title="(isFavorite(tool.id) ? '取消收藏 ' : '收藏 ') + tool.name"
-            @click.prevent.stop="toggleFavorite(tool.id)"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" :fill="isFavorite(tool.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </button>
+    <!-- 快捷区：最近使用 / 常用推荐（动态，区别于下方按分类罗列的全部工具） -->
+    <section v-if="quickTools.length" class="category-section">
+      <details class="category-block" open>
+        <summary class="section-header">
+          <div class="section-title-block">
+            <h2>{{ quickTitle }}</h2>
+            <p>{{ quickDescription }}</p>
+            <span class="section-count">共 {{ quickTools.length }} 个工具</span>
+          </div>
+        </summary>
+        <div class="quick-grid">
+          <ToolCard
+            v-for="tool in quickTools"
+            :key="tool.id"
+            :tool="tool"
+            :favorite="isFavorite(tool.id)"
+            @toggle-favorite="toggleFavorite"
+          />
         </div>
-        <strong>{{ tool.name }}</strong>
-        <span>{{ tool.description }}</span>
-      </NuxtLink>
+      </details>
     </section>
 
     <section v-for="category in categories" :key="category.id" class="category-section" :id="`cat-${category.id}`">
@@ -86,29 +73,13 @@
       </summary>
 
       <div class="tool-grid">
-        <NuxtLink
+        <ToolCard
           v-for="tool in category.tools"
           :key="tool.id"
-          :to="getToolPath(tool)"
-          class="tool-card"
-        >
-          <div class="tool-card__top">
-            <el-icon><component :is="tool.icon" /></el-icon>
-            <span>{{ category.name }}</span>
-          </div>
-          <strong>{{ tool.name }}</strong>
-          <p>{{ tool.description }}</p>
-          <div class="tool-tags">
-            <el-tag
-              v-for="keyword in tool.keywords.slice(0, 3)"
-              :key="keyword"
-              size="small"
-              effect="plain"
-            >
-              {{ keyword }}
-            </el-tag>
-          </div>
-        </NuxtLink>
+          :tool="tool"
+          :favorite="isFavorite(tool.id)"
+          @toggle-favorite="toggleFavorite"
+        />
       </div>
       </details>
     </section>
@@ -117,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { TOOL_CATEGORIES, TOOL_LIST, getToolPath } from "~/config/tools";
+import { TOOL_CATEGORIES, TOOL_LIST } from "~/config/tools";
 
 definePageMeta({
   layout: "tools",
@@ -134,7 +105,26 @@ const featureDisabled = computed(
 const FAVORITES_KEY = "myblog:tools:favorites";
 
 const categories = TOOL_CATEGORIES;
-const hotTools = TOOL_LIST.filter((tool) => ["json", "base64", "timestamp", "regex"].includes(tool.id));
+
+// 首页快捷区（quick-grid）：优先展示「最近使用」，无记录时回退为「常用推荐」。
+// 与下方按分类罗列全部工具的区块形成分工，避免无标题、静态写死的重复陈列。
+const RECOMMENDED_TOOL_IDS = ["json", "base64", "timestamp", "regex"];
+const recommendedTools = TOOL_LIST.filter((tool) =>
+  RECOMMENDED_TOOL_IDS.includes(tool.id),
+);
+
+const { recentTools } = useRecentTools();
+const quickTools = computed(() =>
+  recentTools.value.length ? recentTools.value : recommendedTools,
+);
+const quickTitle = computed(() =>
+  recentTools.value.length ? "🕘 最近使用" : "🔥 常用推荐",
+);
+const quickDescription = computed(() =>
+  recentTools.value.length
+    ? "你最近打开过的工具，点一下继续"
+    : "新手常从这里开始，用起来后会自动变成你的最近使用",
+);
 
 // 网格采用容器查询（auto-fit + minmax(min(100%, 230px), 1fr)）自适应列数，
 // 不再需要按整数列数手动计算 span，卡片随容器宽度平滑增减列。
@@ -235,101 +225,36 @@ usePageSeo({
   box-shadow: var(--shadow-elevated);
 }
 
-.quick-grid,
-.tool-grid {
+.quick-grid {
   display: grid;
-  /* 容器查询：随可用宽度平滑增减列（每列 ≥230px 或容器全宽），
-     不再依赖全屏固定断点塌缩，避免手机端“大而空的单列”。 */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  /* 快捷区（最近使用 / 我的收藏）固定「桌面 3 列 → 平板 2 列 → 手机 1 列」，
+     而非 auto-fit 的「能塞几列塞几列」。原因：最近使用上限 6 条，在 1200px
+     容器下 auto-fit 会排成 5+1 的不对称布局；固定 3 列则为 3+3，整齐且卡片
+     宽度更舒展。同时避免「只有 1~2 个工具时卡片被拉伸成通栏」。 */
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(10px, 1.5vw, $spacing-5);
 }
-.quick-card,
-.tool-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(8px, 2vw, 12px);
-  padding: clamp(12px, 2.5vw, $spacing-5);
-  border-radius: var(--radius-card-lg);
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  text-decoration: none;
-  transition:
-    transform var(--transition-bounce),
-    box-shadow var(--transition-bounce),
-    border-color 0.2s ease;
+
+@media (min-width: 640px) {
+  .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.quick-card:hover,
-.tool-card:hover {
-  transform: translateY(-2px) scale(1.005);
-  box-shadow: var(--shadow-elevated), var(--shadow-glow);
-  border-color: transparent;
+@media (min-width: 900px) {
+  .quick-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.quick-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--color-accent);
-}
-
-.fav-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-hover);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-/* 移动端触摸热区：用 ::before 把 30px 视觉目标的命中区扩展到 44px，避免误触 */
-.fav-btn::before {
-  content: "";
-  position: absolute;
-  inset: -7px;
-}
-
-.fav-btn:hover {
-  color: var(--color-fav);
-  border-color: var(--color-fav);
-}
-
-.fav-btn.active {
-  color: var(--color-fav);
-  border-color: var(--color-fav-soft);
-}
-
-.quick-card strong,
-.tool-card strong {
-  color: var(--text-primary);
-}
-
-.quick-card span,
-.tool-card p {
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
-
-.tool-card__top {
-  display: flex;
-  justify-content: space-between;
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-.favorite-section {
+.tool-grid {
   display: grid;
-  gap: $spacing-5;
+  /* 用 auto-fill 而非 auto-fit：auto-fit 会把「唯一一张卡片」所在的空轨道
+     拉伸到整行（例如只有 1 个工具的分类，卡片被撑成通栏、很空旷）；
+     auto-fill 保留空轨道，单卡片保持正常卡片宽度、靠左排列。
+     min 用 260px：1200px 容器下为 4 列（约 285px/卡），与原先观感接近。 */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: clamp(10px, 1.5vw, $spacing-5);
 }
 
 .category-section {
@@ -355,6 +280,20 @@ usePageSeo({
 .category-block:hover {
   border-color: transparent;
   box-shadow: var(--shadow-card), var(--shadow-glow);
+}
+
+/* 折叠：隐藏 summary 之外的内容。
+   必须显式声明——浏览器 UA 的 `details:not([open]) > *:not(summary){display:none}`
+   会被作者样式 `.tool-grid/.quick-grid { display: grid }` 覆盖，导致折叠失效。 */
+.category-block:not([open]) > :not(summary) {
+  display: none;
+}
+
+/* 收起时去掉 summary 下方的分割线与留白，避免留下一段空档 */
+.category-block:not([open]) summary {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
 }
 
 /* ===== 折叠式胶囊分类导航 ===== */
@@ -462,13 +401,6 @@ usePageSeo({
   opacity: 0.85;
 }
 
-.tool-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: auto;
-}
-
 @media (max-width: 768px) {
   .tools-hero {
     flex-direction: column;
@@ -497,44 +429,13 @@ usePageSeo({
   }
 }
 
-/* ===== 移动端（375~430px 真机）：收紧工具卡片文字与间距 ===== */
+/* ===== 移动端（375~430px 真机）：收紧区块标题文字 ===== */
 @media (max-width: 480px) {
   .tools-hero p {
     font-size: clamp(0.9rem, 3.8vw, 1rem);
   }
 
-  /* 工具卡描述不超过 2 行，避免单列卡片被撑高呈现大而空 */
-  .tool-card p {
-    font-size: clamp(0.86rem, 3.5vw, 1rem);
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-  }
-
-  .quick-card span {
-    font-size: clamp(0.86rem, 3.5vw, 1rem);
-  }
-
-  .quick-card strong,
-  .tool-card strong {
-    font-size: clamp(1rem, 4vw, 1.14rem);
-  }
-
-  .tool-card__top {
-    font-size: clamp(0.93rem, 3.5vw, 1rem);
-  }
-
   .section-count {
-    font-size: clamp(0.86rem, 3vw, 0.93rem);
-  }
-
-  .tool-tags {
-    gap: 6px;
-  }
-
-  .tool-tags :deep(.el-tag) {
     font-size: clamp(0.86rem, 3vw, 0.93rem);
   }
 }
