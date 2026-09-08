@@ -176,7 +176,10 @@
         <h1 class="preview-title">{{ form.title || '（未填写标题）' }}</h1>
         <div
           class="preview-content"
-          v-html="form.content || '<p style=\'color:#94a3b8\'>暂无内容</p>'"
+          :class="{ 'preview-markdown': editorMode === 'markdown' }"
+          v-html="editorMode === 'markdown'
+            ? (markdownPreview || '<p>暂无内容</p>')
+            : (form.content || '<p>暂无内容</p>')"
         ></div>
       </div>
       <template #footer>
@@ -195,6 +198,9 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import MarkdownIt from 'markdown-it'
 import TurndownService from 'turndown'
+// 代码高亮（与前台正文渲染一致）：markdown-it highlight 渲染阶段生成
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 import { article, type as typeApi, label as labelApi, upload } from '@/api'
 
 const route = useRoute()
@@ -207,12 +213,59 @@ const prevEditorMode = ref<'richtext' | 'markdown'>('richtext')
 // 防止确认对话框未决时重复触发
 const modeChangePending = ref(false)
 
+// markdown-it 单例 + highlight 代码高亮（与前台正文渲染一致）
+// highlight 在渲染阶段生成完整代码块结构：高亮 + 语言标签 + 行号 + 复制按钮，
+// 使"后台预览 = 前台所得"（前台 markdown-it 无 highlight 选项，改由挂载后 DOM 增强；
+// 此处预览与前台观感一致，且不受 v-html 重渲染影响）。
+const highlightCode = (str: string, lang?: string): string => {
+  let highlighted = str
+  let langLabel = 'code'
+  let langClass = ''
+  if (lang) {
+    try {
+      const result = hljs.highlight(str, { language: lang, ignoreIllegals: true })
+      highlighted = result.value
+      langLabel = lang
+      langClass = `language-${lang}`
+    } catch {
+      // 未知语言：按纯文本高亮
+      const result = hljs.highlightAuto(str)
+      highlighted = result.value
+      langLabel = lang
+      langClass = `language-${lang}`
+    }
+  } else {
+    const result = hljs.highlightAuto(str)
+    highlighted = result.value
+  }
+  const lineCount = str.split('\n').length
+  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1).join('\n')
+  // 返回完整结构（markdown-it 检测到含 <pre> 不会重复包裹）
+  return `<div class="code-block"><div class="code-block-header"><span class="code-lang">${langLabel}</span><button type="button" class="code-copy" aria-label="复制代码" data-code="${encodeURIComponent(str)}">复制</button></div><div class="code-block-body"><span class="code-lines" aria-hidden="true">${lineNumbers}</span><pre class="code-pre"><code class="${langClass} hljs">${highlighted}</code></pre></div></div>`
+}
+
 // markdown-it 单例（html 关闭以规避 XSS；linkify 开启）
 const md = new MarkdownIt({
   html: false,
   linkify: true,
   breaks: true,
 })
+
+// 覆盖默认 fence 渲染：只对代码块使用 highlight（fence 是 ``` 围栏代码块）
+const defaultFence = md.renderer.rules.fence
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  if (!token || typeof token.content !== 'string') {
+    return defaultFence ? defaultFence(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
+  }
+  const info = token.info ? token.info.trim().split(/\s+/g)[0] : ''
+  const highlighted = highlightCode(token.content, info)
+  if (highlighted.startsWith('<')) {
+    return highlighted + '\n'
+  }
+  // 回退：交给默认渲染器
+  return defaultFence ? defaultFence(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
+}
 
 // turndown 单例：富文本 HTML -> Markdown
 const turndown = new TurndownService({
@@ -730,9 +783,28 @@ const initEditor = async () => {
   }
 }
 
+// 代码块「复制」事件委托（与前台一致）：点击 .code-copy 复制 data-code 内容
+const handlePreviewCopy = async (e: Event) => {
+  const target = e.target as HTMLElement
+  const btn = target.closest<HTMLButtonElement>('.code-copy')
+  if (!btn) return
+  const encoded = btn.dataset.code
+  if (!encoded) return
+  try {
+    const text = decodeURIComponent(encoded)
+    await navigator.clipboard.writeText(text)
+    const original = btn.textContent || '复制'
+    btn.textContent = '已复制'
+    setTimeout(() => { btn.textContent = original }, 1500)
+  } catch {
+    // 复制失败静默
+  }
+}
+
 onMounted(async () => {
   await fetchOptions()
   await initEditor()
+  document.addEventListener('click', handlePreviewCopy)
 })
 
 // 关键：编辑/写文章共用同一组件实例（articles/edit/:id?），
@@ -750,6 +822,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handlePreviewCopy)
   if (saveTimer) clearTimeout(saveTimer)
   if (savedAtTimer) clearTimeout(savedAtTimer)
 })
@@ -942,9 +1015,102 @@ onBeforeUnmount(() => {
   color: #57606a;
 }
 
-.md-editor-preview img {
-  max-width: 100%;
-  height: auto;
+/* ===== 代码块（高亮/行号/语言/复制）—— 与前台 .article-body 观感一致 =====
+   注：v-html 注入的 DOM 不带 scoped data-v，须用 :deep 命中 */
+.md-editor-preview :deep(.code-block),
+.preview-content :deep(.code-block) {
+  margin: 1em 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+
+.md-editor-preview :deep(.code-block-header),
+.preview-content :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f6f8fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.md-editor-preview :deep(.code-lang),
+.preview-content :deep(.code-lang) {
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.md-editor-preview :deep(.code-copy),
+.preview-content :deep(.code-copy) {
+  border: none;
+  background: transparent;
+  color: #57606a;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.md-editor-preview :deep(.code-copy:hover),
+.preview-content :deep(.code-copy:hover) {
+  color: #0969da;
+  background: rgba(9, 105, 218, 0.08);
+}
+
+.md-editor-preview :deep(.code-block-body),
+.preview-content :deep(.code-block-body) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.md-editor-preview :deep(.code-lines),
+.preview-content :deep(.code-lines) {
+  padding: 10px 0;
+  min-width: 40px;
+  text-align: right;
+  color: #94a3b8;
+  background: #f6f8fa;
+  border-right: 1px solid #e5e7eb;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  user-select: none;
+  padding-right: 10px;
+  /* 关键：span 默认 white-space:normal 会把 1\n2\n3 折叠成空格横向排列，须保留换行使其每行一个 */
+  white-space: pre;
+}
+
+.md-editor-preview :deep(.code-pre),
+.preview-content :deep(.code-pre) {
+  margin: 0;
+  padding: 10px 14px;
+  background: transparent;
+  overflow-x: auto;
+  border-radius: 0;
+  /* 确保代码原样保留换行，与行号逐行对齐 */
+  white-space: pre;
+}
+
+.md-editor-preview :deep(.code-pre code),
+.preview-content :deep(.code-pre code) {
+  background: transparent;
+  padding: 0;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* 代码块高亮主题（github）全局生效，覆盖 .hljs 默认 */
+.md-editor-preview :deep(.hljs),
+.preview-content :deep(.hljs) {
+  background: transparent;
+  padding: 0;
 }
 
 .md-editor-preview a {

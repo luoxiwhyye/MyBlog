@@ -37,13 +37,18 @@ body,
 }
 
 // 防横向滚动：移动端常因毛玻璃/绝对定位/长词溢出产生横向滚动条。
-// 用 overflow-x: hidden 在 body 上兜底（具体溢出源各自治理，此处仅防滚动穿透）。
+// 用 overflow-x: clip 在 html/body 上兜底（具体溢出源各自治理，此处仅防滚动穿透）。
+// 注意必须用 clip 而非 hidden：hidden 会让 html/body 成为滚动容器，
+// 破坏 position:sticky（如文章目录 quick-nav 的顶部固定失效）。clip 只裁剪不滚动。
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
-  overflow-x: hidden;
+  /* 防横向滚动兜底：用 clip 而非 hidden——hidden 会让 body 成为滚动容器，
+     从而破坏 position:sticky（如文章目录 quick-nav 的顶部固定失效）。
+     clip 只裁剪不产生滚动容器，不破坏 sticky，且同样能挡掉横向溢出。 */
+  overflow-x: clip;
 }
 
 img {

@@ -2093,6 +2093,15 @@ useHead(() => {
   list-style: none;
   display: grid;
   gap: 8px;
+  /* 关键：grid 子项默认 min-width:auto，长标题不换行会撑破卡片，须置 0 */
+  min-width: 0;
+}
+
+.toc li {
+  min-width: 0;
+  /* 允许长标题在按钮内安全换行/截断，避免撑破卡片 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .toc button {
@@ -2105,9 +2114,14 @@ useHead(() => {
   padding: 4px 8px 4px 12px;
   border-radius: 6px;
   width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 长标题安全换行显示完整文字（不撑破卡片），而非用 … 截断 */
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.5;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
