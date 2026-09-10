@@ -1,21 +1,43 @@
 const pool = require("../config/database");
 
 /**
- * 获取所有标签（带分页）
+ * 获取所有标签（带分页，支持按名称模糊检索）
+ * @param {number} offset
+ * @param {number} limit
+ * @param {string} [keyword] 名称关键词（可选，空则不过滤）
  */
-const getLabels = async (offset, limit) => {
-  const [rows] = await pool.query(
-    "SELECT id, label_name AS labelName FROM `label` ORDER BY id DESC LIMIT ? OFFSET ?;",
-    [limit, offset],
-  );
+const getLabels = async (offset, limit, keyword = "") => {
+  const params = [];
+  let query = "SELECT id, label_name AS labelName FROM `label` WHERE 1=1";
+
+  const kw = typeof keyword === "string" ? keyword.trim() : "";
+  if (kw) {
+    query += " AND label_name LIKE ?";
+    params.push(`%${kw}%`);
+  }
+
+  query += " ORDER BY id DESC LIMIT ? OFFSET ?;";
+  params.push(limit, offset);
+
+  const [rows] = await pool.query(query, params);
   return rows;
 };
 
 /**
- * 获取标签总数
+ * 获取标签总数（与 getLabels 用同一过滤条件，否则分页总数与列表不匹配）
+ * @param {string} [keyword] 名称关键词（可选）
  */
-const getLabelsCount = async () => {
-  const [rows] = await pool.query("SELECT COUNT(*) as count FROM `label`;");
+const getLabelsCount = async (keyword = "") => {
+  const params = [];
+  let query = "SELECT COUNT(*) as count FROM `label` WHERE 1=1";
+
+  const kw = typeof keyword === "string" ? keyword.trim() : "";
+  if (kw) {
+    query += " AND label_name LIKE ?";
+    params.push(`%${kw}%`);
+  }
+
+  const [rows] = await pool.query(query, params);
   return rows[0].count;
 };
 

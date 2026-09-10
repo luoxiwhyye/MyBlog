@@ -1,13 +1,22 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.service.LabelService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/labels")
@@ -22,8 +31,9 @@ public class LabelController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<Map<String, Object>>>> getLabels(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize) {
-        PageResponse<Map<String, Object>> result = labelService.getLabels(page, pageSize);
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String keyword) {
+        PageResponse<Map<String, Object>> result = labelService.getLabels(page, pageSize, keyword);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

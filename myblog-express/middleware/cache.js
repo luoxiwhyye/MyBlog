@@ -41,8 +41,20 @@ const makeKey = (prefix, req, byUser = false) => {
 /**
  * 设置 Cache-Control 响应头
  * 使用 stale-while-revalidate 策略：浏览器缓存 + CDN 缓存 + 后台刷新
+ *
+ * ⚠️ 带鉴权（Authorization）的请求必须禁用浏览器缓存。
+ *   这是「后台写入成功后列表仍显示旧数据」的根因：服务端 Redis 缓存在写操作时
+ *   已按前缀清除，但浏览器层的 `max-age` 缓存不会因此失效，同一 URL 会直接命中
+ *   本地缓存。带 Authorization 的请求本身就代表「个性化 + 需要实时」，按 HTTP
+ *   语义也不应被缓存（shared cache 尤其不应缓存带鉴权的响应）。
+ *   注意：这里只改响应头，服务端 Redis 缓存行为完全不变。
  */
-const setCacheHeaders = (res, ttl) => {
+const setCacheHeaders = (res, ttl, req) => {
+  if (req?.headers?.authorization) {
+    res.set("Cache-Control", "private, no-store");
+    return;
+  }
+
   // max-age: 浏览器和 CDN 缓存时间
   // stale-while-revalidate: 缓存过期后仍可使用旧数据，同时后台异步刷新
   const stale = Math.max(ttl * 2, 600);
@@ -64,7 +76,7 @@ const cache = (prefix, ttl = DEFAULT_TTL, byUser = false) => {
     if (req.method !== "GET") return next();
 
     // 始终设置 Cache-Control 头（即使 Redis 不可用）
-    setCacheHeaders(res, ttl);
+    setCacheHeaders(res, ttl, req);
 
     const client = getRedis();
     if (!client || client.status !== "ready") {

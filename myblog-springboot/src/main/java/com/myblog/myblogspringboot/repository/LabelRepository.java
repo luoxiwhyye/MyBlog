@@ -1,5 +1,7 @@
 package com.myblog.myblogspringboot.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +19,12 @@ public interface LabelRepository extends JpaRepository<Label, Integer> {
 
     /** 名称是否已被「其他」标签占用（更新时排除自身） */
     boolean existsByLabelNameAndIdNot(String labelName, Integer id);
+
+    /**
+     * 按名称模糊检索（忽略大小写），用于后台标签管理搜索。
+     * 与 Express 端 `label_name LIKE %kw%` 行为对齐。
+     */
+    Page<Label> findByLabelNameContainingIgnoreCase(String keyword, Pageable pageable);
 
     @Query(value = "SELECT COUNT(*) FROM article_label al JOIN article a ON al.article_id = a.id " +
            "WHERE al.label_id = :labelId AND a.deleted_at IS NULL", nativeQuery = true)

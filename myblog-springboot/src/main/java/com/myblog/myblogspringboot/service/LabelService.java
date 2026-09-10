@@ -9,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +31,20 @@ public class LabelService {
         this.labelRepository = labelRepository;
     }
 
-    @Cacheable(value = "labels", key = "'list:' + #page + ':' + #pageSize", unless = "#result == null || #result.list.isEmpty()")
-    public PageResponse<Map<String, Object>> getLabels(int page, int pageSize) {
-        Page<Label> labelPage = labelRepository.findAll(
-                PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "id")));
+    /**
+     * 获取标签列表（支持按名称关键词模糊检索）。
+     * 缓存键需包含 keyword，否则不同搜索词会互相污染。
+     */
+    @Cacheable(value = "labels",
+            key = "'list:' + #page + ':' + #pageSize + ':' + (#keyword == null ? '' : #keyword.trim())",
+            unless = "#result == null || #result.list.isEmpty()")
+    public PageResponse<Map<String, Object>> getLabels(int page, int pageSize, String keyword) {
+        Pageable pageable = PageRequest.of(page - 1, pageSize, Sort.by(Sort.Direction.DESC, "id"));
+        String kw = keyword == null ? "" : keyword.trim();
+
+        Page<Label> labelPage = kw.isEmpty()
+                ? labelRepository.findAll(pageable)
+                : labelRepository.findByLabelNameContainingIgnoreCase(kw, pageable);
 
         List<Map<String, Object>> list = labelPage.getContent().stream().map(label -> {
             Map<String, Object> map = new LinkedHashMap<>();

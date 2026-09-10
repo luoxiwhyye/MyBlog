@@ -8,10 +8,31 @@
         </div>
       </template>
 
+      <!-- 检索栏：关键词由后端过滤（非当前页前端过滤），避免“只搜当前页”的假检索 -->
+      <div class="filter-bar">
+        <el-input
+          v-model="keyword"
+          placeholder="搜索标签名称"
+          clearable
+          class="search-input"
+          @input="scheduleSearch"
+          @keyup.enter="handleSearchNow"
+          @clear="handleSearchNow"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <span v-if="appliedKeyword" class="search-hint">
+          匹配「{{ appliedKeyword }}」共 {{ pagination.total }} 个标签
+        </span>
+      </div>
+
       <el-table
         :data="labelList"
         v-loading="loading"
         style="width: 100%"
+        :empty-text="emptyText"
       >
         <el-table-column label="ID" prop="id" width="80" />
         <el-table-column label="标签名称" prop="labelName" min-width="150" />
@@ -84,8 +105,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { label as labelApi } from '@/api'
 
 const loading = ref(false)
@@ -93,6 +115,20 @@ const submitting = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const labelList = ref<any[]>([])
+
+// ===== 检索 =====
+const SEARCH_DEBOUNCE_MS = 300
+// 输入框实时值（防抖后才会发起请求）
+const keyword = ref('')
+// 最近一次「实际发起请求」使用的关键词，用于提示文案与空态文案
+const appliedKeyword = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+// 请求序号：丢弃过期响应，避免快速改关键词时旧结果覆盖新结果
+let fetchSeq = 0
+
+const emptyText = computed(() =>
+  appliedKeyword.value ? '未找到匹配的标签' : '暂无标签'
+)
 
 const form = reactive({
   labelName: '',
@@ -153,23 +189,56 @@ const pagination = reactive({
 
 const formRef = ref()
 
-// 获取标签列表
+// 获取标签列表（关键词走后端过滤）
 const fetchLabels = async () => {
+  const seq = ++fetchSeq
   loading.value = true
   try {
-    const response = await labelApi.getList({
+    const kw = keyword.value.trim()
+    const params: { page: number; pageSize: number; keyword?: string } = {
       page: pagination.page,
       pageSize: pagination.pageSize
-    })
+    }
+    // 仅在有关键词时传参，避免空串产生多余的缓存键
+    if (kw) params.keyword = kw
+
+    const response = await labelApi.getList(params)
+    if (seq !== fetchSeq) return // 已有更新的请求，丢弃本次结果
+
     if (response.code === 200 || response.code === 201) {
       labelList.value = response.data.list
       pagination.total = response.data.total
+      appliedKeyword.value = kw
     }
   } catch (error) {
-    ElMessage.error('获取标签列表失败')
+    if (seq === fetchSeq) {
+      ElMessage.error('获取标签列表失败')
+    }
   } finally {
-    loading.value = false
+    if (seq === fetchSeq) {
+      loading.value = false
+    }
   }
+}
+
+// 输入防抖：停止输入 300ms 后才检索，并回到第 1 页
+const scheduleSearch = () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTimer = null
+    pagination.page = 1
+    void fetchLabels()
+  }, SEARCH_DEBOUNCE_MS)
+}
+
+// 回车 / 点清除：立即检索，不等防抖
+const handleSearchNow = () => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+  pagination.page = 1
+  void fetchLabels()
 }
 
 // 显示新增对话框
@@ -249,9 +318,10 @@ const submitForm = async () => {
   })
 }
 
-// 分页大小改变
+// 分页大小改变（回到第 1 页：否则原页码可能超出新分页的总页数，列表空白）
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
+  pagination.page = 1
   fetchLabels()
 }
 
@@ -264,6 +334,13 @@ const handleCurrentChange = (page: number) => {
 onMounted(() => {
   fetchLabels()
 })
+
+onBeforeUnmount(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -275,6 +352,32 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 260px;
+}
+
+.search-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    width: 100%;
+  }
 }
 
 .pagination {

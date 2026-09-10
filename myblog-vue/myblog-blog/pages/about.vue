@@ -22,7 +22,7 @@
             :aria-label="link.name"
             :title="link.name"
           >
-            <SocialIcon :icon="link.icon" :size="18" />
+            <SocialIcon :icon="link.icon" :size="18" :color="true" />
             <span>{{ link.name }}</span>
           </a>
         </div>
@@ -326,11 +326,18 @@ usePageSeo({
   border: 1px solid var(--border-light);
   color: var(--text-secondary);
   font-size: 14px;
+  line-height: 1.4;
   text-decoration: none;
   transition:
     background-color $transition-fast,
     color $transition-fast,
     border-color $transition-fast;
+
+  /* 图标固定尺寸，不参与 flex 收缩，避免与文字对不齐 */
+  :deep(svg) {
+    flex: 0 0 auto;
+    display: block;
+  }
 }
 
 .social-link:hover {

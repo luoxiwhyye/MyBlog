@@ -40,6 +40,8 @@ export const label = {
   getList: (params?: {
     page?: number
     pageSize?: number
+    /** 按名称模糊检索（后端过滤，非当前页前端过滤） */
+    keyword?: string
   }): Promise<
     ApiResponse<PaginatedResponse<{ id: number; labelName: string; articleCount: number }>>
   > => {

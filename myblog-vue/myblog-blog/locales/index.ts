@@ -23,6 +23,7 @@ export const zh = {
   friends: {
     title: "友情链接",
     description: "收获的每一份友谊，都是旅途中的星光。",
+    sticky: "置顶",
   },
   messageBoard: {
     title: "留言板",
@@ -167,6 +168,7 @@ export const en: typeof zh = {
   friends: {
     title: "Friends",
     description: "Friendship is the star that lights our journey.",
+    sticky: "Pinned",
   },
   messageBoard: {
     title: "Message Board",

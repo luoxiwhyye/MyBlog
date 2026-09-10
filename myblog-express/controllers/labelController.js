@@ -23,14 +23,16 @@ const normalizeName = (raw) => {
 };
 
 /**
- * 获取标签列表
+ * 获取标签列表（支持按名称关键词模糊检索）
  */
 const getLabels = async (req, res, next) => {
   try {
     const { page, pageSize, offset, limit } = getPaginationParams(req);
+    const keyword =
+      typeof req.query.keyword === "string" ? req.query.keyword.trim() : "";
 
-    const labels = await labelModel.getLabels(offset, limit);
-    const total = await labelModel.getLabelsCount();
+    const labels = await labelModel.getLabels(offset, limit, keyword);
+    const total = await labelModel.getLabelsCount(keyword);
 
     // 为每个标签添加文章数量
     for (const label of labels) {

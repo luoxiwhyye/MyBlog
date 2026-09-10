@@ -20,7 +20,7 @@
           rel="noopener noreferrer"
           class="welcome-link"
         >
-          <SocialIcon :icon="link.icon" :size="14" />
+          <SocialIcon :icon="link.icon" :size="14" :color="true" />
           <span>{{ link.name }}</span>
         </a>
       </div>
@@ -218,11 +218,18 @@ usePageSeo({
   backdrop-filter: blur(var(--glass-blur));
   text-decoration: none;
   font-size: 14px;
+  line-height: 1.4;
   transition:
     color 0.3s,
     border-color 0.3s,
     box-shadow var(--transition-bounce),
     transform var(--transition-bounce);
+
+  /* 图标固定尺寸，不参与 flex 收缩，避免与文字对不齐 */
+  :deep(svg) {
+    flex: 0 0 auto;
+    display: block;
+  }
 }
 
 .welcome-link:hover {

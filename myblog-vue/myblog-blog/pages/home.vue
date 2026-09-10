@@ -27,7 +27,7 @@
               :title="link.name"
               :aria-label="link.name"
             >
-              <SocialIcon :icon="link.icon" class="profile-link-icon" />
+              <SocialIcon :icon="link.icon" :color="true" class="profile-link-icon" />
               <span>{{ link.name }}</span>
             </a>
           </div>
@@ -434,19 +434,43 @@ useWebsiteJsonLd();
 .profile-links {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-3;
+  align-items: center;
+  gap: $spacing-2;
   margin-top: $spacing-2;
 }
 
+/* 胶囊式：图标与文字用 inline-flex + align-items:center 对齐（原来内联 SVG
+   走 baseline，与中文并排会错位），hover 时用品牌色描边与浅底 */
 .profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: $border-radius-full;
+  background: var(--bg-card);
   font-size: $font-size-sm;
-  color: var(--color-accent);
+  line-height: 1.4;
+  color: var(--text-secondary);
   text-decoration: none;
-  transition: color 0.2s;
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background-color 0.2s,
+    transform var(--transition-bounce);
 
   &:hover {
-    color: var(--color-category);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: var(--color-accent-light);
+    transform: translateY(-1px);
   }
+}
+
+/* 图标不参与 flex 压缩，保证各链接图标尺寸一致（与文字基线错位的根因） */
+.profile-link-icon {
+  flex: 0 0 auto;
+  display: block;
 }
 
 .profile-more {
