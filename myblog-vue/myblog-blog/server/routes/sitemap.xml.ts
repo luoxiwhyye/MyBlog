@@ -1,4 +1,8 @@
-import { fetchAllArticles, fetchAllCategories, fetchAllTags } from "~/server/utils/backend-api";
+import {
+  fetchAllArticles,
+  fetchAllCategories,
+  fetchAllTags,
+} from "~/server/utils/backend-api";
 import { buildCanonicalUrl } from "~/utils/seo";
 
 type SitemapEntry = {
@@ -43,7 +47,6 @@ export default defineEventHandler(async (event) => {
     toUrlEntry(siteUrl, "/tag", { changefreq: "weekly", priority: "0.8" }),
     toUrlEntry(siteUrl, "/archive", { changefreq: "weekly", priority: "0.7" }),
     toUrlEntry(siteUrl, "/about", { changefreq: "monthly", priority: "0.6" }),
-    toUrlEntry(siteUrl, "/search", { changefreq: "weekly", priority: "0.4" }),
     ...categories.map((category) =>
       toUrlEntry(siteUrl, `/category/${category.id}`, {
         changefreq: "weekly",

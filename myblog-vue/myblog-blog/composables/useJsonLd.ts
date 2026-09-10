@@ -139,7 +139,7 @@ export const useBreadcrumbJsonLd = (
 
 /**
  * 首页 JSON-LD (WebSite + SearchAction)
- * 在首页 useHead 中调用
+ * 站点无独立搜索页，站内搜索由归档页承担，故 SearchAction 指向 /archive?q=
  */
 export const useWebsiteJsonLd = () => {
   const { siteUrl, siteName, siteDescription } = useSiteMeta();
@@ -154,7 +154,7 @@ export const useWebsiteJsonLd = () => {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${siteUrl.value}/search?q={search_term_string}`,
+        urlTemplate: `${siteUrl.value}/archive?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

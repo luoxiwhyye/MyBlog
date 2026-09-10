@@ -86,12 +86,22 @@ html.dark .layout {
 
 /* 在移动端使用更轻量的背景处理：
    cover 在窄屏会把图片横向裁剪、焦点偏移，改为中心覆盖并锁定两端，
-   保证亮/暗两套背景都能完整显示、焦点居中。 */
+   保证亮/暗两套背景都能完整显示、焦点居中。
+   背景图优先用移动端专用图，未配置时回退桌面图（JS 侧未配置时会移除变量，
+   否则写入 none 会让第二个 var() 参数失效）。 */
 @media (max-width: 768px) {
   .layout {
+    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
     background-attachment: scroll;
     background-size: cover;
     background-position: center center;
+  }
+
+  html.dark .layout {
+    background-image: var(
+      --site-bg-dark-mobile,
+      var(--site-bg-dark, var(--site-bg-light))
+    );
   }
 }
 </style>

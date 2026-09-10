@@ -68,6 +68,13 @@ export const useLayoutSeo = () => {
   const bgDark = computed(() =>
     normalizeAssetUrl(settingsStore.getSetting("site_bg_dark")),
   );
+  // 移动端背景图（可选）：键不存在时 getSetting 返回 ''，由 CSS 回退到桌面图
+  const bgLightMobile = computed(() =>
+    normalizeAssetUrl(settingsStore.getSetting("site_bg_light_mobile")),
+  );
+  const bgDarkMobile = computed(() =>
+    normalizeAssetUrl(settingsStore.getSetting("site_bg_dark_mobile")),
+  );
 
   const setBgVar = (name: string, url: string) => {
     if (typeof document === "undefined") return;
@@ -75,6 +82,23 @@ export const useLayoutSeo = () => {
       name,
       url ? `url(${url})` : "none",
     );
+  };
+
+  /**
+   * 带 CSS 回退的变量注入：未配置时**移除变量**，而不是写 `none`。
+   *
+   * 原因：`none` 是合法的 background-image 值，一旦写入，
+   * `var(--site-bg-light-mobile, var(--site-bg-light))` 就不会走回退，
+   * 移动端背景会变成「配了才显示、没配就丢失」的回归。
+   * 移除属性后，`var()` 的第二个参数（桌面图）才真正生效。
+   */
+  const setBgVarWithFallback = (name: string, url: string) => {
+    if (typeof document === "undefined") return;
+    if (url) {
+      document.documentElement.style.setProperty(name, `url(${url})`);
+    } else {
+      document.documentElement.style.removeProperty(name);
+    }
   };
 
   // 品牌主色：按 5 个维度 × 亮/暗模式独立读取，未配置回退默认预设（当前设计）。
@@ -116,6 +140,8 @@ export const useLayoutSeo = () => {
   watchEffect(() => {
     setBgVar("--site-bg-light", bgLight.value);
     setBgVar("--site-bg-dark", bgDark.value);
+    setBgVarWithFallback("--site-bg-light-mobile", bgLightMobile.value);
+    setBgVarWithFallback("--site-bg-dark-mobile", bgDarkMobile.value);
     applyThemeColor();
   });
 
@@ -160,5 +186,7 @@ export const useLayoutSeo = () => {
     siteFavicon,
     bgLight,
     bgDark,
+    bgLightMobile,
+    bgDarkMobile,
   };
 };

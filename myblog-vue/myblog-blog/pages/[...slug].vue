@@ -76,7 +76,8 @@ try {
 const goSearch = () => {
   const q = searchQuery.value.trim();
   if (q) {
-    router.push(`/search?q=${encodeURIComponent(q)}`);
+    // 站点无独立搜索页，站内搜索由归档页承担（归档页支持 ?q= 预填关键词）
+    router.push(`/archive?q=${encodeURIComponent(q)}`);
   }
 };
 

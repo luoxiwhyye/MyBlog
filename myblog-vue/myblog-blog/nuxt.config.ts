@@ -40,8 +40,6 @@ export default defineNuxtConfig({
     "/tag/**": { isr: 300 },
     // 关于页 SWR: 5 分钟缓存 + 10 分钟陈旧重验证
     "/about": { swr: 600 },
-    // 搜索页不缓存
-    "/search": { ssr: true },
     // 文章详情页 SSR（实时内容）
     "/article/**": { ssr: true },
     // 工具箱页纯客户端渲染（各页面 definePageMeta 中已设 ssr: false）

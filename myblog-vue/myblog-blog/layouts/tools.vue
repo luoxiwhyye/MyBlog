@@ -63,4 +63,20 @@ useLayoutSeo();
 html.dark .layout {
   background-image: var(--site-bg-dark, var(--site-bg-light));
 }
+
+/* 移动端优先用竖版专用图，未配置时回退桌面图；
+   fixed 在 iOS 上不可靠，一并降级为 scroll（与 default / landing 布局一致）。 */
+@media (max-width: 768px) {
+  .layout {
+    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
+    background-attachment: scroll;
+  }
+
+  html.dark .layout {
+    background-image: var(
+      --site-bg-dark-mobile,
+      var(--site-bg-dark, var(--site-bg-light))
+    );
+  }
+}
 </style>

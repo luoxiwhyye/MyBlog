@@ -47,8 +47,17 @@ html.dark .landing {
 
 @media (max-width: 768px) {
   .landing {
+    /* 优先用移动端专用图，未配置时回退桌面图 */
+    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
     background-attachment: scroll;
     background-size: auto 100%;
+  }
+
+  html.dark .landing {
+    background-image: var(
+      --site-bg-dark-mobile,
+      var(--site-bg-dark, var(--site-bg-light))
+    );
   }
 }
 </style>

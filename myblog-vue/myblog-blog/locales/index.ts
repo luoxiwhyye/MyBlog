@@ -8,7 +8,6 @@ export const zh = {
     friends: "友情链接",
     messageBoard: "留言板",
     about: "关于",
-    search: "搜索文章...",
     openMenu: "打开菜单",
   },
   featureDisabled: {
@@ -120,16 +119,6 @@ export const zh = {
     sortViews: "按阅读最多",
     sortTitle: "按标题",
   },
-  search: {
-    title: "搜索结果",
-    placeholder: "搜索文章...",
-    searching: "搜索中...",
-    noResults: "没有找到相关文章",
-    foundResults: "找到 {total} 篇文章",
-    sortRelevance: "按相关度",
-    sortDate: "按发布时间",
-    backHome: "返回首页",
-  },
   pagination: {
     total: "共 {total} 条",
     jumpTo: "页",
@@ -163,7 +152,6 @@ export const en: typeof zh = {
     friends: "Friends",
     messageBoard: "Message Board",
     about: "About",
-    search: "Search articles...",
     openMenu: "Open menu",
   },
   featureDisabled: {
@@ -275,16 +263,6 @@ export const en: typeof zh = {
     sortNewest: "Newest",
     sortViews: "Most viewed",
     sortTitle: "Title",
-  },
-  search: {
-    title: "Search Results",
-    placeholder: "Search articles...",
-    searching: "Searching...",
-    noResults: "No results found",
-    foundResults: "{total} articles found",
-    sortRelevance: "Relevance",
-    sortDate: "Date",
-    backHome: "Back to Home",
   },
   pagination: {
     total: "{total} items",

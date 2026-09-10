@@ -151,7 +151,20 @@ const { data: articles, pending } = await useAsyncData(
 );
 
 // ===== 搜索 / 按时间筛选 / 排序 状态 =====
-const keyword = ref("");
+// 站内搜索入口统一为 /archive?q=xxx（独立搜索页已移除），故此处支持从 URL 预填关键词。
+// 注意：只做「URL → 关键词」单向同步，不回写 URL——归档页带 isr 缓存，
+// 若把用户每次输入都写进 query 会产生大量缓存键。
+const route = useRoute();
+const keyword = ref(typeof route.query.q === "string" ? route.query.q : "");
+
+// 其它入口（如 404 页搜索框）跳到 /archive?q= 时同步关键词
+watch(
+  () => route.query.q,
+  (value) => {
+    keyword.value = typeof value === "string" ? value : "";
+  },
+);
+
 const selectedYear = ref<string | number | null>(null);
 const selectedMonth = ref<string | number | null>(null);
 const sortBy = ref<"newest" | "views" | "title">("newest");
