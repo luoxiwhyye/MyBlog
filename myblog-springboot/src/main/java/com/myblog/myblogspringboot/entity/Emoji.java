@@ -24,6 +24,10 @@ public class Emoji {
     @Column(nullable = false, length = 20)
     private String type = "emoji";
 
+    /** 所属分组ID（NULL=未分组，前台归「默认」分组） */
+    @Column(name = "group_id")
+    private Integer groupId;
+
     @Column(name = "is_custom", nullable = false)
     private Integer isCustom = 0;
 
@@ -49,6 +53,9 @@ public class Emoji {
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+
+    public Integer getGroupId() { return groupId; }
+    public void setGroupId(Integer groupId) { this.groupId = groupId; }
 
     public Integer getIsCustom() { return isCustom; }
     public void setIsCustom(Integer isCustom) { this.isCustom = isCustom; }

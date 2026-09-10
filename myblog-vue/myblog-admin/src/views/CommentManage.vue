@@ -62,7 +62,11 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="内容" prop="content" min-width="200" show-overflow-tooltip />
+        <el-table-column label="内容" min-width="220">
+          <template #default="scope">
+            <div class="comment-content" v-html="renderComment(scope.row.content)"></div>
+          </template>
+        </el-table-column>
         <el-table-column label="文章ID" prop="articleId" width="100" />
         <el-table-column label="点赞数" prop="likeCount" width="80" />
         <el-table-column label="状态" width="100">
@@ -204,6 +208,40 @@ const fetchComments = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 标记文本 → 安全 HTML（白名单：仅 [img:http(s)] 与 @提及，与前台 utils/commentRender 同规则）
+const COMMENT_IMG_MARKER = /\[img:(https?:\/\/[^\s\]]+)\]/gi
+const escapeHtml = (text: string) =>
+  text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+const escapeAndMention = (text: string) =>
+  escapeHtml(text).replace(/(@[^\s@,，。！？!?]+)/g, '<span class="mention">$1</span>')
+
+const renderComment = (content?: string) => {
+  const value = content || ''
+  if (!value) return ''
+  const parts: string[] = []
+  const re = new RegExp(COMMENT_IMG_MARKER.source, 'gi')
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  while ((match = re.exec(value)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(escapeAndMention(value.slice(lastIndex, match.index)))
+    }
+    parts.push(
+      `<img class="comment-thumb" src="${escapeHtml(match[1] ?? '')}" alt="表情" loading="lazy" />`,
+    )
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < value.length) {
+    parts.push(escapeAndMention(value.slice(lastIndex)))
+  }
+  return parts.join('')
 }
 
 // 获取状态类型
@@ -381,6 +419,26 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 评论内容（标记文本渲染，v-html 注入不带 scoped 属性 → 用 :deep） */
+.comment-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+
+  :deep(.comment-thumb) {
+    max-width: 46px;
+    max-height: 46px;
+    margin: 0 2px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  :deep(.mention) {
+    color: #409eff;
+    font-weight: 600;
+  }
 }
 
 .author-url-link:hover {

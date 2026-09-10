@@ -57,45 +57,11 @@
             <el-input v-model="replyForm.authorUrl" placeholder="https://（选填）" class="form-url" />
           </div>
           <div class="reply-textarea-wrap">
-            <el-input
+            <CommentInput
+              ref="replyInputRef"
               v-model="replyForm.content"
-              type="textarea"
               placeholder="写下您的回复..."
-              :rows="3"
             />
-            <button type="button" class="emoji-btn" title="插入表情" @click="replyEmojiOpen = !replyEmojiOpen">😊</button>
-            <div v-if="replyEmojiOpen" class="emoji-picker">
-              <div class="emoji-tabs">
-                <button :class="{ active: replyEmojiTab === 'emoji' }" type="button" @click="replyEmojiTab = 'emoji'">Emoji</button>
-                <button :class="{ active: replyEmojiTab === 'kaomoji' }" type="button" @click="replyEmojiTab = 'kaomoji'">颜文字</button>
-              </div>
-              <div v-if="replyEmojiTab === 'emoji'" class="emoji-grid">
-                <button
-                  v-for="(emoji, ei) in replyEmojiList"
-                  :key="`t${ei}`"
-                  type="button"
-                  class="emoji-item"
-                  @click="insertReplyEmoji(emoji)"
-                >{{ emoji }}</button>
-                <button
-                  v-for="(img, ii) in replyImageEmojiList"
-                  :key="`i${ii}`"
-                  type="button"
-                  class="emoji-item emoji-item--image"
-                  :title="'自定义图片表情'"
-                  @click="insertReplyEmoji(img)"
-                ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
-              </div>
-              <div v-else class="kaomoji-grid">
-                <button
-                  v-for="kao in replyKaomojiList"
-                  :key="kao"
-                  type="button"
-                  class="kaomoji-item"
-                  @click="insertReplyEmoji(kao)"
-                >{{ kao }}</button>
-              </div>
-            </div>
           </div>
           <div class="reply-actions">
             <el-button type="primary" native-type="submit" :loading="submitting">
@@ -123,8 +89,9 @@ import { ElMessage } from "element-plus";
 import { commentApi } from "~/api";
 import type { Comment } from "~/types";
 import { formatDateTime } from "~/utils/format";
-import { useEmoji } from "~/composables/useEmoji";
 import { getGravatarUrl } from "~/utils/gravatar";
+import { renderCommentContent } from "~/utils/commentRender";
+import CommentInput from "~/components/common/CommentInput.vue";
 
 defineOptions({
   name: "BlogComment",
@@ -142,19 +109,7 @@ const showReply = ref(false);
 const liked = ref(false);
 const submitting = ref(false);
 const likeCount = ref(props.comment.likeCount);
-const replyEmojiOpen = ref(false);
-const replyEmojiTab = ref<"emoji" | "kaomoji">("emoji");
-
-// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
-const { emojiList: replyEmojiList, kaomojiList: replyKaomojiList, imageEmojiList: replyImageEmojiList, loadEmoji } = useEmoji();
-onMounted(() => {
-  void loadEmoji();
-});
-
-const insertReplyEmoji = (text: string) => {
-  replyForm.content += text;
-  replyEmojiOpen.value = false;
-};
+const replyInputRef = ref<any>(null);
 
 const replyForm = reactive({
   authorName: "",
@@ -171,22 +126,18 @@ const normalizeUrl = (url: string) => {
   return url;
 };
 
-// @提及渲染：将 @用户名 高亮
-const renderContent = (content: string) => {
-  if (!content) return ""
-  return content.replace(
-    /(@[^\s@,，。！？!?]+)/g,
-    '<span class="mention">$1</span>',
-  )
-};
+// 标记文本 → 安全 HTML（白名单：仅 [img:url] 与 @提及）
+const renderContent = (content: string) => renderCommentContent(content);
 
 // 回复时自动 @ 对方（若未手动输入）
 const showReplyForm = () => {
-  const mention = `@${props.comment.authorName} `
+  showReply.value = true;
   if (!replyForm.content.includes(`@${props.comment.authorName}`)) {
-    replyForm.content = mention + replyForm.content
+    // 通过编辑器 API 插入，并按标记文本序列化
+    nextTick(() => {
+      replyInputRef.value?.insertEmoji(`@${props.comment.authorName} `);
+    });
   }
-  showReply.value = true
 };
 
 watch(
@@ -232,7 +183,8 @@ const handleReply = async () => {
     replyForm.authorName = "";
     replyForm.authorEmail = "";
     replyForm.authorUrl = "";
-    replyForm.content = "";
+    // 清空富文本编辑器（会同步 v-model 为空）
+    replyInputRef.value?.clear();
     emit("replySubmitted");
   } catch {
     ElMessage.error("回复失败");
@@ -336,6 +288,14 @@ const handleReplySubmitted = () => {
   padding: 0 4px;
 }
 
+.comment-content :deep(.comment-markup-img) {
+  max-width: 120px;
+  max-height: 120px;
+  margin: 0 2px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
 .comment-actions {
   display: flex;
   gap: 8px;
@@ -390,138 +350,6 @@ const handleReplySubmitted = () => {
   margin-bottom: 12px;
 }
 
-.reply-textarea-wrap :deep(.el-textarea__inner) {
-  padding-right: 40px;
-}
-
-.emoji-btn {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 6px;
-  background: var(--bg-card);
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-  z-index: 2;
-}
-
-.emoji-btn:hover {
-  background: var(--border-light);
-}
-
-.emoji-picker {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  width: 380px;
-  max-height: 300px;
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card-lg);
-  box-shadow: var(--shadow-elevated);
-  overflow-y: auto;
-  overflow-x: hidden; /* 宽面板下内容完整显示，此规则仅作兜底 */
-  z-index: 50;
-  padding: 12px;
-}
-
-.emoji-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 8px;
-}
-
-.emoji-tabs button {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.emoji-tabs button.active,
-.emoji-tabs button:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-}
-
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 4px;
-}
-
-.emoji-item {
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-  transition: background 0.15s;
-  line-height: 1.4;
-  text-align: center;
-}
-
-.emoji-item:hover {
-  background: var(--bg-hover);
-}
-
-.emoji-item--image {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 2px;
-}
-
-.emoji-item-img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border-radius: 3px;
-}
-
-.kaomoji-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.kaomoji-item {
-  border: 1px solid var(--border-light);
-  background: var(--bg-hover);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 13px;
-  cursor: pointer;
-  color: var(--text-primary);
-  transition: all 0.15s;
-  /* 限制单个长颜文字宽度并允许换行，避免撑破面板产生横向滚动 */
-  max-width: 100%;
-  word-break: break-all;
-  overflow-wrap: anywhere;
-}
-
-.kaomoji-item:hover {
-  border-color: var(--color-accent);
-}
-
 .reply-actions {
   display: flex;
   gap: 10px;
@@ -555,23 +383,9 @@ const handleReplySubmitted = () => {
     grid-template-columns: 1fr;
   }
 
-  .emoji-picker {
-    width: 320px;
-    right: -30px;
-  }
-
   .replies {
     margin-left: 16px;
     padding-left: 10px;
-  }
-
-  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
-  .emoji-btn {
-    width: 44px;
-    height: 44px;
-    right: 6px;
-    bottom: 6px;
-    font-size: 18px;
   }
 
   /* ===== 评论区移动端排版 ===== */

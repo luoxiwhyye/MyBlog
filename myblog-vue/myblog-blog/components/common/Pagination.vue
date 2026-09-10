@@ -89,7 +89,7 @@ const currentPage = ref(props.page);
 const currentPageSize = ref(props.pageSize);
 const jumpValue = ref(props.page);
 
-const pageSizeOptions = [3, 6, 12, 24];
+const pageSizeOptions = [4, 7, 13, 25];
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.total / currentPageSize.value)));
 

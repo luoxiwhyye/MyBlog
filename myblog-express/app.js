@@ -19,6 +19,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const cacheRoutes = require("./routes/cacheRoutes");
 const metricsRoutes = require("./routes/metricsRoutes");
 const emojiRoutes = require("./routes/emojiRoutes");
+const emojiGroupRoutes = require("./routes/emojiGroupRoutes");
 const errorLogRoutes = require("./routes/errorLogRoutes");
 
 // 导入中间件
@@ -191,6 +192,7 @@ app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
 app.use(`${apiPrefix}/cache`, cacheRoutes);
 app.use(`${apiPrefix}/metrics`, metricsRoutes);
 app.use(`${apiPrefix}/emoji`, emojiRoutes);
+app.use(`${apiPrefix}/emoji-groups`, emojiGroupRoutes);
 app.use(`${apiPrefix}/error-log`, errorLogRoutes);
 
 // 404 处理

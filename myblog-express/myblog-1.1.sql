@@ -215,19 +215,36 @@ CREATE TABLE `message_board`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '留言板（访客免登录，单层留言）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for emoji_group
+-- ----------------------------
+DROP TABLE IF EXISTS `emoji_group`;
+CREATE TABLE `emoji_group`  (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '分组ID',
+  `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分组名称',
+  `cover` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '分组标识（Emoji 文本或图片URL）',
+  `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_emoji_group_sort`(`sort_order` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '表情分组（名称 + 标识 + 排序）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for emoji
 -- ----------------------------
 DROP TABLE IF EXISTS `emoji`;
 CREATE TABLE `emoji`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '表情ID',
   `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '表情内容（文本或图片URL）',
-  `type` enum('emoji','kaomoji') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'emoji' COMMENT '类型：emoji/颜文字',
+  `type` enum('emoji','kaomoji','image') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'emoji' COMMENT '类型：emoji/颜文字/图片',
+  `group_id` int NULL DEFAULT NULL COMMENT '所属分组ID（NULL=未分组）',
   `is_custom` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否博主自定义（0=内置，1=自定义）',
   `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
   `sort_order` int NOT NULL DEFAULT 0 COMMENT '排序',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`) USING BTREE,
-  INDEX `idx_emoji_enabled`(`enabled` ASC) USING BTREE
+  INDEX `idx_emoji_enabled`(`enabled` ASC) USING BTREE,
+  INDEX `idx_emoji_group`(`group_id` ASC) USING BTREE,
+  CONSTRAINT `fk_emoji_group` FOREIGN KEY (`group_id`) REFERENCES `emoji_group` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '表情库（支持文本/图片表情）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------

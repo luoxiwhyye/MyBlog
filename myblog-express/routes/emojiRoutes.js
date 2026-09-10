@@ -12,6 +12,9 @@ const {
 // 公开：获取全部启用表情（前台动态拉取）
 router.get("/enabled", emojiController.getEnabledEmojis);
 
+// 公开：按分组返回启用表情（前台表情面板）
+router.get("/grouped", emojiController.getGroupedEmojis);
+
 // 获取表情列表（公开只返回启用；管理端可看全部）
 router.get(
   "/",

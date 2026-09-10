@@ -16,6 +16,11 @@ const escapeHtml = (value = "") =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+// 评论/留言内容是「标记文本」（图片 → [img:url]），邮件里把标记可读化为 [图片]
+const COMMENT_IMG_MARKER = /\[img:https?:\/\/[^\s\]]+\]/gi;
+const formatCommentContent = (value = "") =>
+  escapeHtml(String(value).replace(COMMENT_IMG_MARKER, "[图片]"));
+
 const wrapTemplate = (title, bodyHtml) => `
   <div style="max-width:600px;margin:0 auto;font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f7f8fa;padding:24px;">
     <div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e6ebf2;">
@@ -57,7 +62,7 @@ const notifyBlogger = async ({
         </a>
         下发表了新评论：</p>
       <blockquote style="margin:16px 0;padding:12px 16px;background:#f1f5f9;border-left:4px solid #475569;border-radius:0 8px 8px 0;color:#475569;">
-        ${escapeHtml(content)}
+        ${formatCommentContent(content)}
       </blockquote>
       <p style="color:#94a3b8;font-size:13px;">评论默认为待审核状态，请前往后台进行审核。</p>
     `,
@@ -96,7 +101,7 @@ const notifyReplied = async ({
         </a>
         下的评论：</p>
       <blockquote style="margin:16px 0;padding:12px 16px;background:#f1f5f9;border-left:4px solid #475569;border-radius:0 8px 8px 0;color:#475569;">
-        ${escapeHtml(content)}
+        ${formatCommentContent(content)}
       </blockquote>
       <p style="color:#94a3b8;font-size:13px;">
         <a href="${escapeHtml(siteUrl)}/article/${articleId}" style="color:#475569;">点击查看完整讨论 →</a>

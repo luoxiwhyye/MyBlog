@@ -185,46 +185,11 @@
                 </el-form-item>
               </div>
               <div class="comment-textarea-wrap">
-                <el-input
-                  ref="commentTextareaRef"
+                <CommentInput
+                  ref="commentInputRef"
                   v-model="commentForm.content"
-                  type="textarea"
                   placeholder="写下您的评论..."
-                  :rows="3"
                 />
-                <button type="button" class="emoji-btn" title="插入表情" @click="emojiOpen = !emojiOpen">😊</button>
-                <div v-if="emojiOpen" class="emoji-picker">
-                  <div class="emoji-tabs">
-                    <button :class="{ active: emojiTab === 'emoji' }" type="button" @click="emojiTab = 'emoji'">Emoji</button>
-                    <button :class="{ active: emojiTab === 'kaomoji' }" type="button" @click="emojiTab = 'kaomoji'">颜文字</button>
-                  </div>
-                  <div v-if="emojiTab === 'emoji'" class="emoji-grid">
-                    <button
-                      v-for="(emoji, ei) in emojiList"
-                      :key="`t${ei}`"
-                      type="button"
-                      class="emoji-item"
-                      @click="insertEmoji(emoji)"
-                    >{{ emoji }}</button>
-                    <button
-                      v-for="(img, ii) in imageEmojiList"
-                      :key="`i${ii}`"
-                      type="button"
-                      class="emoji-item emoji-item--image"
-                      :title="'自定义图片表情'"
-                      @click="insertEmoji(img)"
-                    ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
-                  </div>
-                  <div v-else class="kaomoji-grid">
-                    <button
-                      v-for="kao in kaomojiList"
-                      :key="kao"
-                      type="button"
-                      class="kaomoji-item"
-                      @click="insertEmoji(kao)"
-                    >{{ kao }}</button>
-                  </div>
-                </div>
               </div>
               <el-button type="primary" native-type="submit" :loading="submitting" class="submit-btn">
                 发表评论
@@ -401,7 +366,7 @@ import { formatDate, formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
 import { buildSrcSet, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { markdownToPlain, renderArticleContent } from "~/utils/markdown";
-import { useEmoji } from "~/composables/useEmoji";
+import CommentInput from "~/components/common/CommentInput.vue";
 
 const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
@@ -436,21 +401,10 @@ const renderContent = computed(() =>
 
 const articleId = computed(() => Number(route.params.id));
 const submitting = ref(false);
-const emojiOpen = ref(false);
-const emojiTab = ref<"emoji" | "kaomoji">("emoji");
-const commentTextareaRef = ref<any>(null);
+// 评论输入框（简易富文本，标记文本序列化）
+const commentInputRef = ref<any>(null);
 const tocItems = ref<Array<{ id: string; text: string; level: number }>>([]);
 
-// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
-const { emojiList, kaomojiList, imageEmojiList, loadEmoji } = useEmoji();
-onMounted(() => {
-  void loadEmoji();
-});
-
-const insertEmoji = (text: string) => {
-  commentForm.value.content += text;
-  emojiOpen.value = false;
-};
 const commentSort = ref<"latest" | "hottest">("hottest");
 const commentPagination = ref({
   page: 1,
@@ -849,7 +803,8 @@ const handleComment = async () => {
     });
     ElMessage.success("评论已提交，审核通过后将显示，您也会收到邮件通知。");
     saveCommentInfo();
-    commentForm.value.content = "";
+    // 清空富文本编辑器（会同步 v-model 为空）
+    commentInputRef.value?.clear();
     await refreshComments();
   } catch (err: any) {
     // 优先展示后端返回的具体错误原因（如邮箱格式不正确/内容校验失败）
@@ -1314,23 +1269,6 @@ useHead(() => {
 
 .pagination-disabled .pagination-label {
   color: var(--text-muted);
-}
-
-/* 自定义图片表情（评论区 emoji-picker） */
-.emoji-item--image {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 2px;
-}
-
-.emoji-item-img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border-radius: 3px;
 }
 
 /* ===== 正文图片灯箱（Lightbox）===== */
@@ -1893,128 +1831,10 @@ useHead(() => {
   }
 }
 
-/* 评论区文本域 + emoji 按钮 */
+/* 评论区富文本输入框容器 */
 .comment-textarea-wrap {
   position: relative;
   margin-bottom: 14px;
-}
-
-.comment-textarea-wrap :deep(.el-textarea__inner) {
-  padding-right: 40px;
-}
-
-.emoji-btn {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 6px;
-  background: var(--bg-hover);
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-  z-index: 2;
-}
-
-.emoji-btn:hover {
-  background: var(--border-light);
-}
-
-/* Emoji 选择器 */
-.emoji-picker {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
-  width: 380px;
-  max-height: 300px;
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-elevated);
-  overflow-y: auto;
-  overflow-x: hidden; /* 宽面板下内容完整显示，此规则仅作兜底 */
-  z-index: 10;
-  padding: 12px;
-}
-
-.emoji-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 8px;
-}
-
-.emoji-tabs button {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.emoji-tabs button.active,
-.emoji-tabs button:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
-}
-
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 4px;
-}
-
-.emoji-item {
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 4px;
-  transition: background 0.15s;
-  line-height: 1.4;
-  text-align: center;
-}
-
-.emoji-item:hover {
-  background: var(--bg-hover);
-}
-
-.kaomoji-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.kaomoji-item {
-  border: 1px solid var(--border-light);
-  background: var(--bg-hover);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 13px;
-  cursor: pointer;
-  color: var(--text-primary);
-  transition: all 0.15s;
-  /* 限制单个长颜文字宽度并允许换行，避免撑破面板产生横向滚动 */
-  max-width: 100%;
-  word-break: break-all;
-  overflow-wrap: anywhere;
-}
-
-.kaomoji-item:hover {
-  border-color: var(--color-accent);
-  background: var(--color-accent-light);
 }
 
 .submit-btn {
@@ -2206,23 +2026,9 @@ useHead(() => {
     grid-template-columns: 1fr;
   }
 
-  .emoji-picker {
-    width: 320px;
-    right: -40px;
-  }
-
   .comments-header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
-  .emoji-btn {
-    width: 44px;
-    height: 44px;
-    right: 6px;
-    bottom: 6px;
-    font-size: 18px;
   }
 
   /* 移动端：底部操作栏接管“返回顶部”，隐藏悬浮圆钮避免重叠 */

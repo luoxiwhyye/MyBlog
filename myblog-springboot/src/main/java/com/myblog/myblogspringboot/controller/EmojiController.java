@@ -39,17 +39,25 @@ public class EmojiController {
         return ResponseEntity.ok(ApiResponse.success(emojis));
     }
 
+    /** 公开：按分组返回启用表情（前台表情面板） */
+    @GetMapping("/grouped")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getGroupedEmojis() {
+        List<Map<String, Object>> groups = emojiService.getGroupedEmojis();
+        return ResponseEntity.ok(ApiResponse.success(groups));
+    }
+
     /** 公开只返回启用；管理端可看全部 */
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<Map<String, Object>>>> getEmojis(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) Boolean enabled) {
+            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) String groupId) {
 
         boolean isAdmin = isAdminUser();
         PageResponse<Map<String, Object>> result =
-                emojiService.getEmojis(page, pageSize, type, enabled, isAdmin);
+                emojiService.getEmojis(page, pageSize, type, enabled, groupId, isAdmin);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -59,6 +67,7 @@ public class EmojiController {
         Map<String, Object> created = emojiService.createEmoji(
                 (String) body.get("content"),
                 (String) body.get("type"),
+                toInteger(body.get("groupId")),
                 toBoolean(body.get("isCustom")),
                 toBoolean(body.get("enabled")),
                 toInteger(body.get("sortOrder")));
@@ -74,7 +83,9 @@ public class EmojiController {
                 (String) body.get("type"),
                 toBoolean(body.get("isCustom")),
                 toBoolean(body.get("enabled")),
-                toInteger(body.get("sortOrder")));
+                toInteger(body.get("sortOrder")),
+                toInteger(body.get("groupId")),
+                body.containsKey("groupId"));
         return ResponseEntity.ok(ApiResponse.success(null, "表情已更新"));
     }
 

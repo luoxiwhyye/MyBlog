@@ -421,6 +421,30 @@ export const upload = {
   },
 }
 
+// 表情类型（A：新增 image，图片表情不再硬塞进 emoji）
+export type EmojiType = 'emoji' | 'kaomoji' | 'image'
+
+export interface EmojiItem {
+  id: number
+  content: string
+  type: EmojiType
+  groupId: number | null
+  groupName: string | null
+  isCustom: number
+  enabled: number
+  sortOrder: number
+  createdAt: string
+}
+
+export interface EmojiGroupItem {
+  id: number
+  name: string
+  cover: string | null
+  sortOrder: number
+  emojiCount: number
+  createdAt: string
+}
+
 // 表情管理（管理员 CRUD + 公开 enabled 列表）
 export const emoji = {
   getList: (params?: {
@@ -428,29 +452,17 @@ export const emoji = {
     pageSize?: number
     type?: string
     enabled?: boolean
-  }): Promise<
-    ApiResponse<
-      PaginatedResponse<{
-        id: number
-        content: string
-        type: 'emoji' | 'kaomoji'
-        isCustom: number
-        enabled: number
-        sortOrder: number
-        createdAt: string
-      }>
-    >
-  > => {
+    groupId?: number | string
+  }): Promise<ApiResponse<PaginatedResponse<EmojiItem>>> => {
     return request.get('/emoji', { params })
   },
-  getEnabled: (): Promise<
-    ApiResponse<Array<{ id: number; content: string; type: 'emoji' | 'kaomoji'; isCustom: number }>>
-  > => {
+  getEnabled: (): Promise<ApiResponse<Array<EmojiItem>>> => {
     return request.get('/emoji/enabled')
   },
   create: (data: {
     content: string
-    type?: 'emoji' | 'kaomoji'
+    type?: EmojiType
+    groupId?: number | null
     isCustom?: boolean
     enabled?: boolean
     sortOrder?: number
@@ -461,7 +473,8 @@ export const emoji = {
     id: number,
     data: {
       content?: string
-      type?: 'emoji' | 'kaomoji'
+      type?: EmojiType
+      groupId?: number | null
       isCustom?: boolean
       enabled?: boolean
       sortOrder?: number
@@ -471,6 +484,29 @@ export const emoji = {
   },
   delete: (id: number): Promise<ApiResponse> => {
     return request.delete(`/emoji/${id}`)
+  },
+}
+
+// 表情分组管理（名称 + 标识 + 排序；全部需管理员）
+export const emojiGroup = {
+  getList: (): Promise<ApiResponse<EmojiGroupItem[]>> => {
+    return request.get('/emoji-groups')
+  },
+  create: (data: {
+    name: string
+    cover?: string | null
+    sortOrder?: number
+  }): Promise<ApiResponse<{ id: number }>> => {
+    return request.post('/emoji-groups', data)
+  },
+  update: (
+    id: number,
+    data: { name?: string; cover?: string | null; sortOrder?: number },
+  ): Promise<ApiResponse> => {
+    return request.put(`/emoji-groups/${id}`, data)
+  },
+  delete: (id: number): Promise<ApiResponse> => {
+    return request.delete(`/emoji-groups/${id}`)
   },
 }
 

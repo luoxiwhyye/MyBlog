@@ -73,11 +73,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/settings/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/friend-links/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/friend-links/*/click").permitAll()
-                // 表情：公开只读（GET /enabled 与列表），写操作需管理员
+                // 表情：公开只读（GET /enabled、/grouped 与列表），写操作需管理员
                 .requestMatchers(HttpMethod.GET, "/api/v1/emoji/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/emoji/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/emoji/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/emoji/**").hasRole("ADMIN")
+                // 表情分组管理：全部需管理员
+                .requestMatchers("/api/v1/emoji-groups/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/blogger/public-profile").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/blogger/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/blogger/exists").permitAll()

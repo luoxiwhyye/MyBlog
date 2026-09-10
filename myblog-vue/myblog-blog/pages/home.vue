@@ -117,7 +117,7 @@ const { t } = useI18n();
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const currentPage = ref(1);
-const pageSize = ref(6);
+const pageSize = ref(7);
 
 // 类目筛选 Chip（文章区顶部 "行动号召"）
 const activeTypeId = ref<number | "">("");
@@ -134,7 +134,7 @@ const emptyArticlePage = (): PaginatedResponse<Article> => ({
   list: [],
   total: 0,
   page: 1,
-  pageSize: 6,
+  pageSize: 7,
 });
 
 const {

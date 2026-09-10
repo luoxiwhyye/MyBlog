@@ -98,16 +98,31 @@ export const messageBoardApi = {
     request.post("/message-board", data),
 };
 
+export type EmojiType = "emoji" | "kaomoji" | "image";
+
 export interface EmojiItem {
   id: number;
   content: string;
-  type: "emoji" | "kaomoji";
-  isCustom: number;
+  type: EmojiType;
+  groupId?: number | null;
+  isCustom?: number;
+}
+
+/** 分组（名称 + 标识 + 表情列表） */
+export interface EmojiGroupData {
+  id: number;
+  name: string;
+  cover: string | null;
+  sortOrder?: number;
+  emojis: EmojiItem[];
 }
 
 export const emojiApi = {
   getEnabled: (): Promise<ApiResponse<EmojiItem[]>> =>
     request.get("/emoji/enabled"),
+
+  getGrouped: (): Promise<ApiResponse<EmojiGroupData[]>> =>
+    request.get("/emoji/grouped"),
 };
 
 export const settingsApi = {

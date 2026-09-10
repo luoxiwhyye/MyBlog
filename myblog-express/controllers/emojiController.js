@@ -1,49 +1,53 @@
 const emojiModel = require("../models/Emoji");
+const emojiGroupModel = require("../models/EmojiGroup");
 const { success, error } = require("../utils/response");
 const {
   getPaginationParams,
   getPaginationData,
 } = require("../utils/pagination");
+const {
+  validateTextOrImageUrl,
+  resolveEmojiType,
+} = require("../utils/emojiValidation");
 
-// 图片 URL 白名单（仅 http/https，无引号/尖括号/空白）
-const URL_PATTERN = /^https?:\/\/[^\s"'<>\\]+$/i;
-// 危险 HTML 字符（防 XSS）——文本表情允许任意 Unicode（含 Emoji/颜文字），
-// 但绝不能包含 HTML 标记字符。文本在 Vue 中默认转义渲染，故只需排除这些。
-const UNSAFE_CHARS = /[<>"'`]/;
-// 任何形似协议（含 :// 或单个冒号）但非 http(s) 的 URL（如 javascript:、data:）都要拒绝
-const PROTOCOL_LOOKALIKE = /^[a-z][a-z0-9+.-]*:/i;
+// 表情类型枚举（A：新增 image，「图片表情」不再被硬塞进 emoji）
+const EMOJI_TYPES = ["emoji", "kaomoji", "image"];
 
-const isHttpUrl = (value) => URL_PATTERN.test(value);
-
-const validateEmojiContent = (content) => {
-  if (!content || typeof content !== "string") {
-    return "表情内容不能为空";
-  }
-  const trimmed = content.trim();
-  if (trimmed.length === 0) {
-    return "表情内容不能为空";
-  }
-  if (trimmed.length > 500) {
-    return "表情内容过长（≤500 字符）";
-  }
-
-  // 明确形似协议/URL 的：必须是 http(s)，否则拒绝（防 javascript:/data:/vbscript: 等）
-  if (trimmed.includes(":") || trimmed.includes("/") || trimmed.includes(".")) {
-    if (!isHttpUrl(trimmed)) {
-      return "图片 URL 格式不正确（仅支持 http/https）";
+/**
+ * 校验表情类型，并在内容形如 http(s) URL 时自动归为 image
+ */
+const normalizeType = (content, type) => {
+  if (type !== undefined && type !== null && type !== "") {
+    if (!EMOJI_TYPES.includes(type)) {
+      return { error: "type 必须是 emoji / kaomoji / image" };
     }
-    return null;
   }
+  return { type: resolveEmojiType(content, type) };
+};
 
-  // 纯文本表情：不允许出现 HTML 危险字符（防 XSS）
-  if (UNSAFE_CHARS.test(trimmed)) {
-    return "表情内容包含非法字符（不允许 HTML 标记字符）";
+/**
+ * 校验 groupId 是否存在（0 / null / '' 表示未分组）
+ * 返回 { skip: true } 表示未传（更新时保持不动）
+ */
+const resolveGroupId = async (groupId) => {
+  if (groupId === undefined) return { skip: true };
+  if (groupId === null || groupId === "" || groupId === 0 || groupId === "0") {
+    return { value: null };
   }
-  return null;
+  const id = Number(groupId);
+  if (!Number.isInteger(id) || id <= 0) {
+    return { error: "groupId 必须是正整数" };
+  }
+  const group = await emojiGroupModel.getGroupById(id);
+  if (!group) {
+    return { error: "分组不存在" };
+  }
+  return { value: id };
 };
 
 /**
  * 获取表情列表（公开只返回启用；管理端可看全部）
+ * 支持 type / enabled / groupId 筛选（groupId 仅管理端生效）
  */
 const getEmojis = async (req, res, next) => {
   try {
@@ -51,14 +55,17 @@ const getEmojis = async (req, res, next) => {
     const isAdmin = req.user && req.user.role === "admin";
     const filters = {};
 
+    if (req.query.type) filters.type = req.query.type;
+
     if (isAdmin) {
-      if (req.query.type) filters.type = req.query.type;
       if (req.query.enabled !== undefined) {
         filters.enabled =
           req.query.enabled === "1" || req.query.enabled === "true";
       }
-    } else {
-      // 公开只返回启用
+      // 分组筛选：''=全部 / 0|none=未分组 / 正整数=指定分组
+      if (req.query.groupId !== undefined) {
+        filters.groupId = req.query.groupId;
+      }
     }
 
     const emojis = await emojiModel.getEmojis(offset, limit, filters, isAdmin);
@@ -71,7 +78,7 @@ const getEmojis = async (req, res, next) => {
 };
 
 /**
- * 公开：获取所有启用的表情（首页/评论/留言动态拉取用，一次拉全）
+ * 公开：获取所有启用的表情（含分组信息，兼容旧调用）
  */
 const getEnabledEmojis = async (req, res, next) => {
   try {
@@ -83,23 +90,43 @@ const getEnabledEmojis = async (req, res, next) => {
 };
 
 /**
+ * 公开：按分组返回启用表情（前台表情面板）
+ */
+const getGroupedEmojis = async (req, res, next) => {
+  try {
+    const groups = await emojiModel.getEnabledGrouped();
+    success(res, groups);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * 新增表情（需认证 + 管理员权限）
  */
 const createEmoji = async (req, res, next) => {
   try {
-    const { content, type, isCustom, enabled, sortOrder } = req.body;
+    const { content, type, isCustom, enabled, sortOrder, groupId } = req.body;
 
-    const validContent = validateEmojiContent(content);
+    const validContent = validateTextOrImageUrl(content, { label: "表情内容" });
     if (validContent) {
       return error(res, validContent, 400);
     }
-    if (type && !["emoji", "kaomoji"].includes(type)) {
-      return error(res, "type 必须是 emoji 或 kaomoji", 400);
+
+    const normalized = normalizeType(content, type);
+    if (normalized.error) {
+      return error(res, normalized.error, 400);
+    }
+
+    const group = await resolveGroupId(groupId);
+    if (group.error) {
+      return error(res, group.error, 400);
     }
 
     const id = await emojiModel.createEmoji({
       content: content.trim(),
-      type: type || "emoji",
+      type: normalized.type,
+      groupId: group.value || null,
       isCustom: Boolean(isCustom),
       enabled: enabled !== false,
       sortOrder: Number(sortOrder) || 0,
@@ -117,7 +144,7 @@ const createEmoji = async (req, res, next) => {
 const updateEmoji = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { content, type, isCustom, enabled, sortOrder } = req.body;
+    const { content, type, isCustom, enabled, sortOrder, groupId } = req.body;
 
     const emoji = await emojiModel.getEmojiById(id);
     if (!emoji) {
@@ -125,18 +152,36 @@ const updateEmoji = async (req, res, next) => {
     }
 
     if (content !== undefined) {
-      const validContent = validateEmojiContent(content);
+      const validContent = validateTextOrImageUrl(content, {
+        label: "表情内容",
+      });
       if (validContent) {
         return error(res, validContent, 400);
       }
     }
-    if (type && !["emoji", "kaomoji"].includes(type)) {
-      return error(res, "type 必须是 emoji 或 kaomoji", 400);
+
+    // 仅在显式改内容或改类型时重新判定（内容为 URL 时优先归 image）
+    let nextType = type;
+    if (type !== undefined || content !== undefined) {
+      const normalized = normalizeType(
+        content !== undefined ? content : emoji.content,
+        type !== undefined ? type : emoji.type,
+      );
+      if (normalized.error) {
+        return error(res, normalized.error, 400);
+      }
+      nextType = normalized.type;
+    }
+
+    const group = await resolveGroupId(groupId);
+    if (group.error) {
+      return error(res, group.error, 400);
     }
 
     const updated = await emojiModel.updateEmoji(id, {
       content: content !== undefined ? content.trim() : undefined,
-      type,
+      type: nextType,
+      groupId: group.skip ? undefined : group.value,
       isCustom,
       enabled,
       sortOrder: sortOrder !== undefined ? Number(sortOrder) : undefined,
@@ -176,6 +221,7 @@ const deleteEmoji = async (req, res, next) => {
 module.exports = {
   getEmojis,
   getEnabledEmojis,
+  getGroupedEmojis,
   createEmoji,
   updateEmoji,
   deleteEmoji,

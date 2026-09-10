@@ -23,33 +23,12 @@
           <el-input v-model="form.authorUrl" :placeholder="t('messageBoard.urlPlaceholder')" class="form-url" />
         </div>
         <div class="message-textarea-wrap">
-          <el-input
+          <CommentInput
+            ref="commentInputRef"
             v-model="form.content"
-            type="textarea"
             :placeholder="t('messageBoard.contentPlaceholder')"
-            :rows="4"
+            placement="bottom"
           />
-          <button type="button" class="emoji-btn" title="插入表情" @click="emojiOpen = !emojiOpen">😊</button>
-          <div v-if="emojiOpen" class="emoji-picker">
-            <div class="emoji-tabs">
-              <button :class="{ active: emojiTab === 'emoji' }" type="button" @click="emojiTab = 'emoji'">Emoji</button>
-              <button :class="{ active: emojiTab === 'kaomoji' }" type="button" @click="emojiTab = 'kaomoji'">颜文字</button>
-            </div>
-            <div v-if="emojiTab === 'emoji'" class="emoji-grid">
-              <button v-for="(emoji, ei) in emojiList" :key="`t${ei}`" type="button" class="emoji-item" @click="insertEmoji(emoji)">{{ emoji }}</button>
-              <button
-                v-for="(img, ii) in imageEmojiList"
-                :key="`i${ii}`"
-                type="button"
-                class="emoji-item emoji-item--image"
-                :title="'自定义图片表情'"
-                @click="insertEmoji(img)"
-              ><img :src="img" alt="自定义表情" class="emoji-item-img" loading="lazy" /></button>
-            </div>
-            <div v-else class="kaomoji-grid">
-              <button v-for="kao in kaomojiList" :key="kao" type="button" class="kaomoji-item" @click="insertEmoji(kao)">{{ kao }}</button>
-            </div>
-          </div>
         </div>
         <div class="message-form-actions">
           <el-button type="primary" native-type="submit" :loading="submitting">
@@ -100,7 +79,7 @@
             </span>
             <time class="message-date">{{ formatDateTime(message.createdAt) }}</time>
           </div>
-          <div class="message-content">{{ message.content }}</div>
+          <div class="message-content" v-html="renderMessageContent(message.content)"></div>
         </div>
       </div>
 
@@ -121,7 +100,8 @@ import { messageBoardApi } from "~/api";
 import type { MessageBoard, PaginatedResponse } from "~/types";
 import { formatDateTime } from "~/utils/format";
 import { getGravatarUrl } from "~/utils/gravatar";
-import { useEmoji } from "~/composables/useEmoji";
+import { renderCommentContent } from "~/utils/commentRender";
+import CommentInput from "~/components/common/CommentInput.vue";
 
 usePageSeo({
   title: "留言板",
@@ -198,19 +178,10 @@ const form = reactive({
 
 const submitting = ref(false);
 const submitted = ref(false);
-const emojiOpen = ref(false);
-const emojiTab = ref<"emoji" | "kaomoji">("emoji");
+const commentInputRef = ref<any>(null);
 
-// 表情：动态拉取后端自定义表情，合并内置默认兜底（图片表情单独渲染）
-const { emojiList, kaomojiList, imageEmojiList, loadEmoji } = useEmoji();
-onMounted(() => {
-  void loadEmoji();
-});
-
-const insertEmoji = (text: string) => {
-  form.content += text;
-  emojiOpen.value = false;
-};
+// 标记文本 → 安全 HTML（白名单：仅 [img:url] 与 @提及）
+const renderMessageContent = (content: string) => renderCommentContent(content);
 
 const normalizeUrl = (url: string) => {
   if (!url) return "";
@@ -247,7 +218,8 @@ const handleSubmit = async () => {
     form.authorName = "";
     form.authorEmail = "";
     form.authorUrl = "";
-    form.content = "";
+    // 清空富文本编辑器（会同步 v-model 为空）
+    commentInputRef.value?.clear();
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || t("messageBoard.fail") || "留言失败");
   } finally {
@@ -328,101 +300,8 @@ const handleSubmit = async () => {
 
 .message-textarea-wrap {
   position: relative;
-  /* 确保向上弹出的 emoji 面板能覆盖上方元素（如卡片 header） */
+  /* 确保表情面板能覆盖上方元素（如卡片 header） */
   z-index: 30;
-}
-
-.emoji-btn {
-  position: absolute;
-  right: 4px;
-  bottom: 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-.emoji-picker {
-  position: absolute;
-  right: 0;
-  /* 向下弹出：避开上方卡片 header，且页面下方留白充足、不会被容器裁剪 */
-  top: calc(100% + 4px);
-  /* 高于 form 内元素，防止被遮挡 */
-  z-index: 40;
-  width: 380px;
-  max-height: 320px;
-  overflow-y: auto;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: var(--shadow-elevated);
-}
-
-.emoji-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-
-  button {
-    border: none;
-    background: transparent;
-    padding: 4px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    color: var(--text-secondary);
-
-    &.active {
-      background: var(--color-accent-light);
-      color: var(--color-accent);
-    }
-  }
-}
-
-.emoji-grid,
-.kaomoji-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 4px;
-}
-
-.emoji-item,
-.kaomoji-item {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  border-radius: 6px;
-  word-break: break-all;
-
-  &:hover {
-    background: var(--bg-hover);
-  }
-}
-
-.emoji-item--image {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 2px;
-}
-
-.emoji-item-img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border-radius: 3px;
 }
 
 .message-form-actions {
@@ -496,6 +375,20 @@ const handleSubmit = async () => {
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+
+  /* v-html 注入内容不带 scoped 属性，需 :deep 命中 */
+  :deep(.comment-markup-img) {
+    max-width: 120px;
+    max-height: 120px;
+    margin: 0 2px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  :deep(.mention) {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
 }
 
 .message-load-more {
@@ -506,19 +399,6 @@ const handleSubmit = async () => {
 @media (max-width: 768px) {
   .message-form-row {
     flex-direction: column;
-  }
-  .emoji-picker {
-    width: 320px;
-    left: 0;
-    right: auto;
-  }
-
-  /* 移动端 emoji 按钮提升到 44px 触摸目标 */
-  .emoji-btn {
-    padding: 12px;
-    font-size: 20px;
-    right: 2px;
-    bottom: 2px;
   }
 }
 </style>
