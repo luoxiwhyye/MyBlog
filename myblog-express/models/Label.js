@@ -31,6 +31,27 @@ const getLabelById = async (id) => {
 };
 
 /**
+ * 按名称查重（用于禁止重名）
+ * 列 collation 为 utf8mb4_unicode_ci，故比较天然大小写不敏感、忽略尾部空格。
+ * @param {string} labelName 已 trim 的名称
+ * @param {number} [excludeId] 更新时排除自身
+ */
+const getLabelByName = async (labelName, excludeId) => {
+  let query =
+    "SELECT id, label_name AS labelName FROM `label` WHERE label_name = ?";
+  const params = [labelName];
+
+  if (excludeId) {
+    query += " AND id <> ?";
+    params.push(excludeId);
+  }
+
+  query += " LIMIT 1";
+  const [rows] = await pool.query(query, params);
+  return rows[0];
+};
+
+/**
  * 获取标签下的文章数
  */
 const getLabelArticleCount = async (labelId) => {
@@ -89,6 +110,7 @@ module.exports = {
   getLabels,
   getLabelsCount,
   getLabelById,
+  getLabelByName,
   getLabelArticleCount,
   createLabel,
   updateLabel,

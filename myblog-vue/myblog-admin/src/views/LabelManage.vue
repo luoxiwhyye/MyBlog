@@ -99,8 +99,50 @@ const form = reactive({
   id: null as number | null
 })
 
+// 列表接口 pageSize 上限为 100，故仅当名称总数 ≤ 100 时前端预检才可信
+const NAME_INDEX_LIMIT = 100
+
+// 名称 → id（用于前端预检；数据不完整时置空，完全交由后端判定）
+const nameIndex = ref<Map<string, number>>(new Map())
+
+const nameKey = (value: string) => value.trim().toLowerCase()
+
+const loadNameIndex = async () => {
+  try {
+    const response = await labelApi.getList({ page: 1, pageSize: NAME_INDEX_LIMIT })
+    const list = response.data?.list ?? []
+    nameIndex.value =
+      response.data?.total <= NAME_INDEX_LIMIT
+        ? new Map(list.map((item) => [nameKey(item.labelName), item.id]))
+        : new Map()
+  } catch {
+    // 预检失败不阻断：后端查重与唯一索引仍是权威
+    nameIndex.value = new Map()
+  }
+}
+
+// 前端预检仅为体验补充（省一次往返 + 字段级提示），以后端校验为准
+const validateUniqueName = (
+  _rule: unknown,
+  value: string,
+  callback: (error?: Error) => void
+) => {
+  const name = (value || '').trim()
+  if (!name) return callback()
+
+  const ownerId = nameIndex.value.get(nameKey(name))
+  // 编辑时排除自身，否则保存原名称会被误判为重名
+  if (ownerId !== undefined && ownerId !== form.id) {
+    return callback(new Error(`标签「${name}」已存在`))
+  }
+  callback()
+}
+
 const rules = {
-  labelName: [{ required: true, message: '请输入标签名称', trigger: 'blur' }]
+  labelName: [
+    { required: true, message: '请输入标签名称', trigger: 'blur' },
+    { validator: validateUniqueName, trigger: 'blur' }
+  ]
 }
 
 const pagination = reactive({
@@ -136,6 +178,7 @@ const showAddDialog = () => {
   form.labelName = ''
   form.id = null
   dialogVisible.value = true
+  void loadNameIndex()
 }
 
 // 编辑标签
@@ -144,6 +187,7 @@ const editLabel = (row: any) => {
   form.labelName = row.labelName
   form.id = row.id
   dialogVisible.value = true
+  void loadNameIndex()
 }
 
 // 删除标签
@@ -193,8 +237,11 @@ const submitForm = async () => {
         } else {
           ElMessage.error(response.message || '操作失败')
         }
-      } catch (error) {
-        ElMessage.error('操作失败')
+      } catch (error: any) {
+        // 非 2xx 已由 request 响应拦截器统一提示（含 409 重名），此处不重复打扰
+        if (!error?.response) {
+          ElMessage.error('操作失败')
+        }
       } finally {
         submitting.value = false
       }

@@ -129,8 +129,9 @@ CREATE TABLE `comment`  (
 DROP TABLE IF EXISTS `label`;
 CREATE TABLE `label`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '标签ID',
-  `label_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签名称',
-  PRIMARY KEY (`id`) USING BTREE
+  `label_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签名称（唯一，collation 天然大小写不敏感）',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_label_name`(`label_name` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '标签表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -188,8 +189,9 @@ CREATE TABLE `friend_link` (
 DROP TABLE IF EXISTS `type`;
 CREATE TABLE `type`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '分类ID',
-  `type_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称',
-  PRIMARY KEY (`id`) USING BTREE
+  `type_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '分类名称（唯一，collation 天然大小写不敏感）',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_type_name`(`type_name` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '分类表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
