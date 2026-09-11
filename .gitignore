@@ -44,6 +44,8 @@ target/
 .agents
 skills-lock.json
 agent
+# AI 上下文忽略配置
+.copilotignore
 
 # ── 缓存 ──
 .npm-cache

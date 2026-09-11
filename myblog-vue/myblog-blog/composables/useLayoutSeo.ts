@@ -21,6 +21,53 @@ const THEME_COLOR_DIM_KEYS: { dim: ThemeColorDimKey; key: string }[] = [
 const themeColorKey = (dim: ThemeColorDimKey, mode: ThemeColorMode) =>
   `site_theme_${dim}_${mode}`;
 
+// ────────────────────────────────────────────────────────────────
+// 背景图存在性预检（模块级共享）
+//
+// 背景图 URL 存在数据库里，文件却可能已经不在磁盘上了（历史缺陷：替换图片时
+// 只比字符串就删旧文件，会误删仍被其它配置键引用的图）。此时若照常注入 CSS
+// 变量，浏览器会持续请求一个 404，而布局的 `background-image:
+// var(--site-bg-light)` 又没有回退值 → 页面背景直接失效。
+//
+// 解法：用 `new Image()` 预检，确认失联则不注入变量，由布局自身的
+// `background-color: var(--bg-primary)` 兜底：不留白，也不再重复请求。
+//
+// 探测结果按 URL 缓存在模块级（同一 URL 只探测一次，多个布局、多次导航共用）；
+// 尚未出结果的 URL 按“可用”处理（乐观），否则正常图片会在首帧被白白推迟。
+type BgProbeState = "ok" | "bad";
+const bgProbeResults = ref<Record<string, BgProbeState | undefined>>({});
+const bgProbePending = new Set<string>();
+
+const probeBgUrl = (url: string) => {
+  // 已出结果或正在探测 → 不重复发请求
+  if (!url || bgProbePending.has(url) || url in bgProbeResults.value) return;
+  if (typeof window === "undefined" || typeof Image === "undefined") return;
+
+  bgProbePending.add(url);
+
+  const settle = (state: BgProbeState) => {
+    bgProbePending.delete(url);
+    // 整体替换对象以触发响应式更新，让 watchEffect 重新注入变量
+    bgProbeResults.value = { ...bgProbeResults.value, [url]: state };
+  };
+
+  const probe = new Image();
+  probe.onload = () => settle("ok");
+  probe.onerror = () => settle("bad");
+  probe.src = url;
+};
+
+/**
+ * 取「已验证可用」的背景图 URL。
+ * 未配置、或已确认失联时返回空串，由调用方移除 CSS 变量，
+ * 使 `var()` 回退链与布局兜底色生效。
+ */
+const resolveBgUrl = (url: string) => {
+  if (!url) return "";
+  probeBgUrl(url);
+  return bgProbeResults.value[url] === "bad" ? "" : url;
+};
+
 /**
  * 布局级 SEO 共享 composable
  *
@@ -76,23 +123,15 @@ export const useLayoutSeo = () => {
     normalizeAssetUrl(settingsStore.getSetting("site_bg_dark_mobile")),
   );
 
-  const setBgVar = (name: string, url: string) => {
-    if (typeof document === "undefined") return;
-    document.documentElement.style.setProperty(
-      name,
-      url ? `url(${url})` : "none",
-    );
-  };
-
   /**
-   * 带 CSS 回退的变量注入：未配置时**移除变量**，而不是写 `none`。
+   * 注入背景图 CSS 变量：未配置或图片不可用时**移除变量**，而不是写 `none`。
    *
    * 原因：`none` 是合法的 background-image 值，一旦写入，
-   * `var(--site-bg-light-mobile, var(--site-bg-light))` 就不会走回退，
-   * 移动端背景会变成「配了才显示、没配就丢失」的回归。
-   * 移除属性后，`var()` 的第二个参数（桌面图）才真正生效。
+   * `var(--site-bg-dark, var(--site-bg-light))` 这类回退链就不会生效——
+   * 例如暗色背景图缺失时，本来应该回退到亮色图，写 `none` 就变成什么都没有了。
+   * 移除属性后，`var()` 的第二个参数（桌面图 / 亮色图）才能真正生效。
    */
-  const setBgVarWithFallback = (name: string, url: string) => {
+  const setBgVar = (name: string, url: string) => {
     if (typeof document === "undefined") return;
     if (url) {
       document.documentElement.style.setProperty(name, `url(${url})`);
@@ -138,10 +177,11 @@ export const useLayoutSeo = () => {
   };
 
   watchEffect(() => {
-    setBgVar("--site-bg-light", bgLight.value);
-    setBgVar("--site-bg-dark", bgDark.value);
-    setBgVarWithFallback("--site-bg-light-mobile", bgLightMobile.value);
-    setBgVarWithFallback("--site-bg-dark-mobile", bgDarkMobile.value);
+    // 先过一遍存在性预检：确认失联的图不注入，交给布局兜底色
+    setBgVar("--site-bg-light", resolveBgUrl(bgLight.value));
+    setBgVar("--site-bg-dark", resolveBgUrl(bgDark.value));
+    setBgVar("--site-bg-light-mobile", resolveBgUrl(bgLightMobile.value));
+    setBgVar("--site-bg-dark-mobile", resolveBgUrl(bgDarkMobile.value));
     applyThemeColor();
   });
 

@@ -1,6 +1,10 @@
 const settingModel = require("../models/Setting");
 const { success, error } = require("../utils/response");
-const { uploadToCDN, deleteUploadedUrl } = require("../utils/upload");
+const {
+  uploadToCDN,
+  deleteUploadedUrl,
+  getUploadAssetKey,
+} = require("../utils/upload");
 const cache = require("../middleware/cache");
 
 const extractTextSettings = (body) => {
@@ -118,6 +122,119 @@ const extractStructuredSettings = (body) => {
   return result;
 };
 
+/* ------------------------------------------------------------------ */
+/* 图片配置的清理策略                                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 引用保护：判断某个上传资源是否仍被「其它配置键」引用。
+ *
+ * 历史缺陷：原实现只比较字符串是否相等就删旧文件。两个键共用同一张图时
+ * （例如把移动端背景图填成与桌面同一张），改其中一个就会把另一个仍在用的
+ * 文件删掉 → 另一个键变成「DB 有值、磁盘无文件」。
+ *
+ * @param {object} currentSettings 当前全部配置（key → { value, type, description }）
+ * @param {object} nextImageValues 本请求内所有 image 键的「变更后取值」
+ * @param {string} excludeKey 正在变更的键（自身不算引用）
+ * @param {string} assetKey 目标资源键（同基名的原图 / webp / 缩略图视为同一张图）
+ * @returns {boolean} 仍有其它键引用时为 true（此时不得删文件）
+ */
+const isAssetStillReferenced = (
+  currentSettings,
+  nextImageValues,
+  excludeKey,
+  assetKey,
+) => {
+  if (!assetKey) return false;
+
+  return Object.entries(currentSettings || {}).some(([key, config]) => {
+    if (key === excludeKey || config?.type !== "image") return false;
+
+    const value = Object.prototype.hasOwnProperty.call(nextImageValues, key)
+      ? nextImageValues[key]
+      : config.value;
+
+    return !!value && getUploadAssetKey(value) === assetKey;
+  });
+};
+
+/**
+ * 计算本请求内「所有 image 键的变更后取值」，供引用保护判断使用。
+ *
+ * 必须把待写入的值提前算出来，才能同时覆盖两种情况：
+ *   ① 其它键当前仍指向同一张图 → 不能删；
+ *   ② 其它键在本请求里刚好也要改走 → 可以删。
+ */
+const buildNextImageValues = (
+  currentSettings,
+  imageSettings,
+  structuredSettings,
+  uploadedImageValues,
+) => {
+  const nextImageValues = {};
+
+  for (const [key, config] of Object.entries(currentSettings || {})) {
+    if (config?.type === "image") {
+      nextImageValues[key] = config.value || "";
+    }
+  }
+
+  Object.assign(nextImageValues, imageSettings);
+
+  for (const item of structuredSettings) {
+    if (item.type === "image") {
+      nextImageValues[item.key] = item.value;
+    }
+  }
+
+  Object.assign(nextImageValues, uploadedImageValues);
+
+  return nextImageValues;
+};
+
+/**
+ * 应用一次图片配置变更：在「需要且安全」时清理旧文件，然后写入新值。
+ *
+ * 清理需同时满足三个条件：
+ *   ① 旧值确实指向一个本地上传资源（外链/空值不处理）；
+ *   ② 新值与旧值不是同一张图 —— 用资源键比较而非字符串比较，否则
+ *      「DB 存绝对 URL、前端回传归一化相对路径」这种同图不同串的情况会
+ *      先删文件、再把同一个路径写回去，造成「DB 有值、文件已丢」；
+ *   ③ 该资源没有被其它配置键引用（引用保护）。
+ *
+ * 删除动作本身会连带清理 sharp 生成的 .webp / _thumb.webp 变体，
+ * 避免留下孤儿文件（详见 utils/upload.js 的 deleteUploadedUrl）。
+ */
+const applyImageChange = async (
+  currentSettings,
+  nextImageValues,
+  { key, value, description },
+) => {
+  const previousValue = currentSettings[key]?.value || "";
+  const previousAssetKey = getUploadAssetKey(previousValue);
+
+  const shouldCleanup =
+    !!previousAssetKey &&
+    previousAssetKey !== getUploadAssetKey(value) &&
+    !isAssetStillReferenced(
+      currentSettings,
+      nextImageValues,
+      key,
+      previousAssetKey,
+    );
+
+  if (shouldCleanup) {
+    deleteUploadedUrl(previousValue);
+  }
+
+  await settingModel.upsertSetting(
+    key,
+    value,
+    "image",
+    description || currentSettings[key]?.description || "",
+  );
+};
+
 /**
  * 获取所有配置
  */
@@ -157,53 +274,22 @@ const updateSettings = async (req, res, next) => {
     const textSettings = extractTextSettings(req.body);
     const imageSettings = extractImageSettings(req.body, currentSettings);
     const structuredSettings = extractStructuredSettings(req.body);
+    const uploadedFiles = Array.isArray(req.files) ? req.files : [];
 
     if (
       Object.keys(textSettings).length === 0 &&
       Object.keys(imageSettings).length === 0 &&
       structuredSettings.length === 0 &&
-      (!req.files || req.files.length === 0)
+      uploadedFiles.length === 0
     ) {
       return error(res, "配置数据格式错误", 400);
     }
 
-    // 处理文本配置
-    for (const [key, value] of Object.entries(textSettings)) {
+    // 先整体校验，避免写到一半才发现非法键/类型
+    for (const key of Object.keys(textSettings)) {
       const keyError = validateKey(key);
       if (keyError) return error(res, keyError, 400);
-      const description = currentSettings[key]?.description || "";
-      await settingModel.upsertSetting(key, value, "text", description);
     }
-
-    // 处理前端已上传完成的图片 URL 或图片清空
-    for (const [key, value] of Object.entries(imageSettings)) {
-      const previousValue = currentSettings[key]?.value || "";
-      const description = currentSettings[key]?.description || "";
-
-      if (previousValue && previousValue !== value) {
-        deleteUploadedUrl(previousValue);
-      }
-
-      await settingModel.upsertSetting(key, value, "image", description);
-    }
-
-    // 处理图片配置
-    if (Array.isArray(req.files)) {
-      for (const file of req.files) {
-        const key = file.fieldname;
-        const previousValue = currentSettings[key]?.value || "";
-        const description = currentSettings[key]?.description || "";
-        const imageUrl = uploadToCDN(file.path);
-
-        if (previousValue && previousValue !== imageUrl) {
-          deleteUploadedUrl(previousValue);
-        }
-
-        await settingModel.upsertSetting(key, imageUrl, "image", description);
-      }
-    }
-
-    // 处理自定义配置（结构化 Key-Value，可带 type / description）
     for (const item of structuredSettings) {
       const keyError = validateKey(item.key);
       if (keyError) return error(res, keyError, 400);
@@ -211,25 +297,60 @@ const updateSettings = async (req, res, next) => {
       if (typeError) return error(res, typeError, 400);
       const descError = validateDescription(item.description);
       if (descError) return error(res, descError, 400);
+    }
 
-      const previousValue = currentSettings[item.key]?.value || "";
-      const description =
-        item.description || currentSettings[item.key]?.description || "";
+    // 上传文件先算出 URL（uploadToCDN 是纯函数），让引用保护能一并看到这些新值
+    const uploadedImageValues = {};
+    for (const file of uploadedFiles) {
+      uploadedImageValues[file.fieldname] = uploadToCDN(file.path);
+    }
 
-      if (
-        item.type === "image" &&
-        previousValue &&
-        previousValue !== item.value
-      ) {
-        deleteUploadedUrl(previousValue);
-      }
+    const nextImageValues = buildNextImageValues(
+      currentSettings,
+      imageSettings,
+      structuredSettings,
+      uploadedImageValues,
+    );
 
+    // 处理文本配置
+    for (const [key, value] of Object.entries(textSettings)) {
       await settingModel.upsertSetting(
-        item.key,
-        item.value,
-        item.type,
-        description,
+        key,
+        value,
+        "text",
+        currentSettings[key]?.description || "",
       );
+    }
+
+    // 处理图片配置：前端已上传完成的 URL、图片清空、multipart 文件上传三种入口，
+    // 共用同一套「引用保护 + 连带清理派生变体」逻辑。
+    for (const [key, value] of Object.entries(imageSettings)) {
+      await applyImageChange(currentSettings, nextImageValues, { key, value });
+    }
+
+    for (const file of uploadedFiles) {
+      await applyImageChange(currentSettings, nextImageValues, {
+        key: file.fieldname,
+        value: uploadedImageValues[file.fieldname],
+      });
+    }
+
+    // 处理自定义配置（结构化 Key-Value，可带 type / description）
+    for (const item of structuredSettings) {
+      if (item.type === "image") {
+        await applyImageChange(currentSettings, nextImageValues, {
+          key: item.key,
+          value: item.value,
+          description: item.description,
+        });
+      } else {
+        await settingModel.upsertSetting(
+          item.key,
+          item.value,
+          item.type,
+          item.description || currentSettings[item.key]?.description || "",
+        );
+      }
     }
 
     // 清除 settings 缓存
@@ -305,15 +426,22 @@ const updateSettingByKey = async (req, res, next) => {
     const descError = validateDescription(description);
     if (descError) return error(res, descError, 400);
 
-    if (
-      type === "image" &&
-      existing.settingValue &&
-      existing.settingValue !== value
-    ) {
-      deleteUploadedUrl(existing.settingValue);
+    if (type === "image") {
+      // 引用保护需要看到全部配置（判断是否还有别的键指向同一张图）
+      const currentSettings = await settingModel.getSettings();
+      await applyImageChange(
+        currentSettings,
+        { [key]: value },
+        {
+          key,
+          value,
+          description,
+        },
+      );
+    } else {
+      await settingModel.upsertSetting(key, value, type, description);
     }
 
-    await settingModel.upsertSetting(key, value, type, description);
     await cache.invalidate("settings");
 
     success(res, { key, value, type, description }, "配置更新成功");
@@ -337,7 +465,19 @@ const deleteSetting = async (req, res, next) => {
     }
 
     if (existing.settingType === "image" && existing.settingValue) {
-      deleteUploadedUrl(existing.settingValue);
+      const currentSettings = await settingModel.getSettings();
+      const assetKey = getUploadAssetKey(existing.settingValue);
+      // 本键即将被删除 → 相当于置空，再看是否还有别的键引用同一张图
+      const stillReferenced = isAssetStillReferenced(
+        currentSettings,
+        { [key]: "" },
+        key,
+        assetKey,
+      );
+
+      if (!stillReferenced) {
+        deleteUploadedUrl(existing.settingValue);
+      }
     }
 
     await settingModel.deleteSetting(key);
