@@ -58,7 +58,7 @@
       <template v-else>
         <div class="article-list-header">
           <h2 class="section-title">{{ t('home.articlesTitle') }}</h2>
-          <div class="filter-chips">
+          <div v-if="filterChips.length" class="filter-chips">
             <button
               type="button"
               class="chip"
@@ -121,14 +121,35 @@ const pageSize = ref(7);
 
 // 类目筛选 Chip（文章区顶部 "行动号召"）
 const activeTypeId = ref<number | "">("");
-const filterChips = ref<Category[]>([]);
+// 分类全量（未过滤），用于生成 chips 与校验「已选中的分类是否仍有效」
+const allCategories = ref<Category[]>([]);
 try {
   const typeRes = await categoryApi.getList({ page: 1, pageSize: 100 });
-  filterChips.value = typeRes.data.list || [];
+  allCategories.value = typeRes.data.list || [];
 } catch {
   // 分类拉取失败不阻塞列表展示
-  filterChips.value = [];
+  allCategories.value = [];
 }
+
+// 只展示有文章的分类：0 篇文章的分类点进去必然是空列表，
+// 对访客而言既没有入口价值，也是无谓的信息噪声
+const filterChips = computed(() =>
+  allCategories.value.filter((cat) => cat.articleCount > 0),
+);
+
+// 保底校验：若已选中的分类不在 chips 中（分类列表更新后可能出现），会留下
+// 「筛选条件没有对应 chip」的悬空状态——列表仍按它过滤，用户却看不到、
+// 也取消不掉。此时重置为全部，避免停留在空结果页
+watch(
+  filterChips,
+  (chips) => {
+    if (activeTypeId.value === "") return;
+    if (!chips.some((cat) => cat.id === activeTypeId.value)) {
+      activeTypeId.value = "";
+    }
+  },
+  { immediate: true },
+);
 
 const emptyArticlePage = (): PaginatedResponse<Article> => ({
   list: [],

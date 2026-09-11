@@ -26,8 +26,15 @@ public interface LabelRepository extends JpaRepository<Label, Integer> {
      */
     Page<Label> findByLabelNameContainingIgnoreCase(String keyword, Pageable pageable);
 
+    /**
+     * 标签下的「已发布」文章数（展示用）
+     *
+     * 必须与前台列表的口径一致：前台按 status='published' 拉取文章，
+     * 若把草稿也算进去，就会出现「标签显示 N 篇、点进去是空列表」。
+     * 删除保护请用 countLabelUsage（含草稿），两者不要合并。
+     */
     @Query(value = "SELECT COUNT(*) FROM article_label al JOIN article a ON al.article_id = a.id " +
-           "WHERE al.label_id = :labelId AND a.deleted_at IS NULL", nativeQuery = true)
+           "WHERE al.label_id = :labelId AND a.status = 'published' AND a.deleted_at IS NULL", nativeQuery = true)
     long countArticlesByLabelId(@Param("labelId") Integer labelId);
 
     @Query(value = "SELECT COUNT(*) FROM article_label WHERE label_id = :labelId", nativeQuery = true)

@@ -74,13 +74,17 @@ const getLabelByName = async (labelName, excludeId) => {
 };
 
 /**
- * 获取标签下的文章数
+ * 获取标签下的文章数（仅统计已发布）
+ *
+ * 必须与前台列表的口径一致：前台按 status='published' 拉取文章，
+ * 若这里把草稿也算进去，就会出现「标签显示 N 篇、点进去是空列表」。
+ * 删除保护另用 isLabelInUse（含草稿），两者不要合并。
  */
 const getLabelArticleCount = async (labelId) => {
   const [rows] = await pool.query(
     `SELECT COUNT(*) as count FROM article_label al
      JOIN article a ON al.article_id = a.id
-     WHERE al.label_id = ? AND a.deleted_at IS NULL;`,
+     WHERE al.label_id = ? AND a.status = 'published' AND a.deleted_at IS NULL;`,
     [labelId],
   );
   return rows[0].count;
@@ -117,7 +121,10 @@ const deleteLabel = async (id) => {
 };
 
 /**
- * 检查标签是否被使用
+ * 检查标签是否被使用（删除保护）
+ *
+ * 刻意不限定发布状态：只要标签还被任何一篇（含草稿）文章挂着就不应删除，
+ * 否则草稿会失去标签。与展示用的 getLabelArticleCount（仅已发布）口径不同是特意为之。
  */
 const isLabelInUse = async (labelId) => {
   const [rows] = await pool.query(

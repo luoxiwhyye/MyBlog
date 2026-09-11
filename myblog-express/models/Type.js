@@ -52,11 +52,15 @@ const getTypeByName = async (typeName, excludeId) => {
 };
 
 /**
- * 获取分类下的文章数
+ * 获取分类下的文章数（仅统计已发布）
+ *
+ * 必须与前台列表的口径一致：前台按 status='published' 拉取文章，
+ * 若这里把草稿也算进去，就会出现「分类显示 N 篇、点进去是空列表」。
+ * 删除保护另用 isTypeInUse（含草稿），两者不要合并。
  */
 const getTypeArticleCount = async (typeId) => {
   const [rows] = await pool.query(
-    "SELECT COUNT(*) as count FROM `article` WHERE type_id = ? AND deleted_at IS NULL",
+    "SELECT COUNT(*) as count FROM `article` WHERE type_id = ? AND status = 'published' AND deleted_at IS NULL",
     [typeId],
   );
   return rows[0].count;
@@ -93,7 +97,10 @@ const deleteType = async (id) => {
 };
 
 /**
- * 检查分类是否被使用
+ * 检查分类是否被使用（删除保护）
+ *
+ * 刻意把草稿也算在内：某分类只要有草稿就不应被删除，否则草稿会失去归属。
+ * 与展示用的 getTypeArticleCount（仅已发布）口径不同是特意为之。
  */
 const isTypeInUse = async (typeId) => {
   const [rows] = await pool.query(

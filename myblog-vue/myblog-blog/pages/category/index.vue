@@ -9,6 +9,13 @@
       </el-icon>
       加载中...
     </div>
+    <EmptyState
+      v-else-if="categories.length === 0"
+      message="暂无分类"
+      description="还没有包含文章的分类，欢迎常回来看看。"
+      action-text="返回首页"
+      action-to="/home"
+    />
     <div v-else class="categories-grid">
       <div v-for="(category, i) in categories" :key="category.id" class="category-card" v-reveal="i * 40" @click="goToCategory(category.id)">
         <h3>{{ category.typeName }}</h3>
@@ -41,9 +48,15 @@ const fetchAllCategories = async () => {
   return items;
 };
 
-const { data: categories, pending } = await useAsyncData("category-list", fetchAllCategories, {
+const { data: allCategories, pending } = await useAsyncData("category-list", fetchAllCategories, {
   default: () => [],
 });
+
+// 空分类对访客没有意义：0 篇文章的分类点进去只会得到空列表，
+// 因此只展示确实有文章的分类（全为空时由模板渲染空状态）
+const categories = computed(() =>
+  allCategories.value.filter((category) => category.articleCount > 0),
+);
 
 const goToCategory = (id: number) => {
   router.push(`/category/${id}`);

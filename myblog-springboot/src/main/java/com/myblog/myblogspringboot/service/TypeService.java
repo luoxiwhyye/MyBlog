@@ -106,7 +106,8 @@ public class TypeService {
         Type type = typeRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "分类不存在"));
 
-        if (typeRepository.countArticlesByTypeId(id) > 0) {
+        // 删除保护用「含草稿」口径：只含草稿的分类同样不允许删除
+        if (typeRepository.countAnyArticlesByTypeId(id) > 0) {
             throw new BusinessException(400, "分类下有文章，无法删除");
         }
 
