@@ -55,7 +55,7 @@
                 v-else-if="field.type === 'textarea'"
                 v-model="formData[field.key]"
                 type="textarea"
-                :rows="3"
+                :rows="field.rows ?? 3"
                 :placeholder="field.placeholder"
               />
 
@@ -341,6 +341,8 @@ interface FieldConfig {
   placeholder?: string
   description?: string
   required?: boolean
+  /** 仅 textarea 生效：输入框显示行数（默认 3） */
+  rows?: number
 }
 
 // 社交链接图标候选项（与前台 myblog-blog/utils/socialIcons.ts 的 SOCIAL_ICON_KEYS 保持键名一致）
@@ -603,8 +605,10 @@ const groups: GroupConfig[] = [
         key: 'announcement',
         label: '首页公告',
         type: 'textarea',
+        rows: 5,
         placeholder: '请输入公告内容',
-        description: '显示在首页顶部的公告栏，为空则不显示。',
+        description:
+          '显示在首页顶部的公告栏，为空则不显示。支持换行：在输入框内回车换行，前台会按原样分行展示（移动端同样完整显示，不截断），建议控制在几行以内。',
       },
       {
         key: 'social_links',

@@ -363,7 +363,8 @@ useWebsiteJsonLd();
 /* ===== 公告栏 ===== */
 .announce-card {
   display: flex;
-  align-items: center;
+  /* 正文可能是多行：标签对齐到首行，否则居中会在长公告下偏到垂直中间 */
+  align-items: flex-start;
   gap: $spacing-4;
   padding: $spacing-4 $spacing-5;
   border-radius: var(--radius-card-lg);
@@ -379,12 +380,21 @@ useWebsiteJsonLd();
   border-radius: $border-radius-full;
   font-size: $font-size-sm;
   font-weight: 600;
+  /* 与正文同倍行高，使标签首行与正文首行居中对齐 */
+  line-height: $line-height-relaxed;
   color: var(--color-category);
   background: var(--color-category-soft);
 }
 
 .announce-text {
   margin: 0;
+  /* 保留后台输入的换行（HTML 默认会把 \n 折叠成空格） */
+  white-space: pre-line;
+  /* 长链接/长串不断词时也能在容器内折行，不撑破卡片 */
+  overflow-wrap: anywhere;
+  /* flex 子项默认 min-width:auto，不加这行上面的折行不生效 */
+  min-width: 0;
+  flex: 1;
   color: var(--text-secondary);
   line-height: $line-height-relaxed;
 }
@@ -577,14 +587,11 @@ useWebsiteJsonLd();
     padding: 2px clamp(0.57rem, 2vw, 0.86rem);
   }
 
-  /* 公告正文最多显示 2 行，避免长内容撑高卡片 */
+  /* 公告正文：只缩小字号，不再行数截断。
+     原先这里限制 2 行，导致后台写入的换行在移动端仍被裁掉，
+     与桌面端行为也不一致（桌面不截断）。 */
   .announce-text {
     font-size: clamp(0.86rem, 3.5vw, 1rem);
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
   }
 
   /* Chip 触摸目标仍保证 ≥44px，但收窄横向留白 */
