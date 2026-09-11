@@ -8,7 +8,7 @@
     aria-hidden="true"
     role="img"
   >
-    <path :d="iconDef.path" />
+    <path :d="iconDef.path" :fill-rule="iconDef.fillRule" />
   </svg>
 </template>
 

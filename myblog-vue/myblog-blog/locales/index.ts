@@ -131,7 +131,9 @@ export const zh = {
   },
   footer: {
     rights: "All rights reserved.",
-    icp: "备案号：待补充",
+  },
+  siteIcp: {
+    linkTitle: "在工信部备案系统查验",
   },
   notFound: {
     title: "页面未找到",
@@ -277,7 +279,9 @@ export const en: typeof zh = {
   },
   footer: {
     rights: "All rights reserved.",
-    icp: "ICP: Pending",
+  },
+  siteIcp: {
+    linkTitle: "Verify this ICP filing at the MIIT registry",
   },
   notFound: {
     title: "Page Not Found",

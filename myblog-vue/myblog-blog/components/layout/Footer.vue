@@ -5,7 +5,8 @@
         <p class="copyright">
           &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
         </p>
-        <p class="icp" v-if="siteIcp">{{ siteIcp }}</p>
+        <!-- 备案号：未配置时不渲染（详见 components/common/SiteIcp.vue） -->
+        <SiteIcp />
       </div>
       <p v-if="siteDescription" class="slogan">{{ siteDescription }}</p>
     </div>
@@ -20,7 +21,6 @@ const { t } = useI18n();
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const siteAuthor = computed(() => bloggerStore.nickname());
-const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 const siteDescription = computed(
   () => settingsStore.getSetting("site_description") || "",
 );
@@ -86,12 +86,6 @@ const siteDescription = computed(
 .copyright {
   color: var(--text-primary);
   margin-bottom: 4px;
-  transition: color 0.3s;
-}
-
-.icp {
-  color: var(--text-muted);
-  font-size: 13px;
   transition: color 0.3s;
 }
 

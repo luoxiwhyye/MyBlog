@@ -67,7 +67,9 @@ html {
   }
 }
 
-body,
+// 只挂在应用根节点：`body` 与 `#__nuxt` 是嵌套关系，两者同时位移会把
+// 关键帧里的 6px 叠加成 12px；而 body 承载页面底色（--bg-primary），
+// 让它保持静止、只让内容滑入，观感也更稳。
 #__nuxt {
   animation: page-in 0.4s ease-out;
 }

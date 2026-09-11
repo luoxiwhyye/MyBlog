@@ -60,4 +60,13 @@ const isDark = computed(() => themeStore.isDark);
 .theme-toggle:active {
   transform: scale(0.96);
 }
+
+/* 移动端提升到 44px 触摸目标：原 36px 容易误触。
+   放在文件末尾以覆盖上方的 width/height（同 specificity 时后者生效）。 */
+@media (max-width: 768px) {
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+}
 </style>

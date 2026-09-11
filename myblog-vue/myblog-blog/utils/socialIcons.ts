@@ -23,10 +23,18 @@ export interface SocialIconDef {
   label: string;
   /** 24x24 viewBox 下的 SVG path d 值 */
   path: string;
-  /** 亮色模式下的品牌色（十六进制） */
+  /** 亮色模式下的品牌色（十六进制）；空串表示无品牌归属，跟随 `currentColor` */
   color: string;
   /** 暗色模式下的品牌色；省略时共用 `color` */
   colorDark?: string;
+  /**
+   * SVG 填充规则，默认 `nonzero`（SVG 规范的默认值）。
+   *
+   * 含「外框 + 内腔」结构的图标（外框与内腔是两条反向子路径）**必须**显式用
+   * `evenodd`，否则内腔会被同向填充、整个图标变成一粒实心色块。
+   * 仅对这类图标设置，其余实心风格图标无需声明。
+   */
+  fillRule?: "nonzero" | "evenodd";
 }
 
 /** 通用的「外链 / 箭头」兜底图标（无品牌归属 → 不上品牌色，随 currentColor） */
@@ -82,9 +90,17 @@ export const SOCIAL_ICONS = {
   },
   email: {
     label: "邮箱",
+    /**
+     * 信封由「外框 + 内腔」两条反向子路径构成，必须用 `evenodd` 让内腔镂空。
+     * 用默认的 `nonzero` 时内腔会被一起填实，在 14~18px 下就成了一粒实心色块。
+     */
+    fillRule: "evenodd",
     path: "M12 12.713 2.388 5.21H21.61L12 12.713ZM21.61 6.42v12.37H2.39V6.42L12 13.915 21.61 6.42ZM0 3.9C0 2.72.986 1.75 2.2 1.75h19.6c1.214 0 2.2.97 2.2 2.15v16.2c0 1.18-.986 2.15-2.2 2.15H2.2C.986 22.25 0 21.28 0 20.1V3.9Z",
-    color: "#d1493f",
-    colorDark: "#f28b82",
+    /**
+     * 邮箱没有品牌归属，不上品牌色、跟随 `currentColor`。
+     * 原先用偏红的 `#d1493f`，而那正是“色块/报错”的色彩直觉，会强化误读。
+     */
+    color: "",
   },
   rss: {
     label: "RSS",
