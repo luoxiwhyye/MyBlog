@@ -81,6 +81,24 @@ export interface CommentListParams {
   topLevelOnly?: boolean;
 }
 
+/** 全局搜索（命令面板）结果项 — 刻意不含 content，避免每次输入都传输正文 */
+export interface SearchItem {
+  id: number;
+  title: string;
+  summary: string;
+  coverImage?: string;
+  createdAt: string;
+  typeName: string;
+}
+
+export interface SearchResult {
+  keyword: string;
+  /** meilisearch=全文检索引擎；like=引擎不可用已降级为模糊匹配；none=未传关键词 */
+  engine: "meilisearch" | "like" | "none";
+  total: number;
+  list: SearchItem[];
+}
+
 export interface ApiResponse<T> {
   code: number;
   message: string;

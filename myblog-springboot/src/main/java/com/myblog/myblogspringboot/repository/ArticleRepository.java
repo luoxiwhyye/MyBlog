@@ -1,7 +1,10 @@
 package com.myblog.myblogspringboot.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.myblog.myblogspringboot.dto.SearchItemDTO;
 import com.myblog.myblogspringboot.entity.Article;
 
 @Repository
@@ -46,4 +50,24 @@ public interface ArticleRepository extends JpaRepository<Article, Integer>, JpaS
     @Modifying
     @Query("UPDATE Article a SET a.deletedAt = NULL WHERE a.id = :id AND a.deletedAt IS NOT NULL")
     int restore(@Param("id") Integer id);
+
+    /**
+     * 按 ID 批量取轻量展示字段（Meilisearch 命中后回表；顺序由调用方按命中顺序重排）
+     */
+    @Query("SELECT new com.myblog.myblogspringboot.dto.SearchItemDTO(a.id, a.title, a.summary, a.coverImage, a.createdAt, t.typeName) "
+         + "FROM Article a LEFT JOIN a.type t "
+         + "WHERE a.id IN :ids AND a.deletedAt IS NULL AND a.status = 'published'")
+    List<SearchItemDTO> findBriefByIds(@Param("ids") Collection<Integer> ids);
+
+    /**
+     * 关键词模糊匹配（Meilisearch 不可用时的降级路径）
+     */
+    @Query("SELECT new com.myblog.myblogspringboot.dto.SearchItemDTO(a.id, a.title, a.summary, a.coverImage, a.createdAt, t.typeName) "
+         + "FROM Article a LEFT JOIN a.type t "
+         + "WHERE a.deletedAt IS NULL AND a.status = 'published' "
+         + "AND (LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+         + "OR LOWER(a.summary) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+         + "OR LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%'))) "
+         + "ORDER BY a.createdAt DESC")
+    List<SearchItemDTO> searchBrief(@Param("keyword") String keyword, Pageable pageable);
 }

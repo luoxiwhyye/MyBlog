@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.myblog.myblogspringboot.dto.ArticleDTO;
 import com.myblog.myblogspringboot.dto.PageResponse;
+import com.myblog.myblogspringboot.dto.SearchItemDTO;
 import com.myblog.myblogspringboot.entity.Article;
 import com.myblog.myblogspringboot.entity.Label;
 import com.myblog.myblogspringboot.exception.BusinessException;
@@ -105,6 +106,49 @@ public class ArticleService {
                 .collect(Collectors.toList());
 
         return new PageResponse<>(dtos, articlePage.getTotalElements(), page, pageSize);
+    }
+
+    /**
+     * 轻量关键词搜索（前台命令面板 / 全局搜索入口）
+     *
+     * 优先走 Meilisearch（命中标题 / 摘要 / 正文），不可用时降级 SQL LIKE。
+     * engine 取值：meilisearch / like / none（未传关键词）。
+     */
+    public Map<String, Object> searchBrief(String keyword, int limit) {
+        String kw = keyword == null ? "" : keyword.trim();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("keyword", kw);
+
+        if (kw.isEmpty()) {
+            result.put("engine", "none");
+            result.put("total", 0);
+            result.put("list", List.of());
+            return result;
+        }
+
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+
+        MeilisearchService.SearchHit hit = meilisearchService.search(kw, 1, safeLimit, null);
+        if (hit != null) {
+            Map<Integer, SearchItemDTO> byId = new HashMap<>();
+            for (SearchItemDTO item : articleRepository.findBriefByIds(hit.getIds())) {
+                byId.put(item.getId(), item);
+            }
+            List<SearchItemDTO> list = hit.getIds().stream()
+                    .map(byId::get)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            result.put("engine", "meilisearch");
+            result.put("total", hit.getTotal());
+            result.put("list", list);
+            return result;
+        }
+
+        List<SearchItemDTO> list = articleRepository.searchBrief(kw, PageRequest.of(0, safeLimit));
+        result.put("engine", "like");
+        result.put("total", list.size());
+        result.put("list", list);
+        return result;
     }
 
     public PageResponse<ArticleDTO> getTrashArticles(int page, int pageSize) {

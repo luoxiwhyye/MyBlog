@@ -57,32 +57,47 @@ const isAvailable = async () => {
   }
 };
 
+/** 索引设置是否已在本进程内补齐（避免每次查询都重复提交设置任务） */
+let indexEnsured = false;
+
 /**
- * 获取索引（自动创建）
+ * 获取索引（首次调用时创建并补齐索引设置）
+ *
+ * ⚠️ 不能用 `c.getIndex(NAME).catch(() => null)` 判断索引是否存在：
+ * 索引不存在时 `client.getIndex()` 内部请求 `GET /indexes/articles` 得到 404 并抛错，
+ * `.catch` 返回 null 后再对 null 解构会抛 `TypeError`，被外层 try 吞掉后本函数恒返回 null
+ * —— 结果是「索引不存在就创建」的分支永远执行不到，syncArticle 永不写入、search 永远降级 LIKE。
+ * 正确做法是 try/catch 包住 getIndex，失败即视为不存在再创建。
  */
 const getIndex = async () => {
   const c = getClient();
   if (!c) return null;
 
   try {
-    const index = c.index(INDEX_NAME);
+    if (!indexEnsured) {
+      try {
+        await c.getIndex(INDEX_NAME);
+      } catch {
+        await c.createIndex(INDEX_NAME, { primaryKey: "id" });
+      }
 
-    // 确保索引存在并设置可搜索属性
-    const { uid } = await c.getIndex(INDEX_NAME).catch(() => null);
-    if (!uid) {
-      await c.createIndex(INDEX_NAME, { primaryKey: "id" });
-      await c
-        .index(INDEX_NAME)
-        .updateFilterableAttributes(["status", "typeId", "deletedAt"]);
-      await c
-        .index(INDEX_NAME)
-        .updateSearchableAttributes(["title", "summary", "content"]);
-      await c
-        .index(INDEX_NAME)
-        .updateSortableAttributes(["createdAt", "viewCount"]);
+      // 幂等补齐索引设置（重复提交安全，Meilisearch 按任务顺序处理）
+      const index = c.index(INDEX_NAME);
+      const tasks = await Promise.all([
+        index.updateFilterableAttributes(["status", "typeId", "deletedAt"]),
+        index.updateSearchableAttributes(["title", "summary", "content"]),
+        index.updateSortableAttributes(["createdAt", "viewCount"]),
+      ]);
+      // 等任务落地，否则紧接着的 search 可能因属性尚未生效而报错
+      const results = await c.waitForTasks(tasks.map((t) => t.taskUid));
+      if (results.some((task) => task.status !== "succeeded")) {
+        throw new Error("索引设置未生效");
+      }
+
+      indexEnsured = true;
     }
 
-    return index;
+    return c.index(INDEX_NAME);
   } catch {
     return null;
   }
@@ -157,18 +172,20 @@ const search = async (
     }
     // 默认按 Meilisearch 相关度排序
 
+    // 用 limit/offset 而非已废弃的 page/hitsPerPage：
+    // 后者返回 totalHits（无 estimatedTotalHits），会让 total 恒为 0、分页错乱
     const result = await index.search(keyword, {
       filter,
       sort: sort.length ? sort : undefined,
-      page,
-      hitsPerPage: pageSize,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
       attributesToRetrieve: ["id"],
       attributesToHighlight: [],
     });
 
     return {
       ids: result.hits.map((h) => Number(h.id)),
-      total: result.estimatedTotalHits || 0,
+      total: result.estimatedTotalHits ?? result.totalHits ?? 0,
     };
   } catch {
     return null;
@@ -177,6 +194,7 @@ const search = async (
 
 module.exports = {
   isAvailable,
+  getIndex,
   syncArticle,
   deleteArticle,
   search,

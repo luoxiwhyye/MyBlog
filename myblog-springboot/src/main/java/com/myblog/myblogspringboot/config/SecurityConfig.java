@@ -67,6 +67,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/types/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/labels/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/message-board/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/message-board").permitAll()

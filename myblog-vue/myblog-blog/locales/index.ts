@@ -143,6 +143,24 @@ export const zh = {
     backHome: "返回首页",
     suggestions: "热门推荐",
   },
+  commandPalette: {
+    open: "搜索",
+    title: "搜索文章",
+    placeholder: "搜索文章标题或正文...",
+    quickNav: "快速跳转",
+    searching: "搜索中...",
+    empty: "没有找到匹配的文章",
+    emptyHint: "换个关键词，或到归档页搜索",
+    error: "搜索失败，请稍后重试",
+    degraded: "检索引擎不可用，已降级为模糊匹配",
+    close: "关闭",
+    searchInArchive: "在归档中搜索",
+    hotkey: "Ctrl / ⌘ + K",
+    hints: {
+      select: "选择",
+      open: "打开",
+    },
+  },
 };
 
 export const en: typeof zh = {
@@ -290,5 +308,23 @@ export const en: typeof zh = {
     search: "Search",
     backHome: "Back to Home",
     suggestions: "Popular Recommendations",
+  },
+  commandPalette: {
+    open: "Search",
+    title: "Search articles",
+    placeholder: "Search titles or content...",
+    quickNav: "Quick links",
+    searching: "Searching...",
+    empty: "No matching articles",
+    emptyHint: "Try another keyword, or search in the archive",
+    error: "Search failed, please try again later",
+    degraded: "Search engine unavailable, falling back to fuzzy matching",
+    close: "Close",
+    searchInArchive: "Search in archive",
+    hotkey: "Ctrl / ⌘ + K",
+    hints: {
+      select: "Select",
+      open: "Open",
+    },
   },
 };

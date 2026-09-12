@@ -14,6 +14,7 @@
         </NuxtLink>
       </nav>
       <div class="header-controls">
+        <SearchTrigger />
         <div class="theme-toggle-wrapper">
           <ThemeToggle />
         </div>

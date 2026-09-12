@@ -1,9 +1,10 @@
 <template>
   <div class="landing">
     <slot />
-    <!-- 主题切换：欢迎页没有 Header，需要在这里显式挂载。
-         该组件会调用 useThemeStore()，主题状态与偏好持久化由它自己驱动。 -->
-    <div class="landing-theme-toggle">
+    <!-- 右上角控件簇：欢迎页没有 Header，搜索入口与主题切换需要在这里显式挂载。
+         主题状态与偏好持久化由 ThemeToggle 自己驱动。 -->
+    <div class="landing-controls">
+      <SearchTrigger />
       <ThemeToggle />
     </div>
     <!-- 备案号：欢迎页没有页脚，合规信息需要在这里出现（未配置时不渲染） -->
@@ -30,20 +31,21 @@ useLayoutSeo();
   isolation: isolate;
 }
 
-/* 主题切换：固定到右上角。用 fixed 而非 absolute——欢迎内容自身占满一屏且
-   带视差位移（transform），absolute 会跟着内容动，fixed 才真正悬浮。 */
-.landing-theme-toggle {
+/* 右上角控件簇（搜索 + 主题切换）：用 fixed 而非 absolute——欢迎内容自身占满
+   一屏且带视差位移（transform），absolute 会跟着内容动，fixed 才真正悬浮。 */
+.landing-controls {
   position: fixed;
   top: clamp(12px, 2.5vh, 20px);
   right: clamp(12px, 2.5vw, 20px);
   z-index: 10;
-  /* 与备案号一致的“悬浮在图上”观感：浅玻璃底，避免按钮直接印在图片上 */
-  border-radius: 10px;
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.landing-theme-toggle :deep(.theme-toggle) {
+/* 与备案号一致的“悬浮在图上”观感：浅玻璃底，避免按钮直接印在图片上 */
+.landing-controls :deep(.theme-toggle),
+.landing-controls :deep(.search-trigger) {
   background: var(--bg-card);
   border-color: var(--glass-border);
 }

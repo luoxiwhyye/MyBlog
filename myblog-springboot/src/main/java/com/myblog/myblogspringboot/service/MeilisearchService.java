@@ -147,6 +147,10 @@ public class MeilisearchService {
             }
 
             Object totalObj = body.get("estimatedTotalHits");
+            if (totalObj == null) {
+                // 用 page/hitsPerPage 查询时返回的是 totalHits，没有 estimatedTotalHits
+                totalObj = body.get("totalHits");
+            }
             int total = totalObj instanceof Number n ? n.intValue() : ids.size();
 
             return new SearchHit(ids, Math.max(total, ids.size()));

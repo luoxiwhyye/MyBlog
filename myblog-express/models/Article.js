@@ -386,6 +386,68 @@ const getArticlesByIds = async (ids) => {
 };
 
 /**
+ * 轻量文章结构（命令面板搜索用，不含 content / labels 等重字段）
+ */
+const formatBriefArticle = (row) => ({
+  id: row.id,
+  title: row.title,
+  summary: row.summary || "",
+  coverImage: row.cover_image || "",
+  createdAt: row.created_at,
+  typeName: row.type_name || "",
+});
+
+const BRIEF_COLUMNS = `a.id, a.title, a.summary, a.cover_image, a.created_at, t.type_name`;
+
+/**
+ * 按 ID 列表查询文章简要信息（供 Meilisearch 命中后回表取展示字段）
+ * 保持入参 id 的顺序（Meilisearch 已按相关度排好序）
+ */
+const getArticleBriefByIds = async (ids) => {
+  if (!ids || ids.length === 0) return [];
+
+  const placeholders = ids.map(() => "?").join(",");
+  const [rows] = await pool.query(
+    `SELECT ${BRIEF_COLUMNS}
+     FROM article a
+     LEFT JOIN \`type\` t ON a.type_id = t.id
+     WHERE a.id IN (${placeholders})
+       AND a.deleted_at IS NULL
+       AND a.status = 'published'`,
+    ids,
+  );
+
+  const rowMap = new Map(rows.map((r) => [r.id, formatBriefArticle(r)]));
+  return ids.map((id) => rowMap.get(id)).filter(Boolean);
+};
+
+/**
+ * 关键词模糊匹配简要信息（Meilisearch 不可用时的降级路径）
+ *
+ * ⚠️ limit 用「已夹紧的整数字面量」插值而非 `LIMIT ?`：
+ * 本环境 mysql2 预处理对 LIMIT 占位符会报 Incorrect arguments to mysqld_stmt_execute。
+ * limit 已被夹紧为 1~20 的整数，无注入风险。
+ */
+const searchArticleBriefs = async (keyword, limit) => {
+  const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 20);
+  const like = `%${keyword}%`;
+
+  const [rows] = await pool.query(
+    `SELECT ${BRIEF_COLUMNS}
+     FROM article a
+     LEFT JOIN \`type\` t ON a.type_id = t.id
+     WHERE a.deleted_at IS NULL
+       AND a.status = 'published'
+       AND (a.title LIKE ? OR a.summary LIKE ? OR a.content LIKE ?)
+     ORDER BY a.created_at DESC
+     LIMIT ${safeLimit}`,
+    [like, like, like],
+  );
+
+  return rows.map(formatBriefArticle);
+};
+
+/**
  * 上一篇 / 下一篇（按 id 排序取相邻已发布文章）
  * prev：小于当前 id 的最近一篇；next：大于当前 id 的最近一篇
  */
@@ -496,6 +558,8 @@ module.exports = {
   getAdjacentArticles,
   getRelatedArticles,
   getArticlesByIds,
+  getArticleBriefByIds,
+  searchArticleBriefs,
   createArticle,
   updateArticle,
   updateArticlesStatus,

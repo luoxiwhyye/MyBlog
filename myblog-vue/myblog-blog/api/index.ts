@@ -11,6 +11,7 @@ import type {
   BloggerProfile,
   ArticleListParams,
   CommentListParams,
+  SearchResult,
   ApiResponse,
   PaginatedResponse,
   Settings,
@@ -37,6 +38,15 @@ export const articleApi = {
 
   getRelated: (id: number): Promise<ApiResponse<RelatedArticle[]>> =>
     request.get(`/articles/${id}/related`),
+};
+
+export const searchApi = {
+  /**
+   * 轻量关键词搜索（命令面板）
+   * 后端优先走 Meilisearch，不可用时自动降级为模糊匹配（响应里的 engine 字段可区分）
+   */
+  search: (keyword: string, limit = 8): Promise<ApiResponse<SearchResult>> =>
+    request.get("/search", { params: { keyword, limit } }),
 };
 
 export const categoryApi = {

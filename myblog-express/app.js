@@ -9,6 +9,7 @@ require("dotenv").config();
 const typeRoutes = require("./routes/typeRoutes");
 const labelRoutes = require("./routes/labelRoutes");
 const articleRoutes = require("./routes/articleRoutes");
+const searchRoutes = require("./routes/searchRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const messageBoardRoutes = require("./routes/messageBoardRoutes");
 const bloggerRoutes = require("./routes/bloggerRoutes");
@@ -182,6 +183,7 @@ app.get("/health", async (_req, res) => {
 app.use(`${apiPrefix}/types`, typeRoutes);
 app.use(`${apiPrefix}/labels`, labelRoutes);
 app.use(`${apiPrefix}/articles`, articleRoutes);
+app.use(`${apiPrefix}/search`, searchRoutes);
 app.use(`${apiPrefix}/comments`, commentRoutes);
 app.use(`${apiPrefix}/message-board`, messageBoardRoutes);
 app.use(`${apiPrefix}/blogger`, bloggerRoutes);
