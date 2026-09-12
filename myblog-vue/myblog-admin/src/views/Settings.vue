@@ -106,43 +106,62 @@
                 :inactive-value="'false'"
               />
 
-              <!-- 社交链接：可视化编辑器（名称 / URL / 图标） -->
+              <!-- 社交链接：可视化编辑器（名称 / URL / 图标 / 动作） -->
+              <!-- 分两行：编辑器可用宽度仅 ~500px，五列单行会把最长的 URL 挤到不可用 -->
               <div v-else-if="field.type === 'social_links'" class="social-links-editor">
                 <div v-for="(item, idx) in socialLinkRows" :key="idx" class="social-link-row">
-                  <el-input
-                    v-model="item.name"
-                    placeholder="名称，如 GitHub"
-                    class="social-link-name"
-                  />
-                  <el-input
-                    v-model="item.url"
-                    placeholder="https://..."
-                    class="social-link-url"
-                  />
-                  <el-select
-                    v-model="item.icon"
-                    placeholder="图标"
-                    clearable
-                    class="social-link-icon"
-                  >
-                    <el-option
-                      v-for="opt in SOCIAL_ICON_OPTIONS"
-                      :key="opt.key"
-                      :label="opt.label"
-                      :value="opt.key"
+                  <div class="social-link-line">
+                    <el-input
+                      v-model="item.name"
+                      placeholder="名称，如 GitHub"
+                      class="social-link-name"
                     />
-                  </el-select>
-                  <el-button
-                    type="danger"
-                    plain
-                    :icon="Delete"
-                    :disabled="socialLinkRows.length <= 1"
-                    @click="removeSocialLink(idx)"
-                  />
+                    <el-input
+                      v-model="item.url"
+                      placeholder="https://..."
+                      class="social-link-url"
+                    />
+                    <el-button
+                      type="danger"
+                      plain
+                      :icon="Delete"
+                      :disabled="socialLinkRows.length <= 1"
+                      @click="removeSocialLink(idx)"
+                    />
+                  </div>
+                  <div class="social-link-line social-link-line--meta">
+                    <el-select
+                      v-model="item.icon"
+                      placeholder="图标"
+                      clearable
+                      class="social-link-icon"
+                    >
+                      <el-option
+                        v-for="opt in SOCIAL_ICON_OPTIONS"
+                        :key="opt.key"
+                        :label="opt.label"
+                        :value="opt.key"
+                      />
+                    </el-select>
+                    <el-select
+                      v-model="item.action"
+                      placeholder="动作"
+                      class="social-link-action"
+                    >
+                      <el-option
+                        v-for="opt in SOCIAL_ACTION_OPTIONS"
+                        :key="opt.key"
+                        :label="opt.label"
+                        :value="opt.key"
+                      />
+                    </el-select>
+                  </div>
                 </div>
                 <div class="social-link-actions">
                   <el-button :icon="Plus" @click="addSocialLink">添加一条</el-button>
-                  <span class="social-link-hint">仅保留格式合法的条目（名称与链接均非空）</span>
+                  <span class="social-link-hint"
+                    >仅保留格式合法的条目（名称与链接均非空）；动作为「自动」时邮箱点击复制、其余新标签页打开</span
+                  >
                 </div>
               </div>
 
@@ -359,6 +378,14 @@ const SOCIAL_ICON_OPTIONS = [
   { key: 'rss', label: 'RSS' },
   { key: 'douban', label: '豆瓣' },
   { key: 'telegram', label: 'Telegram' },
+] as const
+
+// 社交链接点击行为候选项（与前台 myblog-blog/utils/socialLinks.ts 的取值保持一致）
+// 空值 = 前台自动推导：邮箱默认复制，其余新标签页打开
+const SOCIAL_ACTION_OPTIONS = [
+  { key: '', label: '自动' },
+  { key: 'link', label: '新标签页打开' },
+  { key: 'copy', label: '点击复制' },
 ] as const
 
 interface GroupConfig {
@@ -615,7 +642,7 @@ const groups: GroupConfig[] = [
         label: '社交链接',
         type: 'social_links',
         placeholder: '[{"name":"GitHub","url":"https://github.com/"}]',
-        description: '首页展示的社交链接。可逐条维护「名称 / 链接 / 图标」；图标为空时前台回退为文本显示。推荐 3 个以内。',
+        description: '首页展示的社交链接。可逐条维护「名称 / 链接 / 图标 / 动作」；图标为空时前台回退为文本显示，动作为「自动」时邮箱点击复制、其余新标签页打开。推荐 3 个以内。',
       },
     ],
   },
@@ -923,6 +950,8 @@ interface SocialLinkRow {
   name: string
   url: string
   icon: string
+  /** 点击行为：空 = 前台自动推导（邮箱默认复制，其余跳转） */
+  action: '' | 'link' | 'copy'
 }
 
 const socialLinkRows = ref<SocialLinkRow[]>([])
@@ -937,6 +966,7 @@ const parseSocialLinks = (value: string | undefined): SocialLinkRow[] => {
       name: typeof item?.name === 'string' ? item.name : '',
       url: typeof item?.url === 'string' ? item.url : '',
       icon: typeof item?.icon === 'string' ? item.icon : '',
+      action: item?.action === 'copy' || item?.action === 'link' ? item.action : '',
     }))
   } catch {
     return []
@@ -947,7 +977,7 @@ const parseSocialLinks = (value: string | undefined): SocialLinkRow[] => {
 const syncSocialRowsFromForm = () => {
   const rows = parseSocialLinks(formData.social_links)
   socialLinkRows.value = rows.length ? rows : [
-    { name: '', url: '', icon: '' },
+    { name: '', url: '', icon: '', action: '' },
   ]
 }
 
@@ -958,15 +988,18 @@ const syncSocialRowsToForm = () => {
       name: row.name.trim(),
       url: row.url.trim(),
       ...(row.icon ? { icon: row.icon } : {}),
+      // 留空则不写入该字段，由前台按 icon 自动推导（邮箱→复制，其余→跳转）
+      ...(row.action ? { action: row.action } : {}),
     }))
     .filter((item) => item.name && item.url)
   formData.social_links = JSON.stringify(valid)
 }
 
+// 行数据（含嵌套字段）变化后重新序列化
 watch(socialLinkRows, syncSocialRowsToForm, { deep: true })
 
 const addSocialLink = () => {
-  socialLinkRows.value.push({ name: '', url: '', icon: '' })
+  socialLinkRows.value.push({ name: '', url: '', icon: '', action: '' })
 }
 
 const removeSocialLink = (index: number) => {
@@ -1059,14 +1092,29 @@ onMounted(() => {
   width: 100%;
 }
 
+/* 社交链接编辑器：每条目两行（名称+链接+删除 / 图标+动作）
+   编辑器可用宽度约 500px，五列单行会把最长的「链接」挤到 60px 左右而不可用 */
 .social-link-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  /* 仅在「条目之间」画细分隔线：首个之前、以及最后一个与「添加一条」之间都不画。
+     注意行元素后面还跟着 .social-link-actions，故不能用 :last-child 判断末行。 */
+  & + & {
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-light);
+  }
+}
+
+.social-link-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
 
   .social-link-name {
-    /* 名称一般较短，给予相对紧凑宽度 */
+    /* 名称一般较短，给予紧凑宽度 */
     flex: 0 0 120px;
   }
 
@@ -1076,13 +1124,19 @@ onMounted(() => {
     min-width: 0;
   }
 
-  .social-link-icon {
-    /* 图标选项名也较短，收紧宽度 */
-    flex: 0 0 110px;
-  }
-
   .el-button {
     flex-shrink: 0;
+  }
+}
+
+.social-link-line--meta {
+  .social-link-icon {
+    /* 图标选项名也较短，收紧宽度 */
+    flex: 0 0 130px;
+  }
+
+  .social-link-action {
+    flex: 0 0 150px;
   }
 }
 

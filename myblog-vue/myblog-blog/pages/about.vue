@@ -12,19 +12,13 @@
         <h2 class="profile-name">{{ authorName }}</h2>
         <p v-if="bio" class="bio">{{ bio }}</p>
         <div v-if="socialLinks.length" class="social-links">
-          <a
+          <SocialLinkItem
             v-for="link in socialLinks"
             :key="link.url"
-            :href="link.url"
-            target="_blank"
-            rel="noopener noreferrer"
             class="social-link"
-            :aria-label="link.name"
-            :title="link.name"
-          >
-            <SocialIcon :icon="link.icon" :size="18" :color="true" />
-            <span>{{ link.name }}</span>
-          </a>
+            :item="link"
+            :size="18"
+          />
         </div>
       </div>
     </div>
@@ -102,6 +96,7 @@
 
 <script setup lang="ts">
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { parseSocialLinks } from "~/utils/socialLinks";
 import { articleApi, categoryApi, tagApi, friendLinkApi } from "~/api";
 import type { FriendLink } from "~/types";
 
@@ -126,19 +121,7 @@ const avatar = computed(() => {
 });
 
 // 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url,icon?}]，可空）
-const socialLinks = computed<Array<{ name: string; url: string; icon?: string }>>(() => {
-  const raw = settingsStore.getSetting("social_links");
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((i) => i?.name && i?.url);
-    }
-  } catch {
-    // 解析失败视为空
-  }
-  return [];
-});
+const socialLinks = computed(() => parseSocialLinks(settingsStore.getSetting("social_links")));
 
 // 建立年份（修复占位 bug）：优先读 site_established 设置，否则回退到首批文章年份
 const established = ref<string>("");
@@ -343,12 +326,6 @@ usePageSeo({
     background-color $transition-fast,
     color $transition-fast,
     border-color $transition-fast;
-
-  /* 图标固定尺寸，不参与 flex 收缩，避免与文字对不齐 */
-  :deep(svg) {
-    flex: 0 0 auto;
-    display: block;
-  }
 }
 
 .social-link:hover {

@@ -140,6 +140,11 @@ export const zh = {
   siteIcp: {
     linkTitle: "在工信部备案系统查验",
   },
+  socialLink: {
+    copyHint: "点击复制",
+    copied: "已复制到剪贴板",
+    copyFailed: "复制失败，请手动复制",
+  },
   notFound: {
     title: "页面未找到",
     desc: "你访问的页面不存在，或者已经被移动到其他位置。",
@@ -312,6 +317,11 @@ export const en: typeof zh = {
   },
   siteIcp: {
     linkTitle: "Verify this ICP filing at the MIIT registry",
+  },
+  socialLink: {
+    copyHint: "Click to copy",
+    copied: "Copied to clipboard",
+    copyFailed: "Copy failed, please copy manually",
   },
   notFound: {
     title: "Page Not Found",

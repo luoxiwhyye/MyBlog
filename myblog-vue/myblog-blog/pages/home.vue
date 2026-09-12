@@ -17,19 +17,12 @@
           <h2 class="profile-name">{{ authorName }}</h2>
           <p class="profile-bio">{{ bio || t('home.profileEmpty') }}</p>
           <div v-if="socialLinks.length" class="profile-links">
-            <a
+            <SocialLinkItem
               v-for="link in socialLinks"
               :key="link.url"
-              :href="link.url"
-              target="_blank"
-              rel="noopener noreferrer"
               class="profile-link"
-              :title="link.name"
-              :aria-label="link.name"
-            >
-              <SocialIcon :icon="link.icon" :color="true" class="profile-link-icon" />
-              <span>{{ link.name }}</span>
-            </a>
+              :item="link"
+            />
           </div>
         </div>
         <NuxtLink to="/about" class="profile-more">{{ t('home.viewProfile') }}</NuxtLink>
@@ -108,6 +101,7 @@
 <script setup lang="ts">
 import { articleApi, categoryApi } from "~/api";
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { parseSocialLinks } from "~/utils/socialLinks";
 import type { Article, Category, PaginatedResponse } from "~/types";
 
 const settingsStore = useSettingsStore();
@@ -195,19 +189,7 @@ const retryLoad = () => refreshHome();
    - 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url}]，可空） */
 const announcement = computed(() => settingsStore.getSetting("announcement"));
 
-const socialLinks = computed<Array<{ name: string; url: string; icon?: string }>>(() => {
-  const raw = settingsStore.getSetting("social_links");
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((i) => i?.name && i?.url);
-    }
-  } catch {
-    // 解析失败视为空
-  }
-  return [];
-});
+const socialLinks = computed(() => parseSocialLinks(settingsStore.getSetting("social_links")));
 
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
@@ -498,11 +480,8 @@ useWebsiteJsonLd();
   }
 }
 
-/* 图标不参与 flex 压缩，保证各链接图标尺寸一致（与文字基线错位的根因） */
-.profile-link-icon {
-  flex: 0 0 auto;
-  display: block;
-}
+/* 图标不参与 flex 压缩，保证各链接图标尺寸一致（与文字基线错位的根因）
+   —— 该项已下沉到 SocialLinkItem 组件内部统一处理 */
 
 .profile-more {
   flex-shrink: 0;

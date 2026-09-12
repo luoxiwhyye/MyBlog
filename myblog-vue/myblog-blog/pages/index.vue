@@ -12,17 +12,13 @@
       <p v-if="bio" class="welcome-bio">{{ bio }}</p>
 
       <div v-if="socialLinks.length" class="welcome-links">
-        <a
+        <SocialLinkItem
           v-for="link in socialLinks"
           :key="link.url"
-          :href="link.url"
-          target="_blank"
-          rel="noopener noreferrer"
           class="welcome-link"
-        >
-          <SocialIcon :icon="link.icon" :size="14" :color="true" />
-          <span>{{ link.name }}</span>
-        </a>
+          :item="link"
+          :size="14"
+        />
       </div>
 
       <NuxtLink to="/home" class="enter-btn">进入博客</NuxtLink>
@@ -32,6 +28,7 @@
 
 <script setup lang="ts">
 import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { parseSocialLinks } from "~/utils/socialLinks";
 
 definePageMeta({
   layout: "landing",
@@ -66,21 +63,13 @@ const showAuthor = computed(() => {
   return !site.includes(author);
 });
 
-// 极简社交链接：复用 social_links（结构 {name,url,icon?}），取前 3 个
-const socialLinks = computed<Array<{ name: string; url: string; icon?: string }>>(() => {
+// 极简社交链接：复用 social_links，取前 3 个
+const socialLinks = computed(() => {
   const raw = settingsStore.getSetting("social_links");
-  if (!raw) {
-    return [{ name: "GitHub", url: "https://github.com/" }];
-  }
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item) => item?.name && item?.url).slice(0, 3);
-    }
-  } catch {
-    return [];
-  }
-  return [];
+  // 未配置时给一个 GitHub 兜底，避免落地页显得空；
+  // 配置了但格式非法则不兜底（展示一个假链接比留空更具误导性）
+  if (!raw) return [{ name: "GitHub", url: "https://github.com/" }];
+  return parseSocialLinks(raw).slice(0, 3);
 });
 
 // 柔和鼠标视差
@@ -224,12 +213,6 @@ usePageSeo({
     border-color 0.3s,
     box-shadow var(--transition-bounce),
     transform var(--transition-bounce);
-
-  /* 图标固定尺寸，不参与 flex 收缩，避免与文字对不齐 */
-  :deep(svg) {
-    flex: 0 0 auto;
-    display: block;
-  }
 }
 
 .welcome-link:hover {
