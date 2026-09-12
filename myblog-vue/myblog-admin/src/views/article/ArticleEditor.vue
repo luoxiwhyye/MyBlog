@@ -28,10 +28,15 @@
         </el-form-item>
 
         <el-form-item label="分类" prop="typeId">
+          <!-- filterable 为**纯客户端过滤**：分类/标签选项早已由 fetchAllPagedOptions
+               全量拉取到本地，故不要改成 remote + remote-method（会多一次无收益的请求）。
+               Element Plus 的默认过滤是转义后的「大小写不敏感子串」匹配，中文无需额外处理。 -->
           <el-select
             v-model="form.typeId"
-            placeholder="请选择分类"
+            placeholder="搜索或选择分类"
             class="article-type-select"
+            filterable
+            no-match-text="无匹配分类，请先在「分类管理」创建"
           >
             <el-option
               v-for="type in typeList"
@@ -43,12 +48,21 @@
         </el-form-item>
 
         <el-form-item label="标签" prop="labelIds">
+          <!-- 同上：本地过滤；另加 clearable 以便一次性清空已选标签
+               （分类是必填项，给它加 clearable 会在清空瞬间弹出校验错误，故分类不加）。
+               Enter 的接管靠 onMounted 里的**原生捕获监听**（不能写成 @keydown.enter.capture：
+               该 attrs 落不到含内部 input 的根节点上，实测不触发），详见 handleLabelEnter 注释。 -->
           <el-select
+            ref="labelSelectRef"
             v-model="form.labelIds"
             multiple
-            placeholder="请选择标签"
+            filterable
+            clearable
+            placeholder="搜索或选择标签"
             class="article-label-select"
+            no-match-text="无匹配标签，请先在「标签管理」创建"
             :style="{ width: `${labelSelectWidth}px` }"
+            @visible-change="handleLabelVisibleChange"
           >
             <el-option
               v-for="label in labelList"
@@ -141,7 +155,10 @@
                 placeholder="使用 Markdown 语法编写内容...&#10;&#10;### 标题&#10;**加粗** *斜体*&#10;- 列表项&#10;&#96;&#96;&#96;代码块&#96;&#96;&#96;&#10;&#10;![图片](URL)"
               />
             </div>
-            <div class="md-editor-preview" v-html="markdownPreview"></div>
+            <div class="md-editor-preview">
+              <!-- 内容放在内层：绝对定位后其高度不再影响容器/行高（见 .md-editor-preview-body 注释） -->
+              <div class="md-editor-preview-body" v-html="markdownPreview"></div>
+            </div>
           </div>
         </el-form-item>
 
@@ -551,6 +568,72 @@ const labelSelectWidth = computed(() => {
   return Math.min(720, baseSelectWidth + extraCount * 46)
 })
 
+/* ===== 标签下拉的 Enter 键接管（必须用捕获阶段，见模板注释） =====
+ * 背景：Element Plus 在 multiple 模式下的 Enter = selectOption() → 对「当前高亮项」做 toggle：
+ *     const optionIndex = getValueIndex(value, option)
+ *     if (optionIndex > -1) value.splice(optionIndex, 1)   // ← 已选 → 取消选中（删除！）
+ *     else value.push(option.value)
+ * 而高亮项通常恰好是「刚选中的那一个」：reserveKeyword 默认 true（选中后关键词保留、列表不变），
+ * 且 updateHoveringIndex 会主动把 hoveringIndex 指向最后一个已选项。
+ * → 结果：点选一个标签后再按 Enter（含盲按）会把它「取消掉」，属破坏性行为，而非简单的无响应。
+ *
+ * 规则：
+ *   1) 高亮项是「匹配关键词且未选中」→ 交回 Element Plus 原生处理（鼠标悬停 / ↓ 后回车的正常路径）
+ *   2) 其余情况一律拦下，改为「加入第一个匹配且未选中的标签」
+ *   3) 没有候选就什么都不做 —— 绝不出现「按 Enter 反而删标签」
+ *
+ * 未动：Backspace 在输入框为空时删除末尾标签是原生行为（仍是正常的删除方式）；
+ *      分类是单选，Enter 在 Element Plus 里只是「重新确认高亮项」、不会删除，
+ *      为避免破坏「↓ + 回车」的原生路径，未对它做同样的接管。
+ *
+ * ⚠️ 监听必须用**原生捕获阶段**（见下方 onMounted 的 addEventListener(..., true)）：
+ *   Element Plus 把 Enter 处理绑在内部 input 上，并且在处理完会 preventDefault + stopPropagation，
+ *   所以冒泡阶段（挂在根元素上的 @keydown）根本没机会执行；
+ *   而写成 @keydown.enter.capture 也不行 —— 该 attrs 落不到含 input 的根节点上（实测不触发）。
+ */
+const labelSelectRef = ref<any>(null)
+const labelDropdownOpen = ref(false)
+
+const handleLabelVisibleChange = (visible: boolean) => {
+  labelDropdownOpen.value = visible
+}
+
+/** 与 Element Plus 默认过滤保持一致：转义后的「大小写不敏感子串」匹配 */
+const labelMatchesKeyword = (name: unknown, keyword: string) =>
+  String(name).toLowerCase().includes(keyword.toLowerCase())
+
+/** 取当前下拉里被高亮（鼠标悬停或 ↓ 选中）的那一项文案；取不到返回 undefined */
+const getHoveredOptionLabel = (input: HTMLElement | null) => {
+  const listId = input?.getAttribute("aria-controls")
+  const list = listId ? document.getElementById(listId) : null
+  return list?.querySelector(".el-select-dropdown__item.is-hovering")?.textContent?.trim()
+}
+
+const handleLabelEnter = (event: KeyboardEvent) => {
+  // 只接管 Enter；方向键 / Backspace / 输入等一律放行（⌨️ 捕获阶段若吞掉方向键会让下拉无法用键盘导航）
+  if (event.key !== "Enter") return
+  if (!labelDropdownOpen.value) return
+  const input = event.target as HTMLInputElement | null
+  const keyword = (input?.value ?? "").trim()
+  const hovered = getHoveredOptionLabel(input)
+  const hoveredIsUnselectedMatch =
+    !!keyword &&
+    !!hovered &&
+    labelMatchesKeyword(hovered, keyword) &&
+    !labelList.value.some(
+      (l) => String(l.labelName) === hovered && form.labelIds.includes(l.id),
+    )
+  // 高亮的正是「未选中的匹配项」→ 交回原生逻辑，不干预
+  if (hoveredIsUnselectedMatch) return
+  event.preventDefault()
+  event.stopPropagation()
+  if (!keyword) return
+  const next = labelList.value.find(
+    (l) => labelMatchesKeyword(l.labelName, keyword) && !form.labelIds.includes(l.id),
+  )
+  if (next) form.labelIds = [...form.labelIds, next.id]
+}
+
 const fetchAllPagedOptions = async <T>(
   fetchPage: (params: { page: number; pageSize: number }) => Promise<any>
 ) => {
@@ -801,10 +884,14 @@ const handlePreviewCopy = async (e: Event) => {
   }
 }
 
+/** el-select 的根元素（含内部 input），用于在捕获阶段挂 keydown（详见 handleLabelEnter 注释） */
+const labelSelectRoot = () => labelSelectRef.value?.$el as HTMLElement | undefined
+
 onMounted(async () => {
   await fetchOptions()
   await initEditor()
   document.addEventListener('click', handlePreviewCopy)
+  labelSelectRoot()?.addEventListener('keydown', handleLabelEnter, true)
 })
 
 // 关键：编辑/写文章共用同一组件实例（articles/edit/:id?），
@@ -823,6 +910,7 @@ watch(
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handlePreviewCopy)
+  labelSelectRoot()?.removeEventListener('keydown', handleLabelEnter, true)
   if (saveTimer) clearTimeout(saveTimer)
   if (savedAtTimer) clearTimeout(savedAtTimer)
 })
@@ -901,13 +989,26 @@ onBeforeUnmount(() => {
   color: #94a3b8;
 }
 
-/* Markdown 左右分屏编辑 */
+/* Markdown 左右分屏编辑
+   ---------------------------------------------------------------
+   等高规则（本项修复的核心）：
+   · 左列 = 自绘工具栏 + 间距 + 文本域；右列只有预览内容，**没有**工具栏那一截。
+   · 所以行高必须由左列驱动，右列只负责「填满行高」。
+   · 若让右列自己定高（height: auto），预览内容会反过来撑高整行
+     —— 实测灌入 200 段文本可把整行顶到 12826px、且预览失去内部滚动（scrollHeight == clientHeight），
+     比原来「矮 52px」严重得多。故预览内容必须与容器高度解耦（见 .md-editor-preview-body）。
+   --------------------------------------------------------------- */
+$md-pane-height: 440px; /* 三处「内容区」的共用高度：MD 文本域 / MD 预览 / 富文本容器 */
+
 .md-editor {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   width: 100%;
-  align-items: start;
+  /* 默认值就是 stretch：两列等高。
+     原先写死的 align-items: start 会阻止拉伸 → 预览永远矮「工具栏 + 间距」一截
+     （实测 44 + 8 = 52px，正是本项要修的落差）。 */
+  align-items: stretch;
 }
 
 .md-editor-left {
@@ -958,7 +1059,14 @@ onBeforeUnmount(() => {
 }
 
 .md-editor-input :deep(.el-textarea__inner) {
-  height: 440px !important;
+  /* 用 min-height 而非 height（原为 height: 440px !important）：
+     ① 恢复被 !important 顶死的 resize: vertical；
+     ② 拖动改高 → 左列变高 → 行高变高 → 预览自动跟随，等高关系不破。
+     ⚠️ 这里必须带 !important：Element Plus 对 textarea **始终**写行内 min-height
+        （input.vue 的 resizeTextarea：非 autosize 分支 = calcTextareaHeight(el).minHeight，
+         默认 minRows=1 → 34px 的防塌陷保护），而行内样式优先于样式表。
+         不带 !important 的话本行会被忽略、高度退回 :rows="18" 的自然高（438px，非整数）。 */
+  min-height: $md-pane-height !important;
   font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
   font-size: 14px;
   line-height: 1.7;
@@ -967,12 +1075,23 @@ onBeforeUnmount(() => {
 }
 
 .md-editor-preview {
-  height: 440px;
-  overflow-y: auto;
+  position: relative;
+  /* 不设 height：高度由 grid 行高（= 左列）拉伸得到，因此不参与行高竞争；
+     滚动交给内层 body，容器只负责裁剪。 */
+  overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
-  padding: 12px 14px;
   background: #fff;
+  box-sizing: border-box;
+}
+
+/* 预览内容层：绝对定位 → 高度不再影响容器，只负责「填满容器 + 自己滚动」。
+   内边距从容器移到这一层，视觉与改动前一致（border 1px + padding 12px）。 */
+.md-editor-preview-body {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 12px 14px;
   box-sizing: border-box;
   word-break: break-word;
 }
@@ -1122,9 +1241,11 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
+  /* 单列时预览自成一行，行高不再由左列提供 → 必须给确定高度，
+     否则容器里只剩绝对定位内容、会塌成 0 高。
+     （原为 height: auto + max-height: 300px，在解耦后 height: auto 会变成 0。） */
   .md-editor-preview {
-    height: auto;
-    max-height: 300px;
+    height: 300px;
   }
 }
 
@@ -1138,17 +1259,18 @@ onBeforeUnmount(() => {
 }
 
 .quill-wrapper :deep(.ql-container) {
-  height: 420px !important;
+  /* 与 Markdown 的内容区同高：切换编辑模式时高度不跳（原为 420px，比 MD 少 20px）。
+     总高：MD = 工具栏 44 + 间距 8 + 440 = 492；富文本 = Quill 工具栏 50 + 440 = 490，
+     二者相差 2px，来自两个工具栏本身的高度差，不再用魔法数字去硬凑。 */
+  height: $md-pane-height;
   max-width: 100%;
   box-sizing: border-box;
   word-wrap: break-word;
   overflow-y: auto;
 }
 
-.quill-wrapper :deep(.ql-editor) {
-  min-height: 340px;
-  height: 340px;
-}
+/* 不再给 .ql-editor 写死高度：Quill 自带 .ql-editor { height: 100%; overflow-y: auto }，
+   写死 340px 会在大一点的容器里留下空白（原 420px 容器里正好空 80px）。 */
 
 .quill-wrapper :deep(.ql-editor img) {
   max-width: 100%;
