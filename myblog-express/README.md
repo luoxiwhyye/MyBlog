@@ -63,17 +63,51 @@ controllers/   # 控制器（article/blogger/comment/friendLink/messageBoard/emo
 middleware/    # 认证、角色、限流、缓存、校验、错误处理、性能监控
 models/        # 数据模型（Article/Blogger/Comment/FriendLink/MessageBoard/Emoji/ClientErrorLog/...）
 routes/        # 路由（含 cache/metrics/emoji/error-log 运维接口）
-scripts/       # 初始化脚本（initBlogger、regenerateThumbs）
+scripts/       # 运维 / 迁移脚本（clearCache、verifyUploads、syncMeili、regenerateThumbs、...）
 services/      # meilisearch、mailer、commentNotifier
 utils/         # 日期、分页、响应、图片转换
 test/          # 集成测试
 ```
+
+## 运维脚本
+
+`scripts/` 下的脚本都可直接 `node scripts/<name>.js` 执行，不影响运行中的服务：
+
+- `clearCache.js` — 查看 / 按前缀清除 Redis 缓存（见下）
+- `verifyUploads.js` — 上传图片体检：失联引用、多键共用同一图、孤儿文件（只读）
+- `syncMeili.js` — Meilisearch 索引回填 / 重建（`REBUILD=1` 先删索引）
+- `regenerateThumbs.js` — 为历史图片补生成 WebP / 缩略图变体
+- `initBlogger.js` — 初始化博主账号
+- `addUniqueNames.js` — 标签 / 分类重名合并 + 唯一索引
+- `addContentFormat.js` — 回填文章 `content_format`
+- `addMobileBgSettings.js` — 补移动端背景图设置键
+- `migrateEmojiGroup.js` — 表情分组表迁移
+
+迁移类脚本均幂等、可重复执行；`addUniqueNames.js` 与 `clearCache.js` 支持 `DRY_RUN=1` 预览。
+
+### 缓存清理
+
+```bash
+node scripts/clearCache.js                    # 列出全部 cache:* 键与 TTL（默认不删）
+node scripts/clearCache.js --prefix=settings  # 按前缀清除（可传多个前缀）
+node scripts/clearCache.js --all              # 清除全部
+DRY_RUN=1 node scripts/clearCache.js --all    # 只预览、不删除
+```
+
+写接口（如 `PUT /settings/:key`）本身会 `await cache.invalidate()` 即时失效缓存，本脚本
+面向「绕过应用层之后」的场景（例如直接改了数据库、或需要手动干预）。清缓存是安全的：
+数据不丢，下次请求回源重建。需注意 `config/redis.js` 是 `lazyConnect`，未建立连接时
+`keys` / `del` 会**静默失效**，所以脚本会先确保连接就绪，连不上就明确报错退出，
+不会打印「已清除 0 条」造成误导。
+
+> PowerShell 下预览：`$env:DRY_RUN=1; node scripts/clearCache.js --prefix=settings`
 
 ## 路由一览（前缀 `/api/v1`）
 
 | 前缀 | 说明 |
 | --- | --- |
 | `/articles` `/types` `/labels` `/comments` | 内容 CRUD / 评论审核 |
+| `/search` | 关键词搜索（优先 Meilisearch，失败降级 LIKE） |
 | `/message-board` | 留言板 |
 | `/friend-links` | 友链（含点击计数） |
 | `/blogger` | 登录 / 公开资料 |

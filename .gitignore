@@ -46,6 +46,8 @@ skills-lock.json
 agent
 # AI 上下文忽略配置
 .copilotignore
+# 本机 AI 指令文件（与 .copilotignore 同属本地配置，不入库）
+/.github/copilot-instructions.md
 
 # ── 缓存 ──
 .npm-cache
