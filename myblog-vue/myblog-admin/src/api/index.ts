@@ -153,7 +153,7 @@ export const comment = {
         authorUrl?: string
         content: string
         likeCount: number
-        status: 'pending' | 'approved' | 'spam' | 'deleted'
+        status: 'pending' | 'approved' | 'deleted'
         createdAt: string
         replies: any[]
       }>
@@ -182,7 +182,7 @@ export const comment = {
   },
   updateStatus: (
     id: number,
-    data: { status: 'pending' | 'approved' | 'spam' | 'deleted' },
+    data: { status: 'pending' | 'approved' | 'deleted' },
   ): Promise<ApiResponse> => {
     return request.put(`/comments/${id}/status`, data)
   },
@@ -206,7 +206,7 @@ export const messageBoard = {
         authorUrl?: string
         authorIp?: string
         content: string
-        status: 'pending' | 'approved' | 'spam' | 'deleted'
+        status: 'pending' | 'approved' | 'deleted'
         createdAt: string
       }>
     >
@@ -224,7 +224,7 @@ export const messageBoard = {
   },
   updateStatus: (
     id: number,
-    data: { status: 'pending' | 'approved' | 'spam' | 'deleted' },
+    data: { status: 'pending' | 'approved' | 'deleted' },
   ): Promise<ApiResponse> => {
     return request.put(`/message-board/${id}/status`, data)
   },

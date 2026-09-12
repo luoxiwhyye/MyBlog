@@ -173,7 +173,8 @@ public class CommentService {
 
     @Transactional
     public void updateCommentStatus(Integer id, String status) {
-        if (!List.of("pending", "approved", "spam", "deleted").contains(status)) {
+        // 状态只有三档：pending（待审核）/ approved（已审核）/ deleted（回收站）
+        if (!List.of("pending", "approved", "deleted").contains(status)) {
             throw new BusinessException(400, "状态值无效");
         }
 

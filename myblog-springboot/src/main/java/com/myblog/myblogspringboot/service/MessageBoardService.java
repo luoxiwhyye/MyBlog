@@ -93,7 +93,8 @@ public class MessageBoardService {
 
     @Transactional
     public void updateStatus(Integer id, String status) {
-        if (!List.of("approved", "pending", "spam", "deleted").contains(status)) {
+        // 状态只有三档：pending（待审核）/ approved（已审核）/ deleted（回收站）
+        if (!List.of("approved", "pending", "deleted").contains(status)) {
             throw new BusinessException(400, "状态非法");
         }
         messageBoardRepository.findById(id)

@@ -55,7 +55,7 @@ export interface Comment {
   authorUrl?: string;
   content: string;
   likeCount: number;
-  status: "approved" | "pending" | "spam" | "deleted";
+  status: "approved" | "pending" | "deleted";
   createdAt: string;
   createAt?: string;
   replies?: Comment[];
@@ -141,7 +141,7 @@ export interface MessageBoard {
   authorUrl?: string;
   authorIp?: string;
   content: string;
-  status: "pending" | "approved" | "spam" | "deleted";
+  status: "pending" | "approved" | "deleted";
   createdAt: string;
 }
 

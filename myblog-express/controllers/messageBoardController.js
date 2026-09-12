@@ -103,7 +103,8 @@ const updateMessageStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["approved", "pending", "spam", "deleted"].includes(status)) {
+    // 状态只有三档：pending（待审核）/ approved（已审核）/ deleted（回收站）
+    if (!["approved", "pending", "deleted"].includes(status)) {
       return error(res, "状态非法", 400);
     }
 

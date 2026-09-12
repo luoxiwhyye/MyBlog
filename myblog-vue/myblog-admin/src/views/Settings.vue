@@ -602,25 +602,29 @@ const groups: GroupConfig[] = [
         key: 'site_bg_light',
         label: '桌面端亮色背景图',
         type: 'image',
-        description: '桌面端亮色模式下的博客背景图（宽幅构图）。',
+        description:
+          '桌面端亮色模式下的博客背景图（宽幅构图）。\n建议 16:9 及以上、至少 1920×1080，单张控制在 2MB 以内；前台按 cover 铺满窗口，用的是上传的原图（不会再压缩），主体请放在画面中部。',
       },
       {
         key: 'site_bg_dark',
         label: '桌面端暗色背景图',
         type: 'image',
-        description: '桌面端暗色模式下的博客背景图（宽幅构图）。',
+        description:
+          '桌面端暗色模式下的博客背景图（宽幅构图）。\n建议 16:9 及以上、至少 1920×1080，单张控制在 2MB 以内；前台按 cover 铺满窗口，用的是上传的原图（不会再压缩），主体请放在画面中部。',
       },
       {
         key: 'site_bg_light_mobile',
         label: '移动端亮色背景图',
         type: 'image',
-        description: '移动端（≤768px）亮色模式背景图，建议竖版构图；留空时自动沿用桌面端亮色背景图。',
+        description:
+          '移动端（≤768px）亮色模式背景图，建议竖版构图；留空时自动沿用桌面端亮色背景图。\n建议 9:16、至少 1080×1920，单张控制在 2MB 以内；前台按 cover 铺满屏幕，用的是上传的原图（不会再压缩）。',
       },
       {
         key: 'site_bg_dark_mobile',
         label: '移动端暗色背景图',
         type: 'image',
-        description: '移动端（≤768px）暗色模式背景图，建议竖版构图；留空时自动沿用桌面端暗色背景图。',
+        description:
+          '移动端（≤768px）暗色模式背景图，建议竖版构图；留空时自动沿用桌面端暗色背景图。\n建议 9:16、至少 1080×1920，单张控制在 2MB 以内；前台按 cover 铺满屏幕，用的是上传的原图（不会再压缩）。',
       },
     ],
   },
@@ -1217,6 +1221,9 @@ onMounted(() => {
   line-height: 1.6;
   margin-top: 4px;
   width: 100%;
+  /* 保留说明文案里的手动换行（如背景图的尺寸建议分行展示）；
+     无换行的说明不受影响 */
+  white-space: pre-line;
 }
 
 .color-field {

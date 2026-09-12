@@ -251,7 +251,8 @@ const updateCommentStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["pending", "approved", "spam", "deleted"].includes(status)) {
+    // 状态只有三档：pending（待审核）/ approved（已审核）/ deleted（回收站）
+    if (!["pending", "approved", "deleted"].includes(status)) {
       return error(res, "状态值无效", 400);
     }
 

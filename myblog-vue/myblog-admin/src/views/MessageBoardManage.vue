@@ -19,7 +19,6 @@
               <el-option label="全部" value="all" />
               <el-option label="待审核" value="pending" />
               <el-option label="已审核" value="approved" />
-              <el-option label="垃圾留言" value="spam" />
             </el-select>
           </el-form-item>
           <el-form-item>
@@ -82,14 +81,6 @@
                 @click="updateStatus(scope.row.id, 'pending')"
               >
                 设为待审核
-              </el-button>
-              <el-button
-                v-if="scope.row.status !== 'spam'"
-                size="small"
-                type="warning"
-                @click="updateStatus(scope.row.id, 'spam')"
-              >
-                设为垃圾
               </el-button>
               <el-button
                 size="small"
@@ -185,7 +176,6 @@ const getStatusType = (status: string) => {
   const types: Record<string, string> = {
     approved: 'success',
     pending: 'warning',
-    spam: 'danger',
     deleted: 'info'
   }
   return types[status] || 'info'
@@ -196,7 +186,6 @@ const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
     approved: '已审核',
     pending: '待审核',
-    spam: '垃圾留言',
     deleted: '已删除'
   }
   return texts[status] || status
@@ -231,7 +220,7 @@ const handleViewModeChange = (mode: 'list' | 'trash') => {
 }
 
 // 更新留言状态
-const updateStatus = async (id: number, status: 'pending' | 'approved' | 'spam' | 'deleted') => {
+const updateStatus = async (id: number, status: 'pending' | 'approved' | 'deleted') => {
   try {
     const response = await messageBoard.updateStatus(id, { status })
     if (response.code === 200 || response.code === 201) {

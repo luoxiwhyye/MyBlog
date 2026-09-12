@@ -83,7 +83,7 @@ export interface Comment {
   authorUrl?: string
   content: string
   likeCount: number
-  status: 'pending' | 'approved' | 'spam' | 'deleted'
+  status: 'pending' | 'approved' | 'deleted'
   createdAt: string
   replies?: Comment[]
 }
@@ -150,7 +150,7 @@ export interface PasswordChangeData {
 
 // 评论状态更新参数
 export interface CommentStatusUpdate {
-  status: 'pending' | 'approved' | 'spam' | 'deleted'
+  status: 'pending' | 'approved' | 'deleted'
 }
 
 // 网站配置更新参数 (FormData)
