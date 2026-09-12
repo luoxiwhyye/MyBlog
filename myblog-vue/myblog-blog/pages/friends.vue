@@ -19,7 +19,7 @@
       v-else-if="links.length === 0"
       :message="t('friends.title')"
       :description="t('friends.description')"
-      action-text="返回首页"
+      :action-text="t('notFound.backHome')"
       action-to="/home"
     />
     <div v-else class="friends-grid">

@@ -52,7 +52,7 @@
         v-else-if="articles.length === 0"
         :message="t('archive.noArticles')"
         :description="t('archive.noArticlesDesc')"
-        action-text="返回首页"
+        :action-text="t('notFound.backHome')"
         action-to="/home"
       />
       <template v-else>

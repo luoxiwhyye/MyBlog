@@ -94,6 +94,8 @@ const siteLogo = computed(() => {
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .header {
   /* 不用 backdrop-filter：它会创建 containing block，
      导致内部 el-drawer 的 position:fixed 被限制在 Header 内（移动端菜单被裁剪）。
@@ -112,13 +114,17 @@ const siteLogo = computed(() => {
   box-shadow: var(--shadow-card);
 }
 
+/* 栏宽与水平内边距必须与 .main-content / 页脚一致（否则顶栏文字会比正文外扩一截），
+   三处共用 $layout-max-width / $layout-gutter。
+   实测：1200px 下顶栏内部（logo + 导航 + 右侧控件）共 832px，留白充足。 */
 .container {
-  max-width: 1400px;
+  width: 100%;
+  max-width: $layout-max-width;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 16px;
+  gap: $spacing-4;
+  padding: 0 $layout-gutter;
 }
 
 .logo a {
@@ -254,6 +260,13 @@ const siteLogo = computed(() => {
 
   .mobile-menu-btn {
     display: inline-flex;
+  }
+}
+
+/* ≤480px 与 .main-content / 页脚同步收窄水平留白，保持左边缘对齐 */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 $layout-gutter-mobile;
   }
 }
 </style>

@@ -24,7 +24,7 @@
       v-else-if="articles.length === 0"
       message="该标签下暂无文章"
       description="换个标签看看吧，或者稍后回来。"
-      action-text="返回首页"
+      :action-text="t('notFound.backHome')"
       action-to="/home"
     />
     <div v-else class="articles-grid">
@@ -39,6 +39,7 @@ import { Loading } from "@element-plus/icons-vue";
 import { articleApi, tagApi } from "~/api";
 import type { Article, PaginatedResponse, Tag } from "~/types";
 
+const { t } = useI18n();
 const route = useRoute();
 const currentPage = ref(1);
 const pageSize = ref(10);

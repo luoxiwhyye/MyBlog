@@ -54,18 +54,18 @@ useLayoutSeo();
 
 .main-content {
   flex: 1;
-  padding: $spacing-3 $spacing-5 $spacing-8;
-  max-width: 1200px;
+  padding: $spacing-3 $layout-gutter $spacing-8;
+  max-width: $layout-max-width;
   margin: 0 auto;
   width: 100%;
   position: relative;
   z-index: 1;
 }
 
-/* 真机（≤480px）：收窄左右留白，提升屏幕利用率 */
+/* 真机（≤480px）：收窄左右留白，提升屏幕利用率（与顶栏 / 页脚同步） */
 @media (max-width: 480px) {
   .main-content {
-    padding: $spacing-3 clamp(10px, 3vw, 14px) $spacing-6;
+    padding: $spacing-3 $layout-gutter-mobile $spacing-6;
   }
 }
 </style>

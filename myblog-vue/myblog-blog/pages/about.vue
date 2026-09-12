@@ -210,7 +210,11 @@ usePageSeo({
 
 .about h1 {
   text-align: center;
-  font-size: clamp(22px, 4.6vw, 32px);
+  /* 归入全站 h1 基线：其余页面（archive / category / tag / friends / message-board）
+     统一用 clamp(1.5rem, 3.5vw, 2rem)，本页原先自成一档 clamp(22px, 4.6vw, 32px)。
+     注：双层 text-shadow 保留 —— 「标题加柔和光晕 --text-glow」是设计规范明确要求的，
+     且 article / category[id] / tag[id] / index 也同样使用双层。 */
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
   margin-bottom: clamp(16px, 4vw, $spacing-8);
   color: var(--text-primary);
   text-shadow: var(--text-shadow-on-bg), var(--text-glow);
@@ -219,19 +223,24 @@ usePageSeo({
 /* 玻璃卡片基类：所有区块统一质感 */
 .about-card {
   padding: $spacing-6;
-  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  /* 原为 color-mix(in srgb, var(--bg-card) 88%, transparent)，与同页其它卡片
+     （hero / stats 均用 var(--bg-card)）不是同一档透明度；统一走令牌。 */
+  background: var(--bg-card);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   transition:
     box-shadow var(--transition-bounce),
-    border-color 0.3s;
+    border-color 0.3s,
+    transform var(--transition-bounce);
 }
 
+/* hover 对齐 category / friends / archive 的卡片配方：抬升 + 品牌描边 + 双层阴影 */
 .about-card:hover {
-  box-shadow: var(--shadow-glow);
-  border-color: transparent;
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  border-color: var(--color-category);
+  transform: translateY(-2px);
 }
 
 .about-card h3 {
@@ -266,12 +275,14 @@ usePageSeo({
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   transition:
     box-shadow var(--transition-bounce),
-    border-color 0.3s;
+    border-color 0.3s,
+    transform var(--transition-bounce);
 }
 
 .about-hero:hover {
-  box-shadow: var(--shadow-glow);
-  border-color: transparent;
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  border-color: var(--color-category);
+  transform: translateY(-2px);
 }
 
 .avatar img,
@@ -343,7 +354,10 @@ usePageSeo({
 .social-link:hover {
   color: var(--color-accent);
   border-color: var(--color-accent);
-  background: var(--color-accent-soft, var(--color-category-soft));
+  /* 原先写 var(--color-accent-soft, var(--color-category-soft))，
+     而 --color-accent-soft 全站未定义（design-system 检查清单明确列为禁用），
+     实际生效的一直是回退值 —— 直接写回退值，去掉这个不存在的令牌。 */
+  background: var(--color-category-soft);
 }
 
 /* ===== 站点信息 + 统计 ===== */
@@ -380,9 +394,13 @@ usePageSeo({
   padding: $spacing-4;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
-  background: var(--bg-card);
-  backdrop-filter: blur($glass-blur);
-  -webkit-backdrop-filter: blur($glass-blur);
+  /* 内嵌面板：用比外层卡片更实一档的 --bg-hover，保留“外层更透、内层更实”的层次
+     （原先内层用 var(--bg-card)，与现在的外层同值，层次会消失）。 */
+  background: var(--bg-hover);
+  /* 原先用 Sass $glass-blur（编译期定值）且漏了 saturate(130%)，
+     与同页 / 全站其它玻璃面不一致；改用与它们完全相同的写法。 */
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
 .stat-item {
@@ -417,7 +435,7 @@ usePageSeo({
   margin-top: $spacing-6;
   padding: $spacing-5 $spacing-6;
   border-radius: var(--radius-card-lg);
-  background: linear-gradient(120deg, var(--color-category-soft), var(--color-accent-soft, var(--color-accent-light)));
+  background: linear-gradient(120deg, var(--color-category-soft), var(--color-accent-light));
   border: 1px solid var(--glass-border);
 }
 
@@ -442,10 +460,14 @@ usePageSeo({
   padding: 10px 18px;
   border-radius: 999px;
   background: var(--color-accent);
-  color: #ffffff;
+  /* 前景必须走 --color-accent-text：--color-accent 会在亮/暗主题间反相
+     （亮 #475569 深色 / 暗 #cbd5e1 浅色），写死 #ffffff 在暗色下会变成
+     白字压浅灰（实测对比度仅 1.48:1，远低于 WCAG 的 4.5:1）。
+     该令牌按 accent 亮度自动取白或深墨水，两种主题下均达标。 */
+  color: var(--color-accent-text, #ffffff);
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 4px 14px var(--color-accent-soft, rgba(45, 106, 173, 0.35));
+  box-shadow: var(--shadow-card);
   transition:
     transform var(--transition-bounce),
     box-shadow var(--transition-bounce);
@@ -453,7 +475,7 @@ usePageSeo({
 
 .cta-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px var(--color-accent-soft, rgba(45, 106, 173, 0.45));
+  box-shadow: var(--shadow-glow);
 }
 
 /* ===== 友链子块 ===== */
@@ -483,9 +505,11 @@ usePageSeo({
 }
 
 .friends-grid {
-  display: grid;
-  /* 容器查询：平滑增减列，移动端不强制单列 */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  /* 用 flex-wrap 而非 grid：chip 按内容宽度排布。
+     原先用 repeat(auto-fit, minmax(150px, 1fr))，而 auto-fit 会折叠空轨道、
+     把剩余空间全部给唯一那个 chip —— 实测只有 1 个友链时它被拉伸到 913px（整行）。 */
+  display: flex;
+  flex-wrap: wrap;
   gap: $spacing-2;
 }
 
@@ -498,6 +522,9 @@ usePageSeo({
   background: var(--bg-hover);
   border: 1px solid var(--border-light);
   text-decoration: none;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   transition: background-color $transition-fast, border-color $transition-fast;
 }
@@ -529,6 +556,8 @@ usePageSeo({
 .friend-chip-name {
   color: var(--text-primary);
   font-size: 14px;
+  /* flex 子项需 min-width: 0 才能让 nowrap 文本真正收缩并出省略号 */
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

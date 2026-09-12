@@ -1,6 +1,7 @@
 <template>
   <div class="archive">
     <h1>{{ t('archive.title') }}</h1>
+    <p class="page-desc">{{ t('archive.desc') }}</p>
 
     <!-- 搜索 / 按时间筛选 / 排序 工具栏 -->
     <div class="archive-toolbar">
@@ -68,7 +69,7 @@
       v-else-if="visibleArticles.length === 0"
       :message="t('archive.noArticles')"
       :description="t('archive.noArticlesDesc')"
-      action-text="返回首页"
+      :action-text="t('notFound.backHome')"
       action-to="/home"
     />
     <div v-else class="archive-list">
@@ -76,15 +77,15 @@
       <div class="archive-summary">
         <div class="summary-item">
           <span class="summary-num">{{ visibleArticles.length }}</span>
-          <span class="summary-label">文章总数</span>
+          <span class="summary-label">{{ t('archive.summaryTotal') }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-num">{{ yearsCount }}</span>
-          <span class="summary-label">年份跨度</span>
+          <span class="summary-label">{{ t('archive.summaryYears') }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-num">{{ totalViews }}</span>
-          <span class="summary-label">累计阅读</span>
+          <span class="summary-label">{{ t('archive.summaryViews') }}</span>
         </div>
       </div>
 
@@ -92,11 +93,12 @@
       <div v-for="(yearGroup, gi) in groupedArticles" :key="yearGroup.year" class="year-group" v-reveal="gi * 60">
         <h2 class="year-title">
           <span class="year-badge">{{ yearGroup.year }}</span>
-          <span class="year-count">{{ yearGroup.months.reduce((sum, m) => sum + m.articles.length, 0) }} 篇</span>
+          <span class="year-count">{{ t('archive.articleCount', { count: yearGroup.months.reduce((sum, m) => sum + m.articles.length, 0) }) }}</span>
         </h2>
         <div class="month-groups">
           <div v-for="monthGroup in yearGroup.months" :key="monthGroup.month" class="month-group">
-            <h3 class="month-title">{{ monthGroup.month }}月</h3>
+            <!-- monthGroup.month 是补零的字符串（用于分组排序，如 "09"），展示时去掉前导零 -->
+            <h3 class="month-title">{{ Number(monthGroup.month) }}{{ t('archive.month') }}</h3>
             <ul class="article-list">
               <li v-for="article in monthGroup.articles" :key="article.id" class="article-item">
                 <NuxtLink :to="`/article/${article.id}`" class="article-link">
@@ -185,7 +187,7 @@ const availableMonths = computed(() => {
       .filter((a) => new Date(a.createdAt).getFullYear() === year)
       .map((a) => new Date(a.createdAt).getMonth() + 1),
   );
-  return [...months].sort((a, b) => b - a).map((m) => ({ value: m, label: `${m}月` }));
+  return [...months].sort((a, b) => b - a).map((m) => ({ value: m, label: `${m}${t('archive.month')}` }));
 });
 
 // 切换年份时，清空月份筛选
@@ -273,7 +275,7 @@ const resetPage = () => {
 
 usePageSeo({
   title: t('archive.title'),
-  description: "按时间维度浏览博客文章归档。",
+  description: t('archive.desc'),
 });
 
 // 归档页 JSON-LD（Blog，含文章列表）
@@ -291,9 +293,17 @@ useArchiveJsonLd(articles);
 .archive h1 {
   text-align: center;
   font-size: clamp(1.5rem, 3.5vw, 2rem);
-  margin-bottom: 24px;
-  margin-top: 8px;
+  margin: $spacing-2 0 0;
   color: var(--text-primary);
+  text-shadow: var(--text-shadow-on-bg);
+}
+
+/* 副标题：与 friends 的页头语言一致（页头底部同样压在背景图上，故补 text-shadow） */
+.page-desc {
+  margin: $spacing-3 0 $spacing-6;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 15px;
   text-shadow: var(--text-shadow-on-bg);
 }
 
@@ -323,12 +333,17 @@ useArchiveJsonLd(articles);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--glass-blur)) saturate(130%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  transition: box-shadow var(--transition-bounce), border-color 0.3s;
+  transition:
+    box-shadow var(--transition-bounce),
+    border-color 0.3s,
+    transform var(--transition-bounce);
 }
 
+/* hover 对齐 category / friends 的卡片配方：抬升 + 品牌描边 + 双层阴影 */
 .summary-item:hover {
-  box-shadow: var(--shadow-glow);
-  border-color: transparent;
+  box-shadow: var(--shadow-elevated), var(--shadow-glow);
+  border-color: var(--color-category);
+  transform: translateY(-2px);
 }
 
 .summary-num {
@@ -365,7 +380,10 @@ useArchiveJsonLd(articles);
   font-weight: 700;
   color: var(--gradient-brand-text, #fff);
   background: var(--gradient-brand, var(--color-category));
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  /* 原为 var(--shadow-md), var(--shadow-glow)，而 --shadow-md 全站未定义（只有同名 Sass 变量）：
+     CSS 变量替换后值非法会让**整条声明**归 none，连 --shadow-glow 也一起丢掉，
+     徽标因此完全没有阴影。改用已定义且同为静态档的 --shadow-card。 */
+  box-shadow: var(--shadow-card), var(--shadow-glow);
 }
 
 .year-count {
@@ -374,22 +392,54 @@ useArchiveJsonLd(articles);
   font-variant-numeric: tabular-nums;
 }
 
-/* 月份分组 */
+/* ===== 时间轴 =====
+   竖线与圆点都挂在 .month-group 上（同一定位上下文），这样两者能用同一个 $tl-x
+   表达中心 X，圆心必然落在线上。
+   原先圆点挂在 .month-title 上，而 .month-title 位于 .month-group 的 22.5px 左内边距之
+   内，需要跨元素换算 —— 实测圆心比线心偏左 6.5px，且竖线从圆点下方 6px 才开始，
+   每个圆点都跟时间轴断开了。 */
+$tl-x: 8px; // 竖线 / 圆点共用的中心 X（相对 .month-group 左边缘）
+$tl-line-w: 2px;
+$tl-line-left: $tl-x - 1px;
+$tl-dot: 8px;
+$tl-dot-left: $tl-x - 4px;
+$tl-dot-top: 6px; // 圆点中心 = 6 + 4 = 10px，与月份标题（高 20px）中线重合
+$tl-dot-center: 10px;
+
 .month-group {
   margin-bottom: $spacing-5;
   position: relative;
   padding-left: $spacing-6;
 }
 
+/* 竖线：从本组圆点中心向下贯通到下组圆点中心（跨越组间距）；末组止于自身底部，
+   避免在线尾多出一小截悬空的线。 */
 .month-group::before {
   content: "";
   position: absolute;
-  left: 7px;
-  top: 24px;
-  bottom: -8px;
-  width: 2px;
-  border-radius: 2px;
+  left: $tl-line-left;
+  top: $tl-dot-center;
+  bottom: calc(-1 * (#{$spacing-5} + #{$tl-dot-center}));
+  width: $tl-line-w;
+  border-radius: $tl-line-w;
   background: linear-gradient(180deg, var(--color-category), transparent);
+}
+
+.month-group:last-child::before {
+  bottom: 0;
+}
+
+/* 圆点：与竖线共用 $tl-x，圆心恰好落在线上 */
+.month-group::after {
+  content: "";
+  position: absolute;
+  left: $tl-dot-left;
+  top: $tl-dot-top;
+  width: $tl-dot;
+  height: $tl-dot;
+  border-radius: 50%;
+  background: var(--color-category);
+  box-shadow: 0 0 0 3px var(--color-category-soft);
 }
 
 .month-title {
@@ -397,20 +447,6 @@ useArchiveJsonLd(articles);
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
-  position: relative;
-}
-
-.month-title::before {
-  content: "";
-  position: absolute;
-  left: -25px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-category);
-  box-shadow: 0 0 0 3px var(--color-category-soft);
 }
 
 .article-list {
@@ -425,7 +461,9 @@ useArchiveJsonLd(articles);
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: var(--bg-hover, rgba(245, 245, 245, 0.6));
+  /* --bg-hover 在亮 / 暗主题都已定义，原先的 rgba(245,245,245,0.6) 兜底永远不会生效，
+     却是个硬编码的亮色值（暗色下若真回退会明显不对）→ 去掉。 */
+  background: var(--bg-hover);
   border: 1px solid var(--glass-border);
   transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
@@ -448,6 +486,13 @@ useArchiveJsonLd(articles);
 
 .article-link:hover .article-title {
   color: var(--color-accent);
+}
+
+/* 键盘可达性：与 friends 的卡片一致，补焦点描边 */
+.article-link:focus-visible {
+  outline: 2px solid var(--color-category);
+  outline-offset: 2px;
+  border-radius: $border-radius-base;
 }
 
 .dot {

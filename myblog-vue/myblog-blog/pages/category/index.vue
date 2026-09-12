@@ -13,7 +13,7 @@
       v-else-if="categories.length === 0"
       message="暂无分类"
       description="还没有包含文章的分类，欢迎常回来看看。"
-      action-text="返回首页"
+      :action-text="t('notFound.backHome')"
       action-to="/home"
     />
     <div v-else class="categories-grid">
@@ -30,6 +30,7 @@ import { Loading } from "@element-plus/icons-vue";
 import { categoryApi } from "~/api";
 import type { Category } from "~/types";
 
+const { t } = useI18n();
 const router = useRouter();
 
 const fetchAllCategories = async () => {

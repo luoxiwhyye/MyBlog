@@ -93,7 +93,68 @@ describe("themeColor 工具", () => {
       "--deco-b",
       "--shadow-glow",
       "--text-glow",
+      "--color-accent-text",
     ].forEach((v) => expect(css).toContain(v));
+  });
+
+  it("--color-accent-text 按 accent 亮度自动取前景色（保证两种主题都可读）", () => {
+    const light = buildThemeColorCss({ accent: { light: "#475569" } });
+    const dark = buildThemeColorCss({ accent: { dark: "#cbd5e1" } });
+    // 深色 accent（亮色主题默认）→ 白字
+    expect(light).toContain("--color-accent-text: #ffffff");
+    // 浅色 accent（暗色主题默认）→ 深墨水字（固定白字在此处仅 1.48:1）
+    expect(dark).toContain("--color-accent-text: #0f172a");
+  });
+
+  it("全部主题色预设 × 亮/暗 的 accent 填充面文字对比度均 ≥ 4.5:1", () => {
+    const channel = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (hex: string) => {
+      const h = hex.replace("#", "");
+      const full =
+        h.length === 3
+          ? h
+              .split("")
+              .map((x) => x + x)
+              .join("")
+          : h;
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    /** 从生成的 CSS 中取出某个选择器块里的某变量值 */
+    const readVar = (css: string, selector: string, name: string) => {
+      const block = css.split(selector)[1] ?? "";
+      const m = block.match(new RegExp(`${name}:\\s*([^;]+);`));
+      return (m?.[1] ?? "").trim();
+    };
+
+    for (const preset of THEME_COLOR_PRESETS) {
+      const css = buildThemeColorCss({
+        accent: { light: preset.light.accent, dark: preset.dark.accent },
+      });
+      for (const [selector, label] of [
+        [":root", "亮色"],
+        ["html.dark", "暗色"],
+      ] as const) {
+        const bg = readVar(css, selector, "--color-accent");
+        const fg = readVar(css, selector, "--color-accent-text");
+        expect(fg, `${preset.key} / ${label} 应输出前景色`).toMatch(
+          /^#[0-9a-f]{6}$/,
+        );
+        expect(
+          contrast(fg, bg),
+          `${preset.key} / ${label}：${fg} on ${bg} 对比度不足`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
   it("默认预设（石墨青）保留当前设计的扩展色", () => {

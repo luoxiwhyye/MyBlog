@@ -119,6 +119,11 @@ export const zh = {
     sortNewest: "按时间最新",
     sortViews: "按阅读最多",
     sortTitle: "按标题",
+    desc: "按时间顺序浏览全部文章",
+    summaryTotal: "文章总数",
+    summaryYears: "年份跨度",
+    summaryViews: "累计阅读",
+    articleCount: "{count} 篇",
   },
   pagination: {
     total: "共 {total} 条",
@@ -285,6 +290,13 @@ export const en: typeof zh = {
     sortNewest: "Newest",
     sortViews: "Most viewed",
     sortTitle: "Title",
+    desc: "Browse every article in chronological order",
+    summaryTotal: "Total articles",
+    summaryYears: "Year span",
+    summaryViews: "Total views",
+    // 注：本项目 i18n 为自研实现（composables/useI18n.ts），t() 只做朴素 {key} 字符串替换、
+    // 不支持复数分段（写 "singular | plural" 会被原样渲染），故此处只用单一段式。
+    articleCount: "{count} articles",
   },
   pagination: {
     total: "{total} items",

@@ -53,7 +53,7 @@
       v-else-if="messages.length === 0"
       :message="t('messageBoard.title')"
       :description="t('messageBoard.empty')"
-      action-text="返回首页"
+      :action-text="t('notFound.backHome')"
       action-to="/home"
     />
     <div v-else class="message-list">

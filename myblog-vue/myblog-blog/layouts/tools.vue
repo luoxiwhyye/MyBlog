@@ -44,10 +44,17 @@ useLayoutSeo();
 
 .main-content {
   flex: 1;
-  padding: $spacing-5 $spacing-5 $spacing-8;
-  max-width: 1200px;
+  padding: $spacing-5 $layout-gutter $spacing-8;
+  max-width: $layout-max-width;
   margin: 0 auto;
   width: 100%;
+}
+
+/* 真机（≤480px）：与 default 布局、顶栏、页脚同步收窄左右留白 */
+@media (max-width: 480px) {
+  .main-content {
+    padding: $spacing-5 $layout-gutter-mobile $spacing-8;
+  }
 }
 </style>
 

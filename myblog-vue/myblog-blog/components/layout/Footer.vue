@@ -30,17 +30,27 @@ const siteDescription = computed(
 @use "../../assets/css/abstracts/variables" as *;
 
 .footer {
-  background: var(--bg-card);
   position: relative;
-  padding: $spacing-5 0;
-  margin-top: 0;
+  /* 玻璃质感：采用与全站卡片相同的 --bg-card 底色 + backdrop-filter 配方。
+     页脚原先只有 --bg-card、没有模糊，是背景图透出时全站唯一「半透明却不像玻璃」的区域。
+     注意：这里**不**加 border —— 全站卡片用 --glass-border 描边，而页脚的上边缘按设计规范
+     由下方 ::before 的渐变细线承担（规范要求「多用间距代替硬边框」）。
+     Header 刻意不用 backdrop-filter（它会创建 containing block，把内部 el-drawer 的
+     position: fixed 裁掉）；页脚没有固定定位后代，可以安全使用。 */
+  background: var(--bg-card);
+  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+  padding: $spacing-6 0;
   transition: background-color 0.3s, border-color 0.3s;
   /* 裁剪 :after 柔光装饰圆的向下溢出，避免其撑大文档滚动高度，
      在页面底部形成 body 之外的奇怪留白 */
   overflow: hidden;
 }
 
-/* 顶部青光渐变细分隔（呼应图A天光） */
+/* 顶部「天光渐变」细分隔：设计规范里保留的渐变性边框实例，颜色随主题色联动
+   （--color-category / --color-accent）。
+   规范要求「多用间距代替硬边框，保留的边框用渐变细线」，故这里**不**用
+   border-top：上边缘由这条渐变线承担，不要改成实线边框。 */
 .footer::before {
   content: "";
   position: absolute;
@@ -58,7 +68,7 @@ const siteDescription = computed(
   opacity: 0.7;
 }
 
-/* 居中柔光装饰（呼应背景，无溢出、不遮文字） */
+/* 居中柔光装饰（呼应背景，无溢出、不遮文字）；色值走主题色的装饰维度 */
 .footer::after {
   content: "";
   position: absolute;
@@ -73,34 +83,53 @@ const siteDescription = computed(
   opacity: 0.45;
 }
 
+/* 栏宽与水平内边距必须与 .main-content 一致，否则页脚文字会比正文左右各外扩一截
+   （原先 max-width 1400px vs 正文 1200px，实测文字错位 103px）。
+   两处共用 $layout-max-width / $layout-gutter，避免再次各自漂移。 */
 .container {
-  max-width: 1400px;
+  width: 100%;
+  max-width: $layout-max-width;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 0 16px;
+  gap: $spacing-4;
+  padding: 0 $layout-gutter;
 }
 
 .copyright {
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: $spacing-1;
   transition: color 0.3s;
 }
 
 .slogan {
   color: var(--text-muted);
-  font-size: 13px;
+  /* $font-size-sm = 0.875rem，在 15px 根字号下约 13.1px，与原先写死的 13px 基本一致 */
+  font-size: $font-size-sm;
   text-align: right;
   max-width: 360px;
-  line-height: 1.6;
+  line-height: $line-height-relaxed;
 }
 
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
     align-items: flex-start;
+    gap: $spacing-2;
+  }
+
+  /* 单列堆叠后右对齐会显得悬空，改为左对齐与版权行对齐 */
+  .slogan {
+    text-align: left;
+    max-width: none;
+  }
+}
+
+/* ≤480px 与 .main-content / 顶栏同步收窄水平留白，保持左右边缘对齐 */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 $layout-gutter-mobile;
   }
 }
 </style>

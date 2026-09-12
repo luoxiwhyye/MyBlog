@@ -99,6 +99,14 @@ $spacing-16: $spacing-unit * 16; // 64px
 $spacing-20: $spacing-unit * 20; // 80px
 $spacing-24: $spacing-unit * 24; // 96px
 
+// -------------------- 布局栏宽 / 水平留白（单一事实来源） --------------------
+// Header / Footer / .main-content 三者的「文字左右边缘」必须落在同一条线上。
+// 三处共用同一 max-width 与同一水平内边距，改这里即可整体调整，不再各自写死。
+// 注：$spacing-* 是 rem，根字号为 15px（见 base/_reset.scss），故 $spacing-5 ≈ 18.75px。
+$layout-max-width: 1200px;
+$layout-gutter: $spacing-5; // 桌面水平留白 ≈ 18.75px
+$layout-gutter-mobile: clamp(10px, 3vw, 14px); // ≤480px 收窄，提升屏幕利用率
+
 // -------------------- 断点系统 --------------------
 $breakpoint-xs: 480px;
 $breakpoint-sm: 576px;

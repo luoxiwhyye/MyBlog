@@ -15,6 +15,16 @@ export interface ThemeColorVariant {
   accentLight: string;
   /** --color-accent-deep（强调深色文字/描边） */
   accentDeep: string;
+  /**
+   * --color-accent-text（**accent 填充面上的前景色**）
+   *
+   * --color-accent 会随主题"反相"（亮色下是深色、暗色下是浅色），
+   * 因此写死 `color: #ffffff` 在暗色下会变成"白字压浅灰"（实测对比度仅 1.48:1）。
+   * 本字段用于填充式按钮/徽标的前景，保证两种主题下都能读清。
+   *
+   * 通常**无需显式赋值**：buildThemeColorCss 会按 accent 的亮度自动推导。
+   */
+  accentText?: string;
   /** --color-link */
   link: string;
   /** --color-category（分类徽标/强调） */
@@ -328,6 +338,29 @@ const darken = (c: Rgb, weight: number): Rgb => mix(c, BLACK, weight);
 const toRgba = (c: Rgb, alpha: number): string =>
   `rgba(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)}, ${alpha})`;
 
+/** 深墨水色（slate-900 系），用作浅底色上的前景 */
+const INK: Rgb = { r: 15, g: 23, b: 42 };
+
+/** sRGB 相对亮度（WCAG 2.x 定义），用于判断前景该用白还是深色 */
+const relativeLuminance = ({ r, g, b }: Rgb): number => {
+  const channel = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+};
+
+/**
+ * 在给定底色上取可读的前景色：对比度更高的那一方胜出（白 / 深墨水）。
+ * 用于 --color-accent-text —— accent 随主题反相，固定白字会在暗色下失效。
+ */
+const readableOn = (bg: Rgb): string => {
+  const l = relativeLuminance(bg);
+  const withWhite = (1 + 0.05) / (l + 0.05);
+  const withInk = (l + 0.05) / (relativeLuminance(INK) + 0.05);
+  return withWhite >= withInk ? "#ffffff" : rgbToHex(INK);
+};
+
 /**
  * 主题色可拆分为 5 个独立可调维度，且亮色/暗色模式各自独立：
  *   accent   强调/链接（--color-accent* / --color-link / --el-color-primary*）
@@ -554,6 +587,7 @@ ${selector} {
   --color-accent: ${v.accent};
   --color-accent-light: ${v.accentLight};
   --color-accent-deep: ${v.accentDeep};
+  --color-accent-text: ${v.accentText || readableOn(parseHex(v.accent) ?? WHITE)};
   --color-link: ${v.link};
   --color-category: ${v.category};
   --color-category-soft: ${v.categorySoft};
