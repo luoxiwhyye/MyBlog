@@ -168,7 +168,12 @@ public class ArticleService {
     /**
      * 文章详情 — 不缓存（浏览量需实时自增，与 Express 端 SSR 详情行为一致）。
      * 列表接口仍走 @Cacheable 加速。
+     *
+     * ⚠️ 必须显式 readOnly = false：类级 @Transactional(readOnly = true) 会把连接设为只读，
+     * 而本方法的 incrementViewCount 是写操作，否则 Hibernate 报
+     * "Connection is read-only. Queries leading to data modification are not allowed"（详情页 500）。
      */
+    @Transactional(readOnly = false)
     public ArticleDTO getArticleById(Integer id, boolean isAdmin) {
         Article article = articleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));

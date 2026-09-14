@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 /**
  * 缓存统计与运维（对标 Express middleware/cache.js 的 stats/clearAll/preheat）。
  *
- * 命中率统计通过 {@code CountingCacheInterceptor} 在每次缓存读写时调用
+ * 命中率统计由 CacheConfig.CountingCache 在每次缓存读取时调用
  * recordHit / recordMiss，均为进程内原子计数。
  */
 @Service
