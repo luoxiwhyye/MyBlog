@@ -820,7 +820,7 @@ const handleComment = async () => {
       authorUrl: commentForm.value.authorUrl || undefined,
       content: commentForm.value.content,
     });
-    ElMessage.success("评论已提交，审核通过后将显示，您也会收到邮件通知。");
+    ElMessage.success("评论已提交，审核通过后将显示。");
     saveCommentInfo();
     // 清空富文本编辑器（会同步 v-model 为空）
     commentInputRef.value?.clear();

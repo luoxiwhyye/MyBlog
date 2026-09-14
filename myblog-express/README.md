@@ -1,6 +1,6 @@
 # MyBlog — Express 后端
 
-MyBlog 的 Node.js 后端实现（与 `myblog-springboot` **功能完全对齐**，可按技术栈偏好选择部署）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
+MyBlog 的 Node.js 后端实现（与 `myblog-springboot` 共用同一份数据库与接口契约，可按技术栈偏好选择部署；仍存在的差异见根目录 [README.md](../README.md) 的「双后端差异」）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
 
 ## 技术栈
 
@@ -72,6 +72,9 @@ test/          # 集成测试
 ## 运维脚本
 
 `scripts/` 下的脚本都可直接 `node scripts/<name>.js` 执行，不影响运行中的服务：
+
+> 这些脚本仅在 Express 侧提供（Spring Boot 侧没有对应实现）。它们直连同一份 MySQL / Redis，
+> 不依赖后端进程，因此即使运行的是 Spring Boot 后端，仍可在 `myblog-express/` 目录下执行。
 
 - `clearCache.js` — 查看 / 按前缀清除 Redis 缓存（见下）
 - `verifyUploads.js` — 上传图片体检：失联引用、多键共用同一图、孤儿文件（只读）

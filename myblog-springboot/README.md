@@ -1,6 +1,6 @@
 # MyBlog — Spring Boot 后端
 
-MyBlog 的 Java 后端实现（与 `myblog-express` 前端/设备能力对齐，可按技术栈偏好选择部署）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
+MyBlog 的 Java 后端实现（与 `myblog-express` 共用同一份数据库与接口契约，可按技术栈偏好选择部署；仍存在的差异见根目录 [README.md](../README.md) 的「双后端差异」）。提供 REST API，统一响应 `{ code, message, data }`，前缀 `/api/v1`。
 
 ## 技术栈
 
@@ -9,7 +9,7 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 前端/设备能力对齐，
 - **ORM**: Spring Data JPA / Hibernate
 - **数据库**: MySQL（mysql-connector-j）
 - **认证**: JWT（jjwt）+ BCrypt
-- **缓存**: Spring Data Redis + 内存降级（`CacheStatsService` + `CountingCacheInterceptor` 统计命中率）
+- **缓存**: Spring Data Redis + 内存降级（命中统计在 `CacheStatsService` + `CacheConfig` 的装饰层 Cache `CacheManager` 上）
 - **文件上传**: MultipartFile + webp-imageio（生成 WebP 变体）
 - **全文搜索**: Meilisearch（不可用自动降级）
 - **邮件通知**: spring-boot-starter-mail（未配置 SMTP 自动降级）
@@ -20,12 +20,13 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 前端/设备能力对齐，
 ## 功能概览
 
 - 文章 / 分类 / 标签 / 友链 / 评论 / **留言板** CRUD
-- **表情包管理**（`EmojiController`）、**仪表盘/未读红点**（`DashboardController`）
-- Redis 缓存（预热 / 命中统计 / 一键清空）、健康检查 `/health`、Actuator 指标端点
-- 图片上传并自动生成 WebP 变体；Meilisearch 全文搜索
-- 评论 / 回复 / @提及邮件通知
+- **相关推荐 / 上一篇下一篇**、**批量改状态**、**关键词搜索**（Meilisearch，降级 SQL LIKE）
+- **表情包管理与分组**、**仪表盘 / 未读红点**（`DashboardController`）、**前端错误日志聚合**（`/error-log`）
+- Redis 缓存（预热 / 命中统计 / 一键清空）、性能监控 `/metrics`、健康检查 `/health`、Actuator 指标端点
+- 图片上传并自动生成 WebP 变体
+- 评论 / 回复 / @提及邮件通知（无 SMTP 自动停用；**回复通知在审核通过后发送**）
 
-> ℹ️ 与 Express 端差异：前端**错误监控上报**（`/error-log`）当前仅 Express 端实现，Spring Boot 暂未提供对应接口。
+> ℹ️ 与 Express 端的差异（运维脚本、时间字段格式、`.env` 不共用等）见根目录 [README.md](../README.md) 的「双后端差异」。
 
 ## 快速开始
 
@@ -73,7 +74,7 @@ java -jar target/myblog-springboot-0.0.1-SNAPSHOT.jar
 
 ```
 src/main/java/com/myblog/myblogspringboot/
-├── config/       # Security、CORS、缓存统计拦截器、限流、初始化
+├── config/       # Security、CORS、缓存（统计 / 响应头 / 限流）、初始化
 ├── controller/   # 控制器（Article、Comment、Emoji、MessageBoard、Dashboard、Cache、Health、Upload...）
 ├── dto/          # 请求/响应 DTO
 ├── entity/       # JPA 实体（Article/Comment/FriendLink/Emoji/MessageBoard/...）
@@ -90,7 +91,7 @@ src/main/java/com/myblog/myblogspringboot/
 | `PORT` | 服务端口 | `3000` |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — |
 | **`JWT_SECRET`** | JWT 密钥（生产必改） | — |
-| `JWT_EXPIRES_IN` | Token 有效期（毫秒） | `604800000`（7天） |
+| `JWT_EXPIRES_IN` | Token 有效期（**毫秒**） | `604800000`（7天） |
 | `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |
 | `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` | CORS 白名单 | — |
 | `UPLOAD_PATH` | 上传文件目录 | `uploads` |
@@ -100,6 +101,10 @@ src/main/java/com/myblog/myblogspringboot/
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP 邮件通知（可选） | — |
 
 监控端点：`/actuator/health`、`/actuator/metrics`、`/actuator/prometheus`。
+
+> ⚠️ `JWT_EXPIRES_IN` 与 Express 格式不同：Express 是时长字符串（`7d`），本端是毫秒数（`604800000`）——**两端不能共用同一份 `.env`**，否则本端启动报 `Failed to convert value of type 'java.lang.String' to required type 'long'`。
+
+> **提示**：运维脚本（清缓存 / 数据体检 / 文件体检 / 回填索引等）仅在 `myblog-express/scripts/` 下提供；它们直连同一份 MySQL / Redis，可在该目录下直接执行。
 
 其余说明见项目根目录 [README.md](../README.md)。
 

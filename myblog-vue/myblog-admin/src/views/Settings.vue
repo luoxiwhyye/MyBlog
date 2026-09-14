@@ -558,6 +558,14 @@ const groups: GroupConfig[] = [
         description: '显示在页脚，为空则不显示。',
       },
       {
+        key: 'site_admin_url',
+        label: '后台入口',
+        type: 'text',
+        placeholder: '如：https://admin.example.com 或 /admin/',
+        description:
+          '前台页脚的文字入口，为空则不显示。可填完整 URL（生产环境前后台不同域时用这个），也可填相对路径（需反向代理到后台）。',
+      },
+      {
         key: 'enable_tools',
         label: '启用工具箱',
         type: 'boolean',

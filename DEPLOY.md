@@ -163,7 +163,9 @@ myblog-admin      Up
 | 变量             | 说明         | 默认值                    |
 | ---------------- | ------------ | ------------------------- |
 | `JWT_SECRET`     | JWT 签名密钥 | `change-me-in-production` |
-| `JWT_EXPIRES_IN` | JWT 过期时间 | `7d`                      |
+| `JWT_EXPIRES_IN` | JWT 过期时间 | `7d`（Express 格式）      |
+
+> ⚠️ `JWT_EXPIRES_IN` 两端格式不同：Express 是时长字符串（`7d`），Spring Boot 是毫秒数（`604800000`）——**切到 Spring Boot 时必须把 `.env.docker` 里的值改成毫秒**，详见下方「后端切换」。
 
 #### 服务端口
 
@@ -217,6 +219,8 @@ docker compose --env-file .env.docker up -d
 ```
 
 > **注意**：Spring Boot 镜像构建时间较长（需下载 Maven 依赖），请耐心等待。
+
+> ⚠️ 切换后端前先把 `.env.docker` 的 `JWT_EXPIRES_IN` 改为**毫秒数**（如 `604800000`）——Express 用的 `7d` 会让 Spring Boot 启动报 `Failed to convert value of type 'java.lang.String' to required type 'long'`。其余环境变量两端一致。
 
 ---
 

@@ -136,6 +136,7 @@ export const zh = {
   },
   footer: {
     rights: "All rights reserved.",
+    adminEntry: "后台管理",
   },
   siteIcp: {
     linkTitle: "在工信部备案系统查验",
@@ -314,6 +315,7 @@ export const en: typeof zh = {
   },
   footer: {
     rights: "All rights reserved.",
+    adminEntry: "Admin",
   },
   siteIcp: {
     linkTitle: "Verify this ICP filing at the MIIT registry",

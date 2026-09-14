@@ -111,32 +111,16 @@ const createComment = async (req, res, next) => {
     const commentId = await commentModel.createComment(commentData);
 
     // 异步发送通知（fire-and-forget，失败不影响主流程）
-    const siteUrl = process.env.SITE_URL || "";
-    const articleTitle = article.title || "未命名文章";
+    //
+    // 通知时机分两类：
+    //   ① 顶层评论 → 博主：**创建即发**（博主是审核方，需要第一时间知道有新评论）；
+    //   ② 回复 → 被回复者：**延后到审核通过**（见 notifyCommentReplied）。
+    //      回复若创建即发，未审核的垃圾 / 恶意回复会直接打扰被回复者，且邮件没有
+    //      退订途径；延后后与「审核通过后才展示」的语义一致。
+    if (!parentId) {
+      const siteUrl = process.env.SITE_URL || "";
+      const articleTitle = article.title || "未命名文章";
 
-    if (parentId) {
-      // 回复通知：通知被回复者
-      commentModel
-        .getCommentById(parentId)
-        .then((parentComment) => {
-          if (!parentComment) {
-            return;
-          }
-          return notifyReplied({
-            articleTitle,
-            articleId,
-            parentAuthorName: parentComment.authorName,
-            parentEmail: parentComment.authorEmail,
-            replierName: authorName,
-            content,
-            siteUrl,
-          });
-        })
-        .catch((err) => {
-          console.error("[commentNotifier] 获取父评论失败:", err.message);
-        });
-    } else {
-      // 新评论通知：通知博主
       bloggerModel
         .getBloggerByUsername(process.env.BLOGGER_USERNAME || "admin")
         .then((blogger) => {
@@ -160,6 +144,46 @@ const createComment = async (req, res, next) => {
     success(res, { id: commentId }, "评论发布成功", 201);
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * 发送「您的评论收到回复」邮件（收件人 = 被回复者）。
+ *
+ * 触发时机：**回复审核通过时**（延后通知，见更新状态处）。与顶层评论不同 ——
+ * 顶层评论创建即通知博主（博主是审核方，需要第一时间知晓）；回复若创建即发，
+ * 未审核的垃圾 / 恶意回复会直接打扰被回复者，且邮件无退订途径。延后到 approved
+ * 后通知，与「审核通过后才展示」的语义一致。
+ *
+ * 幂等：由调用方保证只在「非 approved → approved」时调用，重复审核不会重复发信。
+ * fire-and-forget：内部自捕获异常，不影响状态更新主流程。
+ */
+const notifyCommentReplied = async (commentId) => {
+  try {
+    const comment = await commentModel.getCommentById(commentId);
+    if (!comment || !comment.parent_id) {
+      return;
+    }
+
+    const [article, parent] = await Promise.all([
+      articleModel.getArticleById(comment.article_id),
+      commentModel.getCommentById(comment.parent_id),
+    ]);
+    if (!article || !parent) {
+      return;
+    }
+
+    await notifyReplied({
+      articleTitle: article.title || "未命名文章",
+      articleId: comment.article_id,
+      parentAuthorName: parent.author_name,
+      parentEmail: parent.author_email,
+      replierName: comment.author_name,
+      content: comment.content,
+      siteUrl: process.env.SITE_URL || "",
+    });
+  } catch (err) {
+    console.error("[commentNotifier] 回复通知发送失败:", err.message);
   }
 };
 
@@ -264,6 +288,16 @@ const updateCommentStatus = async (req, res, next) => {
     const updated = await commentModel.updateCommentStatus(id, status);
     if (!updated) {
       return error(res, "状态更新失败", 500);
+    }
+
+    // 回复通知延后到「审核通过」时发送（fire-and-forget）：
+    // 只在状态真正发生「非 approved → approved」变化时发一次，重复审核不重复发信。
+    if (
+      status === "approved" &&
+      comment.status !== "approved" &&
+      comment.parent_id
+    ) {
+      notifyCommentReplied(id);
     }
 
     success(res, null, "评论状态更新成功");

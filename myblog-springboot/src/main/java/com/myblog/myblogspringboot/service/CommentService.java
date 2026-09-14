@@ -124,21 +124,22 @@ public class CommentService {
         Comment saved = commentRepository.save(comment);
 
         // 异步邮件通知（fire-and-forget，失败不影响评论主流程）
-        Integer parentId = saved.getParentId();
-        String replierName = saved.getAuthorName();
-        String content = saved.getContent();
-        CompletableFuture.runAsync(() -> {
-            try {
-                if (parentId != null) {
-                    commentRepository.findById(parentId).ifPresent(parent ->
-                            commentNotifier.notifyReplied(article, parent, replierName, content));
-                } else {
-                    commentNotifier.notifyBlogger(article, replierName, content);
+        //
+        // 通知时机分两类：
+        //   ① 顶层评论 → 博主：创建即发（博主是审核方，需要第一时间知道有新评论）；
+        //   ② 回复 → 被回复者：延后到审核通过（见 updateCommentStatus），
+        //      避免未审核的垃圾 / 恶意回复直接打扰被回复者。
+        if (saved.getParentId() == null) {
+            String authorName = saved.getAuthorName();
+            String content = saved.getContent();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    commentNotifier.notifyBlogger(article, authorName, content);
+                } catch (Exception e) {
+                    log.error("[commentNotifier] 通知博主失败: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.error("[commentNotifier] 通知发送失败: {}", e.getMessage());
-            }
-        });
+            });
+        }
 
         return saved;
     }
@@ -180,8 +181,47 @@ public class CommentService {
 
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "评论不存在"));
+        String previousStatus = comment.getStatus();
         comment.setStatus(status);
         commentRepository.save(comment);
+
+        // 回复通知延后到「审核通过」时发送：只在状态真正由「非 approved」变为
+        // approved 时发一次，重复审核不重复发信。
+        if ("approved".equals(status)
+                && !"approved".equals(previousStatus)
+                && comment.getParentId() != null) {
+            Integer commentId = comment.getId();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    notifyRepliedAfterApproved(commentId);
+                } catch (Exception e) {
+                    log.error("[commentNotifier] 回复通知发送失败: {}", e.getMessage());
+                }
+            });
+        }
+    }
+
+    /**
+     * 回复审核通过后，通知被回复者。
+     *
+     * 与顶层评论「创建即通知博主」不同：回复等到 approved 后才发信，避免未审核的
+     * 垃圾 / 恶意回复直接打扰被回复者（邮件没有退订途径），与「审核通过后才展示」
+     * 的语义一致。（对标 Express controllers/commentController.js 的 notifyCommentReplied）
+     */
+    private void notifyRepliedAfterApproved(Integer commentId) {
+        Comment reply = commentRepository.findById(commentId).orElse(null);
+        if (reply == null || reply.getParentId() == null) {
+            return;
+        }
+        Comment parent = commentRepository.findById(reply.getParentId()).orElse(null);
+        if (parent == null) {
+            return;
+        }
+        Article article = articleRepository.findByIdWithDetails(reply.getArticleId()).orElse(null);
+        if (article == null) {
+            return;
+        }
+        commentNotifier.notifyReplied(article, parent, reply.getAuthorName(), reply.getContent());
     }
 
     @Transactional

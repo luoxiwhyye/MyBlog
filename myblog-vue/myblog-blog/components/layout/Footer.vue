@@ -5,8 +5,22 @@
         <p class="copyright">
           &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
         </p>
-        <!-- 备案号：未配置时不渲染（详见 components/common/SiteIcp.vue） -->
-        <SiteIcp />
+        <div class="footer-meta">
+          <!-- 备案号：未配置时不渲染（详见 components/common/SiteIcp.vue） -->
+          <SiteIcp />
+          <!-- 后台入口：站长工具，不占主导航（避免破坏访客信息层级）。
+               链接目标由「后台 → 基本设置 → 后台入口」决定（可填完整 URL 或相对路径），
+               未配置时整项不渲染，不占位也不留空白。 -->
+          <a
+            v-if="siteAdminUrl"
+            class="footer-admin"
+            :href="siteAdminUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ t('footer.adminEntry') }}
+          </a>
+        </div>
       </div>
       <p v-if="siteDescription" class="slogan">{{ siteDescription }}</p>
     </div>
@@ -24,6 +38,7 @@ const siteAuthor = computed(() => bloggerStore.nickname());
 const siteDescription = computed(
   () => settingsStore.getSetting("site_description") || "",
 );
+const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
 </script>
 
 <style lang="scss" scoped>
@@ -101,6 +116,27 @@ const siteDescription = computed(
   color: var(--text-primary);
   margin-bottom: $spacing-1;
   transition: color 0.3s;
+}
+
+/* 版权行下方的元信息（备案号 + 后台入口）：同一行排列。
+   两项都是「未配置即不渲染」，flex + gap 让配置缺省时也不留空洞。 */
+.footer-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+}
+
+.footer-admin {
+  font-size: $font-size-sm;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer-admin:hover {
+  color: var(--color-category);
+  text-decoration: underline;
 }
 
 .slogan {
