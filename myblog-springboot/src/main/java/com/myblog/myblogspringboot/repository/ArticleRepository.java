@@ -70,4 +70,46 @@ public interface ArticleRepository extends JpaRepository<Article, Integer>, JpaS
          + "OR LOWER(a.content) LIKE LOWER(CONCAT('%', :keyword, '%'))) "
          + "ORDER BY a.createdAt DESC")
     List<SearchItemDTO> searchBrief(@Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * 相关推荐候选：按「共享标签 ×2 + 同分类 ×1」评分，只取正分，按 得分 / 热度 / 时间 排序。
+     *
+     * <p>⚠️ labelIds 为空时调用方必须传入哨兵值（如 [-1]），否则 Hibernate 会展开成非法的 IN ()。
+     * <p>返回两列：[articleId, relevanceScore]，需由调用方按返回顺序回表并组 DTO。
+     */
+    @Query(value = "SELECT a.id AS article_id, "
+         + "(SUM(CASE WHEN al.label_id IN (:labelIds) THEN 1 ELSE 0 END) * 2 "
+         + "+ (CASE WHEN a.type_id = :typeId THEN 1 ELSE 0 END)) AS relevance_score "
+         + "FROM article a "
+         + "LEFT JOIN article_label al ON a.id = al.article_id "
+         + "WHERE a.deleted_at IS NULL AND a.status = 'published' AND a.id <> :id "
+         + "GROUP BY a.id "
+         + "HAVING relevance_score > 0 "
+         + "ORDER BY relevance_score DESC, a.view_count DESC, a.created_at DESC, a.id DESC "
+         + "LIMIT :limit", nativeQuery = true)
+    List<Object[]> findRelatedScoredIds(@Param("id") Integer id,
+                                        @Param("labelIds") List<Integer> labelIds,
+                                        @Param("typeId") Integer typeId,
+                                        @Param("limit") int limit);
+
+    /**
+     * 按 id 批量取带 type / labels 的文章（相关推荐回表用；避免 N+1）
+     */
+    @Query("SELECT DISTINCT a FROM Article a LEFT JOIN FETCH a.type LEFT JOIN FETCH a.labels "
+         + "WHERE a.id IN :ids AND a.deletedAt IS NULL")
+    List<Article> findAllWithDetailsByIds(@Param("ids") Collection<Integer> ids);
+
+    /**
+     * 上一篇：小于当前 id 的最近一篇已发布文章
+     */
+    @Query("SELECT a FROM Article a LEFT JOIN FETCH a.type "
+         + "WHERE a.deletedAt IS NULL AND a.status = 'published' AND a.id < :id ORDER BY a.id DESC")
+    List<Article> findPublishedBefore(@Param("id") Integer id, Pageable pageable);
+
+    /**
+     * 下一篇：大于当前 id 的最近一篇已发布文章
+     */
+    @Query("SELECT a FROM Article a LEFT JOIN FETCH a.type "
+         + "WHERE a.deletedAt IS NULL AND a.status = 'published' AND a.id > :id ORDER BY a.id ASC")
+    List<Article> findPublishedAfter(@Param("id") Integer id, Pageable pageable);
 }

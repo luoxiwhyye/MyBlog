@@ -31,8 +31,13 @@ export interface AdjacentArticles {
   next: ArticleNav | null;
 }
 
-/** 相关推荐列表项 */
-export type RelatedArticle = ArticleNav;
+/** 相关推荐列表项：在导航结构上补充「为什么相关」的信息 */
+export interface RelatedArticle extends ArticleNav {
+  /** 相关性得分（共享标签 ×2 + 同分类 ×1）；后端已过滤为 > 0 */
+  relevanceScore?: number;
+  /** 与当前文章共享的标签名，用于前台展示 */
+  sharedLabels?: string[];
+}
 
 export interface Category {
   id: number;

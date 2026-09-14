@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.myblog.myblogspringboot.dto.AdjacentArticlesDTO;
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.ArticleDTO;
+import com.myblog.myblogspringboot.dto.ArticleNavDTO;
 import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.security.UserPrincipal;
 import com.myblog.myblogspringboot.service.ArticleService;
@@ -68,6 +70,24 @@ public class ArticleController {
         boolean isAdmin = isAdminUser();
         ArticleDTO article = articleService.getArticleById(id, isAdmin);
         return ResponseEntity.ok(ApiResponse.success(article));
+    }
+
+    /**
+     * 相关推荐（公开）：共享标签 ×2 + 同分类 ×1，仅返回正分项；响应含 relevanceScore 与 sharedLabels
+     */
+    @GetMapping("/{id}/related")
+    public ResponseEntity<ApiResponse<List<ArticleNavDTO>>> getRelatedArticles(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "4") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getRelatedArticles(id, limit)));
+    }
+
+    /**
+     * 上一篇 / 下一篇（公开）
+     */
+    @GetMapping("/{id}/adjacent")
+    public ResponseEntity<ApiResponse<AdjacentArticlesDTO>> getAdjacentArticles(@PathVariable Integer id) {
+        return ResponseEntity.ok(ApiResponse.success(articleService.getAdjacentArticles(id)));
     }
 
     @PostMapping

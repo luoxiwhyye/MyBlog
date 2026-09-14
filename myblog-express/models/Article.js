@@ -490,6 +490,10 @@ const getAdjacentArticles = async (id) => {
 
 /**
  * 相关推荐：按 共享标签 + 同分类 聚合评分（标签权重 2、分类权重 1）取前 limit 篇
+ *
+ * 只返回 relevance_score > 0 的候选：0 分项（既无共享标签也不同分类）靠排序兜底
+ * 混进列表，会让「相关文章」名不副实。
+ * 同时回传 relevanceScore 与命中的共享标签名，让「为什么相关」在前台可见。
  * LIMIT 使用已裁剪的整数字面量插值，避免 mysql2 对 LIMIT ? 预编译报错
  */
 const getRelatedArticles = async (id, limit = 4) => {
@@ -510,32 +514,43 @@ const getRelatedArticles = async (id, limit = 4) => {
     .split(",")
     .map((v) => parseInt(v, 10))
     .filter((v) => Number.isInteger(v) && v > 0);
+  const hasLabels = currentLabelIds.length > 0;
 
   const labelPlaceholders = currentLabelIds.map(() => "?").join(",");
-  const labelScore = currentLabelIds.length
+  // 共享标签名：label_name 有唯一约束，同一文章不会重复命中同一标签，无需 DISTINCT
+  const sharedLabelsExpr = hasLabels
+    ? `GROUP_CONCAT(CASE WHEN al.label_id IN (${labelPlaceholders}) THEN l.label_name END ORDER BY l.id)`
+    : "NULL";
+  const labelScore = hasLabels
     ? `SUM(CASE WHEN al.label_id IN (${labelPlaceholders}) THEN 1 ELSE 0 END)`
     : "0";
   const typeScore = current.type_id
     ? "+ (CASE WHEN a.type_id = ? THEN 1 ELSE 0 END)"
     : "";
 
-  // 占位符顺序：标签列表 → 分类 → 当前文章 id（与 params 顺序保持一致）
-  const params = [...currentLabelIds];
+  // 占位符顺序：评分用标签列表 → 分类 → 共享标签名用标签列表 → 当前文章 id
+  // （必须与 SELECT 中出现占位符的先后完全一致）
+  const params = [];
+  if (hasLabels) params.push(...currentLabelIds);
   if (current.type_id) params.push(current.type_id);
+  if (hasLabels) params.push(...currentLabelIds);
   params.push(id);
 
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.cover_image, a.view_count, a.created_at,
             t.id AS type_id, t.type_name,
-            (${labelScore} * 2 ${typeScore}) AS relevance_score
+            (${labelScore} * 2 ${typeScore}) AS relevance_score,
+            ${sharedLabelsExpr} AS shared_labels
      FROM article a
      LEFT JOIN \`type\` t ON a.type_id = t.id
      LEFT JOIN article_label al ON a.id = al.article_id
+     LEFT JOIN \`label\` l ON al.label_id = l.id
      WHERE a.deleted_at IS NULL
        AND a.status = 'published'
        AND a.id != ?
      GROUP BY a.id
-     ORDER BY relevance_score DESC, a.created_at DESC, a.id DESC
+     HAVING relevance_score > 0
+     ORDER BY relevance_score DESC, a.view_count DESC, a.created_at DESC, a.id DESC
      LIMIT ${safeLimit}`,
     params,
   );
@@ -548,6 +563,8 @@ const getRelatedArticles = async (id, limit = 4) => {
     viewCount: row.view_count,
     createdAt: row.created_at,
     type: row.type_id ? { id: row.type_id, typeName: row.type_name } : null,
+    relevanceScore: Number(row.relevance_score) || 0,
+    sharedLabels: (row.shared_labels || "").split(",").filter(Boolean),
   }));
 };
 

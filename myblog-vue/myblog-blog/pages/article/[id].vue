@@ -150,10 +150,10 @@
                   loading="lazy"
                   decoding="async"
                 />
-                <div v-else class="related-cover-fallback">{{ item.type?.typeName || "文章" }}</div>
+                <div v-else class="related-cover-fallback">{{ relatedCoverLabel(item) }}</div>
               </div>
               <div class="related-info">
-                <span class="related-cat">{{ item.type?.typeName || "" }}</span>
+                <span class="related-cat">{{ relatedChip(item) }}</span>
                 <h4 class="related-item-title">{{ item.title }}</h4>
                 <time class="related-date">{{ formatDate(item.createdAt) }}</time>
               </div>
@@ -361,7 +361,12 @@
 import { ElMessage } from "element-plus";
 import { Loading } from "@element-plus/icons-vue";
 import { articleApi, commentApi } from "~/api";
-import type { Article, Comment as CommentType, PaginatedResponse } from "~/types";
+import type {
+  Article,
+  Comment as CommentType,
+  PaginatedResponse,
+  RelatedArticle,
+} from "~/types";
 import { formatDate, formatDateTime, estimateReadTime } from "~/utils/format";
 import { stripHtml, truncateText } from "~/utils/seo";
 import { buildSrcSet, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
@@ -506,6 +511,19 @@ const { data: relatedArticles } = await useAsyncData(
   },
   { watch: [article], default: () => [] },
 );
+
+/**
+ * 相关文章卡片上的说明文字：优先显示「共同标签」——它才是相关性的来源；
+ * 仅靠同分类命中（无共享标签）时回退为分类名，避免出现空 chip。
+ */
+const relatedChip = (item: RelatedArticle): string =>
+  item.sharedLabels?.length
+    ? item.sharedLabels.join(" · ")
+    : item.type?.typeName || "文章";
+
+/** 无封面时的占位文案：只取第一个共同标签（占位框窄，长文案会被裁切） */
+const relatedCoverLabel = (item: RelatedArticle): string =>
+  item.sharedLabels?.[0] || item.type?.typeName || "文章";
 
 // 上一篇 / 下一篇：按 id 排序取相邻（prev=小 id，next=大 id）
 const { data: adjacent } = await useAsyncData(

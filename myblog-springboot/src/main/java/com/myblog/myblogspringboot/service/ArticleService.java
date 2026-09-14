@@ -1,12 +1,14 @@
 package com.myblog.myblogspringboot.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,7 +21,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.myblog.myblogspringboot.dto.AdjacentArticlesDTO;
 import com.myblog.myblogspringboot.dto.ArticleDTO;
+import com.myblog.myblogspringboot.dto.ArticleNavDTO;
 import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.dto.SearchItemDTO;
 import com.myblog.myblogspringboot.entity.Article;
@@ -149,6 +153,96 @@ public class ArticleService {
         result.put("total", list.size());
         result.put("list", list);
         return result;
+    }
+
+    /**
+     * 相关推荐（公开）：共享标签 ×2 + 同分类 ×1，仅返回正分项。
+     *
+     * <p>响应结构与 Express 的 getRelatedArticles 保持一致：除导航字段外还回传
+     * relevanceScore 与 sharedLabels（命中标签名），让前台能显示「为什么相关」。
+     * <p>文章不存在时返回空列表（与 Express 的 200 + [] 行为一致，不抛 404）。
+     */
+    public List<ArticleNavDTO> getRelatedArticles(Integer id, int limit) {
+        Article current = articleRepository.findByIdWithDetails(id).orElse(null);
+        if (current == null) {
+            return List.of();
+        }
+
+        int safeLimit = Math.max(1, Math.min(limit, 12));
+
+        List<Integer> currentLabelIds = current.getLabels().stream()
+                .map(Label::getId)
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.toList());
+        // 无标签时传哨兵值，避免 native 查询展开成非法的 IN ()
+        List<Integer> probeLabelIds = currentLabelIds.isEmpty() ? List.of(-1) : currentLabelIds;
+
+        List<Object[]> scoredRows = articleRepository.findRelatedScoredIds(
+                id, probeLabelIds, current.getTypeId(), safeLimit);
+        if (scoredRows.isEmpty()) {
+            return List.of();
+        }
+
+        // SQL 已按 得分/热度/时间 排序，LinkedHashMap 保留该顺序
+        Map<Integer, Integer> scoreById = new LinkedHashMap<>();
+        for (Object[] row : scoredRows) {
+            scoreById.put(((Number) row[0]).intValue(), ((Number) row[1]).intValue());
+        }
+
+        Map<Integer, Article> articleById = new HashMap<>();
+        for (Article article : articleRepository.findAllWithDetailsByIds(scoreById.keySet())) {
+            articleById.put(article.getId(), article);
+        }
+
+        Set<Integer> currentLabelIdSet = new HashSet<>(currentLabelIds);
+        List<ArticleNavDTO> result = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : scoreById.entrySet()) {
+            Article article = articleById.get(entry.getKey());
+            if (article == null) {
+                continue;
+            }
+            ArticleNavDTO dto = toNavDTO(article, true);
+            dto.setRelevanceScore(entry.getValue());
+            dto.setSharedLabels(article.getLabels().stream()
+                    .filter(l -> currentLabelIdSet.contains(l.getId()))
+                    .sorted(Comparator.comparing(Label::getId))
+                    .map(Label::getLabelName)
+                    .collect(Collectors.toList()));
+            result.add(dto);
+        }
+        return result;
+    }
+
+    /**
+     * 上一篇 / 下一篇（公开）：按 id 排序取相邻已发布文章（不区分分类，与 Express 一致）。
+     */
+    public AdjacentArticlesDTO getAdjacentArticles(Integer id) {
+        List<Article> prevList = articleRepository.findPublishedBefore(id, PageRequest.of(0, 1));
+        List<Article> nextList = articleRepository.findPublishedAfter(id, PageRequest.of(0, 1));
+        return new AdjacentArticlesDTO(
+                prevList.isEmpty() ? null : toNavDTO(prevList.get(0), false),
+                nextList.isEmpty() ? null : toNavDTO(nextList.get(0), false));
+    }
+
+    /**
+     * 导航类轻量 DTO。includeViewCount=false 时 viewCount 留空（被 non_null 省略），
+     * 与 Express 的「上一篇 / 下一篇」结构一致。
+     */
+    private ArticleNavDTO toNavDTO(Article article, boolean includeViewCount) {
+        ArticleNavDTO dto = new ArticleNavDTO();
+        dto.setId(article.getId());
+        dto.setTitle(article.getTitle());
+        dto.setSummary(article.getSummary());
+        dto.setCoverImage(article.getCoverImage());
+        dto.setCreatedAt(article.getCreatedAt());
+        if (includeViewCount) {
+            dto.setViewCount(article.getViewCount());
+        }
+        if (article.getType() != null) {
+            dto.setType(new ArticleDTO.TypeInfo(article.getType().getId(), article.getType().getTypeName()));
+        }
+        return dto;
     }
 
     public PageResponse<ArticleDTO> getTrashArticles(int page, int pageSize) {
@@ -330,11 +424,16 @@ public class ArticleService {
         }
 
         if (article.getLabels() != null) {
-            dto.setLabels(article.getLabels().stream()
+            List<Label> sortedLabels = article.getLabels().stream()
+                    .sorted(Comparator.comparing(Label::getId))
+                    .collect(Collectors.toList());
+            dto.setLabels(sortedLabels.stream()
                     .map(l -> new ArticleDTO.LabelInfo(l.getId(), l.getLabelName()))
                     .collect(Collectors.toList()));
+            dto.setLabelIds(sortedLabels.stream().map(Label::getId).collect(Collectors.toList()));
         } else {
             dto.setLabels(List.of());
+            dto.setLabelIds(List.of());
         }
 
         return dto;

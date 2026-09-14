@@ -20,6 +20,8 @@ public class ArticleDTO {
     private Integer typeId;
     private TypeInfo type;
     private List<LabelInfo> labels;
+    /** 标签 id 列表（对齐 Express，admin 文章编辑页直接取该字段回填标签） */
+    private List<Integer> labelIds;
 
     public static class TypeInfo {
         private Integer id;
@@ -75,4 +77,6 @@ public class ArticleDTO {
     public void setType(TypeInfo type) { this.type = type; }
     public List<LabelInfo> getLabels() { return labels; }
     public void setLabels(List<LabelInfo> labels) { this.labels = labels; }
+    public List<Integer> getLabelIds() { return labelIds; }
+    public void setLabelIds(List<Integer> labelIds) { this.labelIds = labelIds; }
 }
