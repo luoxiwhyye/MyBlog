@@ -48,6 +48,8 @@ agent
 .copilotignore
 # 本机 AI 指令文件（与 .copilotignore 同属本地配置，不入库）
 /.github/copilot-instructions.md
+# 本机 AI 辅助脚本（非 BMP 字符体检工具，属本地配置，不入库）
+/scripts/scan-astral.mjs
 
 # ── 缓存 ──
 .npm-cache

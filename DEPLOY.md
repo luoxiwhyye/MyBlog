@@ -1,10 +1,10 @@
-# 🐳 myblog Docker 部署指南
+# myblog Docker 部署指南
 
 本文档介绍如何使用 Docker Compose 一键部署 myblog 全栈博客系统。
 
 ---
 
-## 📋 目录
+## 目录
 
 - [架构概览](#架构概览)
 - [环境要求](#环境要求)
@@ -120,10 +120,10 @@ myblog-admin      Up
 
 | 服务        | 地址                                                         |
 | ----------- | ------------------------------------------------------------ |
-| 📝 博客前台 | [http://localhost:3001](http://localhost:3001)               |
-| ⚙️ 管理后台 | [http://localhost:3002](http://localhost:3002)               |
-| 🔌 API 接口 | [http://localhost:3000/api/v1](http://localhost:3000/api/v1) |
-| 💚 健康检查 | [http://localhost:3000/health](http://localhost:3000/health) |
+| 博客前台 | [http://localhost:3001](http://localhost:3001)               |
+| 管理后台 | [http://localhost:3002](http://localhost:3002)               |
+| API 接口 | [http://localhost:3000/api/v1](http://localhost:3000/api/v1) |
+| 健康检查 | [http://localhost:3000/health](http://localhost:3000/health) |
 
 ### 6. 初始化博主账号（仅 Express 后端自动完成）
 
