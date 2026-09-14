@@ -192,7 +192,8 @@ const normalizeUrl = (url: string) => {
 };
 
 const handleSubmit = async () => {
-  if (!form.authorName || !form.content) {
+  // 按 trim 后判空：标记文本里的 `\n` 等不可见字符不算内容
+  if (!form.authorName || !form.content.trim()) {
     ElMessage.warning(t("messageBoard.fillRequired") || "请填写昵称和内容");
     return;
   }

@@ -158,7 +158,8 @@ const handleLike = async () => {
 };
 
 const handleReply = async () => {
-  if (!replyForm.authorName || !replyForm.content) {
+  // 按 trim 后判空：标记文本里的 `\n` 等不可见字符不算内容
+  if (!replyForm.authorName || !replyForm.content.trim()) {
     ElMessage.warning("请填写姓名和内容");
     return;
   }

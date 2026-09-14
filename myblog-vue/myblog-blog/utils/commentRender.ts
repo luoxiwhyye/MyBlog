@@ -85,9 +85,21 @@ export const markupToPlain = (markup?: string | null): string => {
   return content.replace(IMG_MARKER, "[图片]");
 };
 
-/** 字数口径：按标记文本长度计（后端 isLength 按 UTF-16 码元，emoji 计 2） */
+/**
+ * 收敛「标记文本」首尾的空段落残留（首尾连续的 `\n`）。
+ *
+ * 背景：`docToMarkup` 用 `\n` 连接**每一个**段落、空段落也参与，所以视觉上为空的
+ * 文档会被序列化成 `"\n"` / `"\n\n"`。若不收敛，计数与前端判空都会把不可见的
+ * 换行当成字符（历史缺陷：输入 1 个字却显示 `2 / 1000`、Backspace 删完仍清不掉）。
+ *
+ * 只收敛首尾 —— 段落之间的空行是用户有意敲出来的（Enter ×2），不能吃掉。
+ */
+export const normalizeMarkup = (markup?: string | null): string =>
+  (markup || "").replace(/^\n+/, "").replace(/\n+$/, "");
+
+/** 字数口径：按收敛后的标记文本长度计（后端 isLength 按 UTF-16 码元，emoji 计 2） */
 export const countMarkupLength = (markup?: string | null): number =>
-  (markup || "").length;
+  normalizeMarkup(markup).length;
 
 /** 是否含图片标记 */
 export const hasImageMarkup = (markup?: string | null): boolean =>
@@ -139,18 +151,20 @@ export const markupToInlineNodes = (line: string) => {
  */
 export const docToMarkup = (doc: any): string => {
   if (!doc || !Array.isArray(doc.content)) return "";
-  return doc.content
-    .map((node: any) => {
-      if (node.type === "paragraph") {
-        return inlineNodesToMarkup(node.content || []);
-      }
-      if (node.type === "image") {
-        const src = node.attrs?.src;
-        return isSafeImageUrl(src) ? `[img:${src}]` : "";
-      }
-      return "";
-    })
-    .join("\n");
+  return normalizeMarkup(
+    doc.content
+      .map((node: any) => {
+        if (node.type === "paragraph") {
+          return inlineNodesToMarkup(node.content || []);
+        }
+        if (node.type === "image") {
+          const src = node.attrs?.src;
+          return isSafeImageUrl(src) ? `[img:${src}]` : "";
+        }
+        return "";
+      })
+      .join("\n"),
+  );
 };
 
 /** 内联节点数组 → 单行标记文本 */

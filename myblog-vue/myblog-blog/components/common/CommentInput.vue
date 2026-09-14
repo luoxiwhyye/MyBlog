@@ -43,7 +43,12 @@ import Text from "@tiptap/extension-text";
 import Image from "@tiptap/extension-image";
 import { Placeholder, UndoRedo } from "@tiptap/extensions";
 import EmojiPicker from "~/components/common/EmojiPicker.vue";
-import { docToMarkup, isEmojiImage, markupToDoc } from "~/utils/commentRender";
+import {
+  docToMarkup,
+  isEmojiImage,
+  markupToDoc,
+  normalizeMarkup,
+} from "~/utils/commentRender";
 
 /**
  * 简易富文本输入框（tiptap 最小集）
@@ -79,12 +84,27 @@ const emit = defineEmits<{
 const editor = shallowRef<Editor | null>(null);
 const pickerOpen = ref(false);
 
-const count = computed(() => (props.modelValue || "").length);
+// 计数按「收敛后的标记文本」算：空段落残留的 `\n` 不算字（历史缺陷：1 个字显示 2/1000）
+const count = computed(() => normalizeMarkup(props.modelValue).length);
 const overLimit = computed(() => count.value > props.maxLength);
 
 // 兼容 @tiptap/vue-3 与 @tiptap/core 两处 Editor 类型（二者结构等价但名义不同）
 const serialize = (instance: { getJSON: () => unknown }) =>
   docToMarkup(instance.getJSON());
+
+/**
+ * 把编辑器当前内容上报给父层（序列化 → 收敛 → emit）。
+ *
+ * ⚠️ 只上报「刚序列化出来的值」，不要上报缓存值：父层 watch 会用 modelValue
+ * 回灌 `setContent()`，一旦上报了与当前文档不一致的值，回灌会把输入冲掉。
+ */
+const syncFromEditor = () => {
+  const instance = editor.value;
+  if (!instance) return;
+  const value = serialize(instance);
+  if (value === props.modelValue) return;
+  emit("update:modelValue", value);
+};
 
 onMounted(() => {
   editor.value = new Editor({
@@ -102,9 +122,20 @@ onMounted(() => {
         class: "comment-input__body",
         "aria-label": props.placeholder,
       },
+      handleDOMEvents: {
+        // 合成结束后补一次同步：合成期间的 update 被主动跳过，这里兜底
+        // （延到下一轮任务，此时 ProseMirror 已把提交的文本解析进文档）
+        compositionend: () => {
+          setTimeout(syncFromEditor, 0);
+          return false;
+        },
+      },
     },
     onUpdate: ({ editor: instance }) => {
-      emit("update:modelValue", serialize(instance));
+      // 输入法合成期间不上报：合成中的拼音还没定字，上报会让父层把
+      // 「半成品」回灌进编辑器，并把原始拼音落成真实文本（历史缺陷 "w我看"）
+      if (instance.view.composing) return;
+      syncFromEditor();
     },
   });
 });
@@ -120,6 +151,8 @@ watch(
   (value) => {
     const instance = editor.value;
     if (!instance) return;
+    // 合成中不覆盖 DOM：写入会打断输入法，并把合成中的拼音固化成正文
+    if (instance.view.composing) return;
     if (serialize(instance) === value) return;
     instance.commands.setContent(markupToDoc(value), { emitUpdate: false });
   },
@@ -199,8 +232,17 @@ defineExpose({
   height: 1px !important;
 }
 
-.comment-input :deep(.ProseMirror-trailingBreak) {
-  display: none;
+/* ⚠️ 不要给 .ProseMirror-trailingBreak 加 display:none（历史上踩过）。
+   ProseMirror 靠这个 <br> 给空段落提供「行盒」；隐藏它之后空段落在排版上没有任何
+   可见内容 → Chrome 找不到段内的可见插入点，会把插入点提升到 contenteditable 根层，
+   于是第一个字符被插成根节点的裸文本节点，PM 按 DOM 重建后就多出一个空段落。
+   实测症状（2026-09-14）：① 计数器永远比实际字数多 1（输入 1 个字显示 2 / 1000）；
+   ② Backspace 删完所有可见字符后仍残留 "\n"，再也删不掉；
+   ③ 输入法合成中的原始拼音被当真实文本落进正文（显示成 "w我看"）。
+   要压低空段落高度请改 .comment-input__body 的 min-height，别隐藏这个 <br>。 */
+.comment-input :deep(.comment-input__body p) {
+  /* 双保险：空段落始终保有一个行盒（1.7 与 .comment-input__body 的 line-height 一致） */
+  min-height: 1.7em;
 }
 
 /* 占位提示（Placeholder 扩展只加 data-placeholder，样式需自行提供） */

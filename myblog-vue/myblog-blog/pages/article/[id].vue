@@ -785,7 +785,8 @@ const refreshArticleEnhancements = async () => {
 };
 
 const handleComment = async () => {
-  if (!commentForm.value.content) {
+  // 按 trim 后判空：标记文本里的 `\n` 等不可见字符不算内容
+  if (!commentForm.value.content.trim()) {
     ElMessage.warning("请填写评论内容");
     return;
   }
