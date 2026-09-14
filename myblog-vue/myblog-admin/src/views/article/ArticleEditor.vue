@@ -219,6 +219,7 @@ import TurndownService from 'turndown'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { article, type as typeApi, label as labelApi, upload } from '@/api'
+import { cropImage, cropPresets } from '@/utils/imageCropper'
 
 const route = useRoute()
 const router = useRouter()
@@ -435,7 +436,14 @@ const mdInsertImage = async () => {
     const file = input.files?.[0]
     if (!file) return
     try {
-      const response = await upload.image(file, 'article-content')
+      // 正文图不强制比例，先给一次裁剪机会（可点「不裁剪」直接上传）
+      const cropped = await cropImage(file, {
+        title: '裁剪正文图片',
+        presets: cropPresets('article-content'),
+        allowSkip: true,
+      })
+      if (!cropped) return
+      const response = await upload.image(cropped, 'article-content')
       if (response.code !== 200 && response.code !== 201) {
         ElMessage.error(response.message || '图片上传失败')
         return
@@ -683,7 +691,14 @@ const editorOptions = {
             const file = input.files?.[0]
             if (!file) return
             try {
-              const response = await upload.image(file, 'article-content')
+              // 正文图不强制比例，先给一次裁剪机会（可点「不裁剪」直接上传）
+              const cropped = await cropImage(file, {
+                title: '裁剪正文图片',
+                presets: cropPresets('article-content'),
+                allowSkip: true,
+              })
+              if (!cropped) return
+              const response = await upload.image(cropped, 'article-content')
               if (response.code !== 200 && response.code !== 201) {
                 ElMessage.error(response.message || '图片上传失败')
                 return
@@ -768,10 +783,17 @@ const fetchArticle = async (id: number) => {
   }
 }
 
-// 处理封面上传
+// 处理封面上传（先按 16:9 裁剪，与列表卡片统一）
 const handleCoverChange = async (file: any) => {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const cropped = await cropImage(raw, {
+    title: '裁剪文章封面',
+    presets: cropPresets('article-cover'),
+  })
+  if (!cropped) return
   try {
-    const response = await upload.image(file.raw, 'article-cover')
+    const response = await upload.image(cropped, 'article-cover')
     if (response.code === 200) {
       form.coverImage = response.data.url
       console.log(form.coverImage)

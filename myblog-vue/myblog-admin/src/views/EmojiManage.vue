@@ -266,6 +266,7 @@ import {
   type EmojiGroupItem,
   type EmojiType,
 } from '@/api'
+import { cropImage, cropPresets } from '@/utils/imageCropper'
 
 // 当前 Tab：表情列表 / 分组管理
 const activeTab = ref<'emoji' | 'group'>('emoji')
@@ -458,12 +459,17 @@ const handleDelete = async (row: EmojiItem) => {
   }
 }
 
-// 上传图片表情（复用 upload.image，scene='emoji'）
+// 上传图片表情（先裁剪为 1:1，再复用 upload.image，scene='emoji'）
 const handleUpload = async (options: any) => {
+  const file = options.file as File
+  const cropped = await cropImage(file, {
+    title: '裁剪表情图片',
+    presets: cropPresets('emoji'),
+  })
+  if (!cropped) return
   uploading.value = true
   try {
-    const file = options.file as File
-    const response = await upload.image(file, 'emoji')
+    const response = await upload.image(cropped, 'emoji')
     if (response.code === 200) {
       form.content = response.data.url
       ElMessage.success('图片上传成功')
@@ -556,12 +562,17 @@ const handleDeleteGroup = async (row: EmojiGroupItem) => {
   }
 }
 
-// 上传分组标识图（复用 upload.image，scene='emoji'）
+// 上传分组标识图（先裁剪为 1:1，再复用 upload.image，scene='emoji'）
 const handleGroupCoverUpload = async (options: any) => {
+  const file = options.file as File
+  const cropped = await cropImage(file, {
+    title: '裁剪分组标识',
+    presets: cropPresets('emoji'),
+  })
+  if (!cropped) return
   groupUploading.value = true
   try {
-    const file = options.file as File
-    const response = await upload.image(file, 'emoji')
+    const response = await upload.image(cropped, 'emoji')
     if (response.code === 200) {
       groupForm.cover = response.data.url
       ElMessage.success('图片上传成功')

@@ -121,6 +121,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { friendLink as friendLinkApi, upload } from '@/api'
+import { cropImage, cropPresets } from '@/utils/imageCropper'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -275,9 +276,17 @@ const handleUploadAvatar = () => {
 const handleFileChange = async (e: Event) => {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
+  // 先复位，保证同一个文件再选一次也能触发 change
+  target.value = ''
   if (!file) return
+  // 友链头像先裁剪为 1:1
+  const cropped = await cropImage(file, {
+    title: '裁剪友链头像',
+    presets: cropPresets('avatar'),
+  })
+  if (!cropped) return
   try {
-    const response = await upload.image(file, 'setting-image', {
+    const response = await upload.image(cropped, 'setting-image', {
       settingKey: 'friend-link-avatar',
     })
     if (response.code === 200 || response.code === 201) {

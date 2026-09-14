@@ -352,6 +352,7 @@ import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Download, Upload, UploadFilled, Check, Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
 import { setting, upload } from '@/api'
+import { cropImage, cropPresets, type CropScene } from '@/utils/imageCropper'
 
 interface FieldConfig {
   key: string
@@ -362,6 +363,8 @@ interface FieldConfig {
   required?: boolean
   /** 仅 textarea 生效：输入框显示行数（默认 3） */
   rows?: number
+  /** 仅 image 生效：上传前的裁剪比例预设（见 utils/imageCropper.ts） */
+  crop?: CropScene
 }
 
 // 社交链接图标候选项（与前台 myblog-blog/utils/socialIcons.ts 的 SOCIAL_ICON_KEYS 保持键名一致）
@@ -598,18 +601,21 @@ const groups: GroupConfig[] = [
         key: 'site_logo',
         label: '网站 Logo',
         type: 'image',
+        crop: 'setting-logo',
         description: '用于页头与 Open Graph 分享卡片。',
       },
       {
         key: 'site_favicon',
         label: 'Favicon',
         type: 'image',
+        crop: 'setting-favicon',
         description: '浏览器标签页图标，建议 32x32。',
       },
       {
         key: 'site_bg_light',
         label: '桌面端亮色背景图',
         type: 'image',
+        crop: 'setting-bg-desktop',
         description:
           '桌面端亮色模式下的博客背景图（宽幅构图）。\n建议 16:9 及以上、至少 1920×1080，单张控制在 2MB 以内；前台按 cover 铺满窗口，用的是上传的原图（不会再压缩），主体请放在画面中部。',
       },
@@ -617,6 +623,7 @@ const groups: GroupConfig[] = [
         key: 'site_bg_dark',
         label: '桌面端暗色背景图',
         type: 'image',
+        crop: 'setting-bg-desktop',
         description:
           '桌面端暗色模式下的博客背景图（宽幅构图）。\n建议 16:9 及以上、至少 1920×1080，单张控制在 2MB 以内；前台按 cover 铺满窗口，用的是上传的原图（不会再压缩），主体请放在画面中部。',
       },
@@ -624,6 +631,7 @@ const groups: GroupConfig[] = [
         key: 'site_bg_light_mobile',
         label: '移动端亮色背景图',
         type: 'image',
+        crop: 'setting-bg-mobile',
         description:
           '移动端（≤768px）亮色模式背景图，建议竖版构图；留空时自动沿用桌面端亮色背景图。\n建议 9:16、至少 1080×1920，单张控制在 2MB 以内；前台按 cover 铺满屏幕，用的是上传的原图（不会再压缩）。',
       },
@@ -631,6 +639,7 @@ const groups: GroupConfig[] = [
         key: 'site_bg_dark_mobile',
         label: '移动端暗色背景图',
         type: 'image',
+        crop: 'setting-bg-mobile',
         description:
           '移动端（≤768px）暗色模式背景图，建议竖版构图；留空时自动沿用桌面端暗色背景图。\n建议 9:16、至少 1080×1920，单张控制在 2MB 以内；前台按 cover 铺满屏幕，用的是上传的原图（不会再压缩）。',
       },
@@ -892,8 +901,19 @@ const fetchSettings = async () => {
 }
 
 const handleImageChange = async (key: string, file: any) => {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const field = allFields.value.find((item) => item.key === key)
+  const scene: CropScene = field?.crop ?? 'setting-bg-desktop'
+  // 背景图允许宽幅 / 竖版自由构图（历轮已定不做强制比例校验），故保留「不裁剪」出口
+  const cropped = await cropImage(raw, {
+    title: field ? `裁剪${field.label}` : '裁剪图片',
+    presets: cropPresets(scene),
+    allowSkip: true,
+  })
+  if (!cropped) return
   try {
-    const response = await upload.image(file.raw, 'setting-image', { settingKey: key })
+    const response = await upload.image(cropped, 'setting-image', { settingKey: key })
     if (response.code === 200 || response.code === 201) {
       formData[key] = response.data.url
       ElMessage.success('图片上传成功')

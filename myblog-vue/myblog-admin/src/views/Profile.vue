@@ -194,6 +194,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { blogger, upload } from '@/api'
+import { cropImage, cropPresets } from '@/utils/imageCropper'
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 
@@ -344,10 +345,17 @@ const fetchUserInfo = async () => {
   }
 }
 
-// 处理头像上传
+// 处理头像上传（先裁剪为 1:1）
 const handleAvatarChange = async (file: any) => {
+  const raw = file?.raw as File | undefined
+  if (!raw) return
+  const cropped = await cropImage(raw, {
+    title: '裁剪头像',
+    presets: cropPresets('avatar'),
+  })
+  if (!cropped) return
   try {
-    const response = await upload.image(file.raw, 'avatar')
+    const response = await upload.image(cropped, 'avatar')
     if (response.code === 200) {
       infoForm.avatar = response.data.url
       ElMessage.success('头像上传成功')
