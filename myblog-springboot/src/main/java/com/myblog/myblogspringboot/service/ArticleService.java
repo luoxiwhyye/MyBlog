@@ -348,6 +348,49 @@ public class ArticleService {
         return dto;
     }
 
+    /**
+     * 批量更新文章状态（发布 / 下架），对标 Express articleController.batchUpdateStatus。
+     *
+     * @return 实际受影响的行数
+     */
+    @Transactional
+    @CacheEvict(value = "articles", allEntries = true)
+    public int batchUpdateStatus(List<Integer> ids, String status) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(400, "ids 必须是非空数组");
+        }
+        if (!"draft".equals(status) && !"published".equals(status)) {
+            throw new BusinessException(400, "status 必须是 draft 或 published");
+        }
+
+        List<Integer> cleanIds = ids.stream()
+                .filter(Objects::nonNull)
+                .filter(id -> id > 0)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+        if (cleanIds.isEmpty()) {
+            throw new BusinessException(400, "文章 ID 必须是正整数");
+        }
+
+        int affected = articleRepository.updateStatusByIds(cleanIds, status);
+
+        // F-01: 同步 Meilisearch（发布加入索引，下架移除）
+        for (Integer id : cleanIds) {
+            Article article = articleRepository.findByIdWithDetails(id).orElse(null);
+            if (article == null) {
+                continue;
+            }
+            if ("published".equals(article.getStatus())) {
+                syncToMeilisearch(toDTO(article));
+            } else {
+                meilisearchService.deleteArticle(id);
+            }
+        }
+
+        return affected;
+    }
+
     @Transactional
     @CacheEvict(value = "articles", allEntries = true)
     public void softDeleteArticle(Integer id) {

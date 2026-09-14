@@ -36,7 +36,12 @@ spring:
   jackson:
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX
     time-zone: Asia/Shanghai
-    default-property-inclusion: non_null
+    # ⚠️ 必须是 always（而非 non_null）：Express 的 utils/response.js 固定输出
+    #    { code, message, data }，实体为 null 的字段也照常输出 null（"email": null、
+    #    "authorUrl": null、"deletedAt": null、"data": null）。用 non_null 会把这些键
+    #    整条略去 → 双端响应体在大量接口上不一致（需逐个 DTO 打 @JsonInclude(ALWAYS) 修补）。
+    #    注意：JS 消费方对 null 与「键不存在」的取值行为一致（都 falsy），故不会影响前端渲染。
+    default-property-inclusion: always
 
   # ── Redis 缓存配置 ──
   data:

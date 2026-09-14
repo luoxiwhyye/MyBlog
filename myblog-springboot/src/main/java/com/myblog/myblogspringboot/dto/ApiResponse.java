@@ -1,5 +1,15 @@
 package com.myblog.myblogspringboot.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+/**
+ * 统一响应体。
+ *
+ * <p>⚠️ 保留显式 ALWAYS（与全局 spring.jackson.default-property-inclusion=always 一致）：
+ * data 为 null 时必须输出显式的 {@code "data": null}，与 Express utils/response.js
+ * 的固定三字段结构一致；显式声明可防「全局配置被改回 non_null」时静默丢键。
+ */
+@JsonInclude(JsonInclude.Include.ALWAYS)
 public class ApiResponse<T> {
     private int code;
     private String message;

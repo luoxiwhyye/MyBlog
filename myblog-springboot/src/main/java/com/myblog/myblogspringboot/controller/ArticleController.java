@@ -21,6 +21,7 @@ import com.myblog.myblogspringboot.dto.AdjacentArticlesDTO;
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.ArticleDTO;
 import com.myblog.myblogspringboot.dto.ArticleNavDTO;
+import com.myblog.myblogspringboot.dto.BatchStatusRequest;
 import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.security.UserPrincipal;
 import com.myblog.myblogspringboot.service.ArticleService;
@@ -108,6 +109,18 @@ public class ArticleController {
         ArticleDTO article = articleService.createArticle(title, content, summary, typeId, coverImage, status, contentFormat, labelIds);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(Map.of("id", article.getId()), "文章创建成功", 201));
+    }
+
+    /**
+     * 批量更新文章状态（发布 / 下架，需管理员）。
+     * 路径置于 /{id} 之前，与 Express 路由顺序保持一致。
+     */
+    @PutMapping("/batch/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchUpdateStatus(
+            @RequestBody BatchStatusRequest body) {
+        int affected = articleService.batchUpdateStatus(body.getIds(), body.getStatus());
+        return ResponseEntity.ok(
+                ApiResponse.success(Map.of("affected", affected), "已更新 " + affected + " 篇文章"));
     }
 
     @PutMapping("/{id}")

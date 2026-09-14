@@ -35,6 +35,11 @@ public class SecurityConfig {
         http
             // ── 安全头（等价于 Express helmet）──
             .headers(headers -> headers
+                // ⚠️ 必须关掉 Spring Security 默认的 Cache-Control 写入器：它会无条件下发
+                //    `no-cache, no-store, max-age=0, must-revalidate`，把 config/CacheControlFilter
+                //    按接口分档设置的 `public, max-age=... , stale-while-revalidate=...` 覆盖掉
+                //    （对标 Express middleware/cache.js 的 SWR 策略从未真正生效）。
+                .cacheControl(cache -> cache.disable())
                 .contentSecurityPolicy(csp -> csp
                     .policyDirectives(
                         "default-src 'self'; " +
@@ -85,11 +90,17 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/blogger/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/blogger/exists").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/blogger/init").permitAll()
+                // 前端错误上报（公开；限流由 RateLimitFilter 提供，对标 Express errorReportLimiter）
+                .requestMatchers(HttpMethod.POST, "/api/v1/error-log").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/comments").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/comments/*/like").permitAll()
                 // 需要管理员权限
                 .requestMatchers("/api/v1/dashboard/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/cache/**").hasRole("ADMIN")
+                // 错误日志查看 / 清空、性能指标（管理员）
+                .requestMatchers(HttpMethod.GET, "/api/v1/error-log").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/error-log").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/v1/metrics").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/articles/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/articles/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/articles/**").hasRole("ADMIN")

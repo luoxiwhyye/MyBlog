@@ -136,7 +136,10 @@ const getTotalViewCount = async () => {
   const [rows] = await pool.query(
     "SELECT COALESCE(SUM(view_count),0) as totalViews FROM article WHERE deleted_at IS NULL",
   );
-  return rows[0].totalViews;
+  // ⚠️ SQL 的 SUM() 返回 DECIMAL，mysql2 会转成**字符串**（"120"）：
+  // admin 的 DashboardStats.totalViews 声明为 number，Spring 侧也是数字
+  // → 这里显式转数字，避免双端/双端与服务端契约类型不一致。
+  return Number(rows[0].totalViews) || 0;
 };
 
 const getArticlePublishTrend = async (days = 30, scope = "published") => {
@@ -306,22 +309,29 @@ const hardDeleteArticle = async (id) => {
 };
 
 const getTrashArticles = async (offset, limit) => {
+  // ⚠️ 必须走 formatArticle 输出 camelCase：这里原先直接返回**原始 snake_case 行集**
+  //    （cover_image / created_at / deleted_at / view_count …），与其余所有文章接口
+  //    以及 Spring 端的 ArticleDTO 都不一致 → 后台回收站读 scope.row.deletedAt /
+  //    coverImage / labels / viewCount 全部 undefined（「删除时间」显示 --、封面走占位图）。
+  //    （2026-09-14 双端实测发现。）
   const [rows] = await pool.query(
-    `SELECT a.id, a.title, a.summary, a.cover_image, a.view_count, a.status,
+    `SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
             a.is_pinned, a.is_featured,
-            a.type_id, a.created_at, a.deleted_at,
-            t.type_name
+            a.type_id, a.created_at, a.updated_at, a.deleted_at,
+            t.type_name,
+            GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
+            GROUP_CONCAT(l.label_name ORDER BY l.id) AS label_names
      FROM article a
      LEFT JOIN \`type\` t ON a.type_id = t.id
+     LEFT JOIN article_label al ON a.id = al.article_id
+     LEFT JOIN \`label\` l ON al.label_id = l.id
      WHERE a.deleted_at IS NOT NULL
+     GROUP BY a.id
      ORDER BY a.deleted_at DESC
      LIMIT ? OFFSET ?`,
     [limit, offset],
   );
-  return rows.map((row) => ({
-    ...row,
-    type: row.type_name ? { id: row.type_id, typeName: row.type_name } : null,
-  }));
+  return rows.map(formatArticle);
 };
 
 const getTrashArticlesCount = async () => {

@@ -52,6 +52,17 @@ public interface ArticleRepository extends JpaRepository<Article, Integer>, JpaS
     int restore(@Param("id") Integer id);
 
     /**
+     * 批量更新文章状态（对标 Express models/Article.updateArticlesStatus）。
+     *
+     * <p>用 native 而非 JPQL：既保持与 Express 完全一致的 SQL（{@code updated_at = NOW()}、
+     * 只作用于未软删文章），也避免 JPQL 批量更新绕过 @PreUpdate 的语义差异。
+     */
+    @Modifying
+    @Query(value = "UPDATE article SET status = :status, updated_at = NOW() "
+         + "WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
+    int updateStatusByIds(@Param("ids") Collection<Integer> ids, @Param("status") String status);
+
+    /**
      * 按 ID 批量取轻量展示字段（Meilisearch 命中后回表；顺序由调用方按命中顺序重排）
      */
     @Query("SELECT new com.myblog.myblogspringboot.dto.SearchItemDTO(a.id, a.title, a.summary, a.coverImage, a.createdAt, t.typeName) "

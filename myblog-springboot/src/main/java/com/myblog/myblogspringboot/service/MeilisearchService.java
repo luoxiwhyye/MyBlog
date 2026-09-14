@@ -1,7 +1,6 @@
 package com.myblog.myblogspringboot.service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.annotation.PostConstruct;
 
@@ -119,18 +119,22 @@ public class MeilisearchService {
     public SearchHit search(String keyword, int page, int pageSize, Integer typeId) {
         if (!available || keyword == null || keyword.isBlank()) return null;
         try {
-            String encodedKw = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
-            StringBuilder url = new StringBuilder(baseUrl + "/indexes/" + INDEX_NAME + "/search");
-            url.append("?q=").append(encodedKw);
-            url.append("&page=").append(page);
-            url.append("&hitsPerPage=").append(pageSize);
-            url.append("&attributesToRetrieve=id");
-            url.append("&filter=status%20%3D%20published");
-            if (typeId != null) {
-                url.append("%20AND%20typeId%20%3D%20").append(typeId);
-            }
+            // ⚠️ 必须用 URI 对象而不是字符串：RestTemplate 的默认 uriTemplateHandler
+            //    （EncodingMode.TEMPLATE_AND_VALUES）会把手写查询串里的 %20 / %3D
+            //    再次编码成 %2520 / %253D → Meili 收到非法 filter 报 400 → 静默降级 SQL LIKE。
+            //    （2026-09-14 实测：Spring 的 Meilisearch 检索因此从未真正生效。）
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
+                    .path("/indexes/" + INDEX_NAME + "/search")
+                    .queryParam("q", keyword)
+                    .queryParam("page", page)
+                    .queryParam("hitsPerPage", pageSize)
+                    .queryParam("attributesToRetrieve", "id")
+                    .queryParam("filter", typeId == null
+                            ? "status = published"
+                            : "status = published AND typeId = " + typeId);
+            URI uri = builder.build().encode().toUri();
 
-            ResponseEntity<Map> resp = restTemplate.exchange(url.toString(), HttpMethod.GET,
+            ResponseEntity<Map> resp = restTemplate.exchange(uri, HttpMethod.GET,
                     new HttpEntity<>(authHeaders()), Map.class);
 
             Map<String, Object> body = resp.getBody();

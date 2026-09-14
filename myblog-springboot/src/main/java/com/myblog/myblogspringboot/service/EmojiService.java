@@ -76,10 +76,16 @@ public class EmojiService {
         return new PageResponse<>(list, emojiPage.getTotalElements(), page, pageSize);
     }
 
-    /** 公开：所有启用表情 */
+    /**
+     * 公开：所有启用表情。
+     *
+     * ⚠️ 用 {@link #toPublicItem} 而不是 {@link #toMap}：Express 的 GET /emoji/enabled
+     * 只 SELECT 六列（id / content / type / isCustom / groupId / sortOrder），
+     * 多出的 enabled / createdAt 是 Spring 独有的多余键（2026-09-14 双端实测发现）。
+     */
     public List<Map<String, Object>> getEnabledEmojis() {
         List<Emoji> emojis = emojiRepository.findByEnabledOrderBySortOrderAscIdAsc(1);
-        return emojis.stream().map(this::toMap).toList();
+        return emojis.stream().map(this::toPublicItem).toList();
     }
 
     /**
@@ -229,6 +235,21 @@ public class EmojiService {
                 ? emojiGroupRepository.findById(emoji.getGroupId())
                         .map(EmojiGroup::getName).orElse(null)
                 : null);
+        return map;
+    }
+
+    /**
+     * 公开列表项：与 Express models/Emoji.getEnabledEmojis 的 SELECT 列集**逐一对齐**
+     * （id / content / type / isCustom / groupId / sortOrder），不含 enabled / createdAt。
+     */
+    private Map<String, Object> toPublicItem(Emoji emoji) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", emoji.getId());
+        map.put("content", emoji.getContent());
+        map.put("type", emoji.getType());
+        map.put("isCustom", emoji.getIsCustom());
+        map.put("groupId", emoji.getGroupId());
+        map.put("sortOrder", emoji.getSortOrder());
         return map;
     }
 

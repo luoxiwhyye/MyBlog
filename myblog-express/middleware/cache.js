@@ -30,12 +30,20 @@ const recordMiss = () => {
 
 /**
  * 生成缓存键
+ *
+ * ⚠️ 必须把「路由路径」纳入 key：同一前缀下可能挂了多条路由
+ *   （如 settingRoutes 的 GET / 与 GET /:key 都用 cache("settings")）。
+ *   此前只拼「查询串」，在没有 query 时两条路由的 key 都是 `cache:settings`
+ *   → 先访问 /settings 会把它缓存进去，随后 /settings/:key 直接返回整份配置
+ *   （2026-09-14 双端实测发现）。
+ *
  * @param {boolean} [byUser=false] 是否把用户角色纳入 key（用于同一 URL 但不同身份返回不同数据的接口）
  */
 const makeKey = (prefix, req, byUser = false) => {
   const qs = req.originalUrl?.split("?")[1] || "";
   const role = byUser ? `:${req.user?.role || "anon"}` : "";
-  return `cache:${prefix}${role}${qs ? `:${qs}` : ""}`;
+  const route = `${req.baseUrl || ""}${req.path || ""}`;
+  return `cache:${prefix}${role}:${route}${qs ? `:${qs}` : ""}`;
 };
 
 /**
