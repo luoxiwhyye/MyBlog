@@ -10,9 +10,10 @@ import {
 describe("themeColor 工具", () => {
   it("未配置（无输入）回退到当前设计青瓷蓝", () => {
     const resolved = resolveThemeColor();
-    expect(resolved.light.accent).toBe("#0e7490");
+    expect(resolved.light.accent).toBe("#088db0");
+    expect(resolved.light.accentDeep).toBe("#1f6a8c");
     expect(resolved.dark.accent).toBe("#67e8f9");
-    expect(resolved.light.accentLight).toBe("rgba(14, 116, 144, 0.12)");
+    expect(resolved.light.accentLight).toBe("rgba(8, 141, 176, 0.1)");
   });
 
   it("预设值命中对应预设（按 accent 维度亮色）", () => {
@@ -49,13 +50,14 @@ describe("themeColor 工具", () => {
   it("各维度独立解析：仅设置 category 不影响 accent", () => {
     const resolved = resolveThemeColor({ category: { light: "#2563eb" } });
     // accent 保持默认青瓷蓝
-    expect(resolved.light.accent).toBe("#0e7490");
+    expect(resolved.light.accent).toBe("#088db0");
     // category 使用独立值
     expect(resolved.light.category).toBe("#2563eb");
   });
+
   it("按维度设置渐变影响 gradient-brand 但不影响 accent", () => {
     const resolved = resolveThemeColor({ gradient: { light: "#fbbf24" } });
-    expect(resolved.light.accent).toBe("#0e7490");
+    expect(resolved.light.accent).toBe("#088db0");
     expect(resolved.light.gradientBrand).toContain("linear-gradient(135deg,");
     expect(resolved.light.gradientBrand).not.toContain("#75e1f1");
     expect(resolved.light.hotRankGradient).toContain("linear-gradient(135deg,");
@@ -157,6 +159,72 @@ describe("themeColor 工具", () => {
     }
   });
 
+  it("强调色拆两级：装饰档只给图形、文字档保证可读（亮/暗、全部预设）", () => {
+    const channel = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (hex: string) => {
+      const h = hex.replace("#", "");
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const readVar = (css: string, selector: string, name: string) => {
+      const block = css.split(selector)[1] ?? "";
+      const m = block.match(new RegExp(`${name}:\\s*([^;]+);`));
+      return (m?.[1] ?? "").trim();
+    };
+
+    for (const preset of THEME_COLOR_PRESETS) {
+      const css = buildThemeColorCss({
+        accent: { light: preset.light.accent, dark: preset.dark.accent },
+      });
+      // 底色统一按「该主题里最不利于对比度的底座」：亮色取纯白、暗色取实测卡片合成色
+      for (const [selector, label, base] of [
+        [":root", "亮色", "#ffffff"],
+        ["html.dark", "暗色", "#1d2743"],
+      ] as const) {
+        const accent = readVar(css, selector, "--color-accent");
+        const deep = readVar(css, selector, "--color-accent-deep");
+        const text = readVar(css, selector, "--color-accent-text");
+        const link = readVar(css, selector, "--color-link");
+        // 装饰档：只当图形/填充（非文本 3:1）
+        expect(
+          contrast(accent, base),
+          `${preset.key} / ${label}：装饰档 ${accent} 作图形不足 3:1`,
+        ).toBeGreaterThanOrEqual(3);
+        // 文字档：链接 / hover / 当前选中都用它（4.5:1）
+        for (const [v, n] of [
+          [deep, "--color-accent-deep"],
+          [link, "--color-link"],
+        ] as const) {
+          expect(
+            contrast(v, base),
+            `${preset.key} / ${label}：${n} ${v} 作文字不足 4.5:1`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+        // 填充面 + 自动前景 + 交互档：三者都要 ≥4.5
+        for (const name of [
+          "--color-accent",
+          "--color-accent-hover",
+          "--color-accent-active",
+        ]) {
+          const fill = readVar(css, selector, name);
+          expect(
+            contrast(text, fill),
+            `${preset.key} / ${label}：${name} ${fill} 上的 ${text} 不足 4.5:1`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+
   it("分类色拆两级：装饰档只给图形、文字档保证可读（亮/暗、全部预设）", () => {
     const channel = (v: number) => {
       const c = v / 255;
@@ -187,29 +255,68 @@ describe("themeColor 工具", () => {
           contrast(v.category, base),
           `${preset.key} / ${label}：装饰档 ${v.category} 作图形不足 3:1`,
         ).toBeGreaterThanOrEqual(3);
+        // 分类色的文字档 = accent 的文字档（全站品牌文字只有一个颜色）
         expect(
-          contrast(v.categoryStrong ?? v.category, base),
-          `${preset.key} / ${label}：分类色文字档 ${v.categoryStrong} 不足 4.5:1`,
+          contrast(v.categoryStrong ?? v.accentDeep, base),
+          `${preset.key} / ${label}：文字档 ${v.categoryStrong ?? v.accentDeep} 不足 4.5:1`,
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
   });
 
-  it("分类色文字档未显式声明时由装饰档推导（亮压深 / 暗提亮）", () => {
+  it("品牌文字全部去彩度：不再出现高饱和的蓝字（2026-09-15 反馈）", () => {
+    /** HSL 饱和度（0~1）：与实测定值时引用的口径一致 */
+    const saturation = (hex: string) => {
+      const h = hex.replace("#", "");
+      const [r, g, b] = [0, 2, 4]
+        .map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+        .sort((x, y) => y - x);
+      const l = (r + b) / 2;
+      if (r === b) return 0;
+      return l > 0.5 ? (r - b) / (2 - r - b) : (r - b) / (r + b);
+    };
+    const BLUE_CHARS = ["accentDeep", "link"] as const;
+    for (const preset of THEME_COLOR_PRESETS) {
+      for (const mode of ["light", "dark"] as const) {
+        for (const key of BLUE_CHARS) {
+          const hex = preset[mode][key];
+          // 调整前是 82%~96%；周围中性文字只有 16~33%。留 70% 作硬上限。
+          expect(
+            saturation(hex),
+            `${preset.key} / ${mode} / ${key} = ${hex} 饱和度仍然偏高`,
+          ).toBeLessThanOrEqual(0.7);
+        }
+      }
+    }
+  });
+
+  it("分类色文字档已统一：不再单独取值，直接复用 accent 的文字档", () => {
     const resolved = resolveThemeColor({ category: { light: "#0284c7" } });
     expect(resolved.light.category).toBe("#0284c7");
-    expect(resolved.light.categoryStrong).toMatch(/^#[0-9a-f]{6}$/);
-    expect(resolved.light.categoryStrong).not.toBe(resolved.light.category);
+    // 只设 category 时，categoryStrong 仍与默认 accent 的文字档一致（不再按 category 派生）
+    expect(resolved.light.categoryStrong).toBeUndefined();
+    const css = buildThemeColorCss({ category: { light: "#0284c7" } });
+    const readVar = (selector: string, name: string) => {
+      const block = css.split(selector)[1] ?? "";
+      const m = block.match(new RegExp(`${name}:\\s*([^;]+);`));
+      return (m?.[1] ?? "").trim();
+    };
+    expect(readVar(":root", "--color-category-strong")).toBe(
+      readVar(":root", "--color-accent-deep"),
+    );
+    expect(readVar(":root", "--color-link")).toBe(
+      readVar(":root", "--color-accent-deep"),
+    );
   });
 
   it("默认预设（青瓷蓝）保留当前设计的扩展色", () => {
     const resolved = resolveThemeColor();
     expect(resolved.light.category).toBe("#0284c7");
-    expect(resolved.light.categoryStrong).toBe("#0369a1");
+    expect(resolved.light.accentDeep).toBe("#1f6a8c");
+    expect(resolved.dark.accentDeep).toBe("#96cee8");
     expect(resolved.light.fav).toBe("#f59e0b");
     expect(resolved.light.gradientBrand).toContain("#75e1f1");
     expect(resolved.dark.category).toBe("#38bdf8");
-    expect(resolved.dark.categoryStrong).toBe("#7dd3fc");
     expect(resolved.dark.gradientBrand).toContain("#34d0c2");
   });
 });

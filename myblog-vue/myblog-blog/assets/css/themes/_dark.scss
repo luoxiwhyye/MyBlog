@@ -37,11 +37,13 @@ html.dark {
     0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
 
   // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_DARK 逐项一致）
+  // accent 两级同亮色：本体管填充/描边，--color-accent-deep 管文字/图标。
+  // 暗色下两者都很亮（对暗卡 10.18 / 13.18），填充上的前景是深墨字。
   --color-accent: #67e8f9; // cyan-300（暗色下反相提亮）
   --color-accent-light: rgba(103, 232, 249, 0.16);
-  --color-accent-deep: #cffafe;
-  --color-link: #67e8f9;
-  // accent 填充式控件的交互档：暗色主题向上提亮
+  --color-accent-deep: #96cee8; // 文字/图标档（与亮色同色相 199 / 同饱和度 64%，互为镜像）
+  --color-link: #96cee8;
+  // 交互档：浅底 + 深墨字 → 提亮（同亮色主题的规则）
   --color-accent-hover: #7eebfa;
   --color-accent-active: #95effb;
 
@@ -64,10 +66,10 @@ html.dark {
   --color-fav-soft: rgba(251, 191, 36, 0.2); // 收藏高亮底色/搜索 mark
   // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：暗色版用明亮的青蓝，文字用深色保对比度
   --gradient-brand: linear-gradient(135deg, #34d0c2, #4fc3f7);
-  --gradient-brand-text: #04303a;
+  --gradient-brand-text: #132b30;
   // 热门文章排名徽标（top3）：夜间用明亮的青蓝渐变
   --hot-rank-gradient: linear-gradient(135deg, #34d0c2, #4fc3f7);
-  --hot-rank-text: #04303a;
+  --hot-rank-text: #132b30;
   --deco-a: rgba(90, 140, 220, 0.2); // 冷蓝光装饰
   --deco-b: rgba(201, 138, 75, 0.18); // 暖橙台灯装饰
   --shadow-glow:

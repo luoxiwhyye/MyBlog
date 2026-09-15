@@ -340,7 +340,7 @@ const handleSubmit = async () => {
   color: var(--text-primary);
 
   a {
-    color: var(--color-accent);
+    color: var(--color-accent-deep);
     text-decoration: none;
 
     &:hover {
@@ -370,7 +370,7 @@ const handleSubmit = async () => {
   }
 
   :deep(.mention) {
-    color: var(--color-accent);
+    color: var(--color-accent-deep);
     font-weight: 600;
   }
 }

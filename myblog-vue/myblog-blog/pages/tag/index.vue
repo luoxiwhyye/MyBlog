@@ -119,7 +119,7 @@ usePageSeo({
   gap: 6px;
   padding: 8px 18px;
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-radius: 20px;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;

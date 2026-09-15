@@ -197,13 +197,15 @@ onBeforeUnmount(() => {
 
 .history-item.active {
   border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent-soft, var(--color-category-soft)) 55%, transparent);
+  /* 原为 var(--color-accent-soft, var(--color-category-soft)) —— 前者全站未定义，
+     实际一直吃回退值；直接写真实存在的强调浅底令牌。 */
+  background: color-mix(in srgb, var(--color-accent-light) 55%, transparent);
 }
 
 .history-index {
   flex: 0 0 auto;
   min-width: 30px;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-size: $font-size-xs;
   font-weight: 700;
 }

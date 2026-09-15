@@ -60,8 +60,10 @@ useSeoMeta({
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--color-accent-deep);
+  /* 原为 var(--color-accent-soft)，该令牌全站未定义 → 整条声明失效（图标无底色）。
+     改用真实存在的强调浅底令牌。 */
+  background: var(--color-accent-light);
 }
 
 .maintenance-title {

@@ -9,11 +9,19 @@
 // ============================================
 
 export interface ThemeColorVariant {
-  /** --color-accent */
+  /**
+   * --color-accent（**装饰档**：填充 / 描边 / focus 外框 / 浅底 / 渐变）
+   * 只需满足非文本 3:1，所以可以取亮色（观感轻快）。
+   */
   accent: string;
   /** --color-accent-light（柔和背景/徽标底） */
   accentLight: string;
-  /** --color-accent-deep（强调深色文字/描边） */
+  /**
+   * --color-accent-deep（**文字档**：链接 hover / 当前选中 / 统计数字 / 图标 / TOC 高亮）
+   *
+   * 与 `--color-category` / `--color-category-strong` 同一套两级思路：本体只当图形，
+   * 真正当文字的地方必须 ≥4.5:1，故需要一个同色族的深（亮色主题）/ 浅（暗色主题）版本。
+   */
   accentDeep: string;
   /**
    * --color-accent-text（**accent 填充面上的前景色**）
@@ -32,11 +40,11 @@ export interface ThemeColorVariant {
   /** --color-category-soft（徽标底） */
   categorySoft: string;
   /**
-   * --color-category-strong（分类色·**文字档**）
+   * --color-category-strong（分类色的**文字档**，不参与图形 / 填充）
    *
-   * 分类色分两级：本体只管图形（只需 3:1，故可取得亮一些、整体更轻快）；
-   * 真正当文字用的地方（徽标 / 链接 hover / TOC 高亮）走本字段，必须 ≥4.5:1。
-   * 通常**无需显式赋值**：未提供时由 category 自动推导（亮色压深 / 暗色提亮）。
+   * ⚠️ 它现在**默认就是 accent 的文字档**（`variantToBlock` 里回退到 accentDeep）：
+   * 全站品牌文字只保留一个颜色，避免出现「三种相近但不相同的蓝」。
+   * 保留本字段只为将来真的要分色时留个口子。
    */
   categoryStrong?: string;
   /** --color-fav（收藏/星标暖橙） */
@@ -72,25 +80,27 @@ export interface ThemeColorPreset {
 
 // 预设：当前博客设计（青瓷蓝 / 动漫极简）—— 图A 日间 / 图B 夜间
 // ⚠️ 本预设必须与 assets/css/themes/_light.scss / _dark.scss 的静态回退值逐项一致。
-// 2026-09-15：accent 由石墨 #475569 换成青瓷蓝 #0e7490（亮）/ #67e8f9（暗）；
-// category 拆成「装饰档 #0284c7 + 文字档 #0369a1」（暗 #38bdf8 / #7dd3fc），色相由 teal
-// 改到偏蓝的 sky —— 起因是作者反馈 teal 系太重，而单令牌同时当文字与装饰时，
-// 文字那 4.5:1 的门槛一定会把颜色压在深色区（旧 #0f766e 就是这么被逼深的）；
-// gradient / deco / fav 本就属青系，与新的 accent 同源，本次不动。
+// 2026-09-15 的第一轮：accent 由石墨 #475569 换成青瓷蓝 #0e7490；category 拆成
+// 「装饰档 + 文字档」并改走偏蓝的 sky。
+// 2026-09-15 的第二轮：**accent 也用同一套两级思路**——本体降为装饰/填充档
+// （#088db0，比原值明显轻快），原值 #0e7490 移作文字档。
+// 2026-09-15 的第三轮（作者反馈「品牌蓝和其他组件相比很突兀」）：根因不是「深」而是
+// **饱和度** —— 周围文字只有 16~33% 彩度，而品牌文字是 82~96%。故把**文字档去彩度**
+//（#0e7490 sat82% → #1f6a8c sat64%）并**统一全站品牌文字为一个颜色**：
+// `--color-category-strong` 不再单独取值，直接回退到 accentDeep，`link` 也同用。
 const SLATE_LIGHT: ThemeColorVariant = {
-  accent: "#0e7490",
-  accentLight: "rgba(14, 116, 144, 0.12)",
-  accentDeep: "#155e75",
-  link: "#0e7490",
+  accent: "#088db0",
+  accentLight: "rgba(8, 141, 176, 0.1)",
+  accentDeep: "#1f6a8c",
+  link: "#1f6a8c",
   category: "#0284c7",
-  categoryStrong: "#0369a1",
   categorySoft: "rgba(2, 132, 199, 0.12)",
   fav: "#f59e0b",
   favSoft: "rgba(245, 158, 11, 0.22)",
   gradientBrand: "linear-gradient(135deg, #75e1f1, #bff4fa)",
-  gradientBrandText: "#155e75",
+  gradientBrandText: "#2e5763",
   hotRankGradient: "linear-gradient(135deg, #75e1f1, #aeeef8)",
-  hotRankText: "#155e75",
+  hotRankText: "#2e5763",
   decoA: "rgba(143, 224, 232, 0.16)",
   decoB: "rgba(74, 155, 232, 0.14)",
   shadowGlow:
@@ -101,17 +111,16 @@ const SLATE_LIGHT: ThemeColorVariant = {
 const SLATE_DARK: ThemeColorVariant = {
   accent: "#67e8f9",
   accentLight: "rgba(103, 232, 249, 0.16)",
-  accentDeep: "#cffafe",
-  link: "#67e8f9",
+  accentDeep: "#96cee8",
+  link: "#96cee8",
   category: "#38bdf8",
-  categoryStrong: "#7dd3fc",
   categorySoft: "rgba(56, 189, 248, 0.14)",
   fav: "#fbbf24",
   favSoft: "rgba(251, 191, 36, 0.2)",
   gradientBrand: "linear-gradient(135deg, #34d0c2, #4fc3f7)",
-  gradientBrandText: "#04303a",
+  gradientBrandText: "#132b30",
   hotRankGradient: "linear-gradient(135deg, #34d0c2, #4fc3f7)",
-  hotRankText: "#04303a",
+  hotRankText: "#132b30",
   decoA: "rgba(90, 140, 220, 0.2)",
   decoB: "rgba(201, 138, 75, 0.18)",
   shadowGlow:
@@ -124,15 +133,14 @@ const MINT_LIGHT: ThemeColorVariant = {
   ...SLATE_LIGHT,
   accent: "#0d9488",
   accentLight: "rgba(13, 148, 136, 0.12)",
-  accentDeep: "#115e59",
-  link: "#0d9488",
+  accentDeep: "#1f4c48",
+  link: "#1f4c48",
   category: "#0d9488",
-  categoryStrong: "#0f766e",
   categorySoft: "rgba(13, 148, 136, 0.14)",
   gradientBrand: "linear-gradient(135deg, #5eead4, #99f6e4)",
-  gradientBrandText: "#115e59",
+  gradientBrandText: "#27524f",
   hotRankGradient: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
-  hotRankText: "#04303a",
+  hotRankText: "#132b30",
   decoA: "rgba(45, 212, 191, 0.16)",
   decoB: "rgba(20, 184, 166, 0.14)",
   shadowGlow:
@@ -142,15 +150,15 @@ const MINT_DARK: ThemeColorVariant = {
   ...SLATE_DARK,
   accent: "#2dd4bf",
   accentLight: "rgba(45, 212, 191, 0.16)",
-  accentDeep: "#042f2e",
-  link: "#5eead4",
+  // accentDeep 是**文字档**（暗色下必须是浅色，否则压在暗卡上读不出）
+  accentDeep: "#95d1c9",
+  link: "#95d1c9",
   category: "#2dd4bf",
-  categoryStrong: "#5eead4",
   categorySoft: "rgba(45, 212, 191, 0.16)",
   gradientBrand: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
-  gradientBrandText: "#022c27",
+  gradientBrandText: "#0e2522",
   hotRankGradient: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
-  hotRankText: "#022c27",
+  hotRankText: "#0e2522",
   decoA: "rgba(45, 212, 191, 0.22)",
   decoB: "rgba(20, 184, 166, 0.18)",
   shadowGlow:
@@ -161,15 +169,14 @@ const AZURE_LIGHT: ThemeColorVariant = {
   ...SLATE_LIGHT,
   accent: "#2563eb",
   accentLight: "rgba(37, 99, 235, 0.12)",
-  accentDeep: "#1e40af",
-  link: "#2563eb",
+  accentDeep: "#2d426f",
+  link: "#2d426f",
   category: "#2563eb",
-  categoryStrong: "#1d4ed8",
   categorySoft: "rgba(37, 99, 235, 0.14)",
   gradientBrand: "linear-gradient(135deg, #93c5fd, #bfdbfe)",
-  gradientBrandText: "#1e3a8a",
+  gradientBrandText: "#32426e",
   hotRankGradient: "linear-gradient(135deg, #60a5fa, #93c5fd)",
-  hotRankText: "#1e3a8a",
+  hotRankText: "#32426e",
   decoA: "rgba(96, 165, 250, 0.16)",
   decoB: "rgba(59, 130, 246, 0.14)",
   shadowGlow:
@@ -179,15 +186,14 @@ const AZURE_DARK: ThemeColorVariant = {
   ...SLATE_DARK,
   accent: "#60a5fa",
   accentLight: "rgba(96, 165, 250, 0.16)",
-  accentDeep: "#172554",
-  link: "#93c5fd",
+  accentDeep: "#aec7e5",
+  link: "#aec7e5",
   category: "#60a5fa",
-  categoryStrong: "#93c5fd",
   categorySoft: "rgba(96, 165, 250, 0.16)",
   gradientBrand: "linear-gradient(135deg, #3b82f6, #60a5fa)",
-  gradientBrandText: "#0b2545",
+  gradientBrandText: "#182638",
   hotRankGradient: "linear-gradient(135deg, #3b82f6, #60a5fa)",
-  hotRankText: "#0b2545",
+  hotRankText: "#182638",
   decoA: "rgba(96, 165, 250, 0.22)",
   decoB: "rgba(59, 130, 246, 0.18)",
   shadowGlow:
@@ -198,15 +204,14 @@ const WISTERIA_LIGHT: ThemeColorVariant = {
   ...SLATE_LIGHT,
   accent: "#7c3aed",
   accentLight: "rgba(124, 58, 237, 0.12)",
-  accentDeep: "#5b21b6",
-  link: "#7c3aed",
+  accentDeep: "#4e3974",
+  link: "#4e3974",
   category: "#8b5cf6",
-  categoryStrong: "#6d28d9",
   categorySoft: "rgba(139, 92, 246, 0.14)",
   gradientBrand: "linear-gradient(135deg, #c4b5fd, #ddd6fe)",
-  gradientBrandText: "#4c1d95",
+  gradientBrandText: "#503678",
   hotRankGradient: "linear-gradient(135deg, #a78bfa, #c4b5fd)",
-  hotRankText: "#4c1d95",
+  hotRankText: "#503678",
   decoA: "rgba(196, 181, 253, 0.16)",
   decoB: "rgba(167, 139, 250, 0.14)",
   shadowGlow:
@@ -216,15 +221,14 @@ const WISTERIA_DARK: ThemeColorVariant = {
   ...SLATE_DARK,
   accent: "#a78bfa",
   accentLight: "rgba(167, 139, 250, 0.16)",
-  accentDeep: "#2e1065",
-  link: "#c4b5fd",
+  accentDeep: "#cbc2e9",
+  link: "#cbc2e9",
   category: "#a78bfa",
-  categoryStrong: "#c4b5fd",
   categorySoft: "rgba(167, 139, 250, 0.16)",
   gradientBrand: "linear-gradient(135deg, #8b5cf6, #a78bfa)",
-  gradientBrandText: "#241349",
+  gradientBrandText: "#271e3b",
   hotRankGradient: "linear-gradient(135deg, #8b5cf6, #a78bfa)",
-  hotRankText: "#241349",
+  hotRankText: "#271e3b",
   decoA: "rgba(167, 139, 250, 0.22)",
   decoB: "rgba(139, 92, 246, 0.18)",
   shadowGlow:
@@ -237,15 +241,14 @@ const AMBER_LIGHT: ThemeColorVariant = {
   favSoft: "rgba(234, 88, 12, 0.22)",
   accent: "#d97706",
   accentLight: "rgba(217, 119, 6, 0.12)",
-  accentDeep: "#92400e",
-  link: "#d97706",
+  accentDeep: "#664621",
+  link: "#664621",
   category: "#b45309",
-  categoryStrong: "#92400e",
   categorySoft: "rgba(180, 83, 9, 0.12)",
   gradientBrand: "linear-gradient(135deg, #fbbf24, #fde68a)",
-  gradientBrandText: "#78350f",
+  gradientBrandText: "#5e3924",
   hotRankGradient: "linear-gradient(135deg, #f59e0b, #fbbf24)",
-  hotRankText: "#78350f",
+  hotRankText: "#5e3924",
   decoA: "rgba(251, 191, 36, 0.16)",
   decoB: "rgba(217, 119, 6, 0.14)",
   shadowGlow:
@@ -257,15 +260,14 @@ const AMBER_DARK: ThemeColorVariant = {
   favSoft: "rgba(251, 146, 60, 0.2)",
   accent: "#fbbf24",
   accentLight: "rgba(251, 191, 36, 0.16)",
-  accentDeep: "#451a03",
-  link: "#fcd34d",
+  accentDeep: "#e1cc95",
+  link: "#e1cc95",
   category: "#f59e0b",
-  categoryStrong: "#fbbf24",
   categorySoft: "rgba(245, 158, 11, 0.16)",
   gradientBrand: "linear-gradient(135deg, #f59e0b, #fbbf24)",
-  gradientBrandText: "#451a03",
+  gradientBrandText: "#351d10",
   hotRankGradient: "linear-gradient(135deg, #f59e0b, #fbbf24)",
-  hotRankText: "#451a03",
+  hotRankText: "#351d10",
   decoA: "rgba(251, 191, 36, 0.22)",
   decoB: "rgba(217, 119, 6, 0.18)",
   shadowGlow:
@@ -279,7 +281,7 @@ export const THEME_COLOR_PRESETS: ThemeColorPreset[] = [
   {
     key: "slate",
     name: "青瓷蓝（当前/默认）",
-    value: "#0e7490",
+    value: "#088db0",
     light: SLATE_LIGHT,
     dark: SLATE_DARK,
   },
@@ -361,6 +363,21 @@ const mix = (a: Rgb, b: Rgb, weight: number): Rgb => ({
 const lighten = (c: Rgb, weight: number): Rgb => mix(c, WHITE, weight);
 const darken = (c: Rgb, weight: number): Rgb => mix(c, BLACK, weight);
 
+/**
+ * 去彩度（往「通道均值」靠）。
+ *
+ * 为什么需要它：品牌色作为**文字**时必须在 4.5:1 以上，而“够深”的高饱和度蓝
+ * 在全是低饱和灰蓝的页面里会显得很突兀（实测：周围文字只有 16~33% 饱和，
+ * 品牌文字却是 82~96%）。降低彩度而不动亮度，就能同时拿到「可读」与「不突兀」。
+ *
+ * 注意：去彩度会略微改变亮度 —— 实测是**小幅提高**对比度（因为底色是蓝调浅底），
+ * 所以不会把刚达标的颜色弄得不达标。
+ */
+const mute = (c: Rgb, weight: number): Rgb => {
+  const avg = (c.r + c.g + c.b) / 3;
+  return mix(c, { r: avg, g: avg, b: avg }, weight);
+};
+
 const toRgba = (c: Rgb, alpha: number): string =>
   `rgba(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)}, ${alpha})`;
 
@@ -434,32 +451,31 @@ function parseHex(value?: string): Rgb | null {
 const applyAccentDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
+  // accentDeep 兼作「文字档」：亮色主题压深（对白底）、暗色主题提亮（对暗卡），
+  // 并**去彩度**（见 mute 注释）—— 与中性灰蓝同族，不再突兀。
+  const deep = mute(isDark ? lighten(c, 0.35) : darken(c, 0.4), 0.45);
   return {
     accent: baseHex,
     accentLight: isDark ? toRgba(darken(c, 0.35), 0.9) : toRgba(c, 0.1),
-    accentDeep: rgbToHex(darken(c, isDark ? 0.15 : 0.4)),
-    link: isDark ? rgbToHex(lighten(c, 0.35)) : baseHex,
+    accentDeep: rgbToHex(deep),
+    // 链接必须走文字档：accent 本体（装饰档）作文字普遍只有 3 点几比一
+    link: rgbToHex(deep),
   };
 };
 
 /**
- * 分类色的【文字档】推导：亮色压深、暗色提亮（保持同色族）。
- * 分类色的本体只当图形用（3:1 即可，所以可以取亮色）；真正当文字的地方要 ≥4.5:1，
- * 故需要一个同色族的深/浅版本 —— 与 accentText 同理，只是方向相反（那个是选白或深墨）。
+ * 分类维度：category（图形）+ category-soft（徽标底）。
+ *
+ * ⚠️ **不再产出 categoryStrong**（2026-09-15）：分类色的**文字档直接复用 accent 的文字档**
+ *（见 variantToBlock 的回退）。原因是全站出现三种近似但不相同的品牌蓝，在几乎全是灰蓝的
+ * 页面里显得很乱（作者反馈「和其他组件相比很突兀」）—— 现在全站品牌文字只有**一个**颜色；
+ * 两类颜色的区分靠**底 / 描边 / 圆点 / 渐变**，而不是靠文字色。
  */
-const deriveCategoryStrong = (categoryHex: string, isDark: boolean): string => {
-  const c =
-    parseHex(categoryHex) || (hexToRgb(DEFAULT_THEME_COLOR_VALUE) as Rgb);
-  return rgbToHex(isDark ? lighten(c, 0.25) : darken(c, 0.18));
-};
-
-/** 分类维度：category（图形）+ category-strong（文字）+ category-soft（徽标底） */
 const applyCategoryDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
   return {
     category: baseHex,
-    categoryStrong: deriveCategoryStrong(baseHex, isDark),
     categorySoft: toRgba(c, isDark ? 0.14 : 0.12),
   };
 };
@@ -480,7 +496,10 @@ const applyGradientDim = (baseHex: string, isDark: boolean) => {
   if (!c) return null;
   const first = rgbToHex(lighten(c, isDark ? 0.05 : 0.3));
   const last = rgbToHex(lighten(c, 0.6));
-  const text = isDark ? "#03211c" : rgbToHex(darken(c, 0.4));
+  // 渐变上的文字也去彩度（同一理由，见 mute 注释）
+  const text = rgbToHex(
+    mute(isDark ? { r: 3, g: 33, b: 28 } : darken(c, 0.4), 0.45),
+  );
   const gradientBrand = `linear-gradient(135deg, ${first}, ${last})`;
   return {
     gradientBrand,
@@ -624,14 +643,21 @@ const FONT_FAMILY_BASE =
   '"Avenir", Helvetica, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif';
 
 /**
- * accent 填充式控件的交互档。
- * EP 默认的「hover 提亮」假设主色是中明度色，而本项目的 accent 会随主题反相
- * （亮 #0e7490 深 / 暗 #67e8f9 浅）→ 亮色主题必须向下压深，否则白字对比度掉到 3:1 级。
+ * accent 填充式控件的交互档（hover / active）。
+ *
+ * 方向**不能写死**，必须让对比度变大：
+ * - 深底 + 白字（如墨水蓝、天青蓝）→ hover 压深（原逻辑，朝黑）
+ * - 浅底 + 深墨字（如青瓷蓝、薄荷青）→ hover **提亮**（朝白）
+ *
+ * 2026-09-15 实测教训：accent 降为亮色后仍按「亮色主题一律压深」，
+ * 墨字对比度会从 4.63 降到 **3.51**（hover）/ **2.61**（active）—— 直接跌破 AA。
+ * 现改为按 `readableOn()` 选出的前景色反推方向，两种情形都只会提高对比度。
  */
-const interactionLevels = (accentHex: string, isDark: boolean) => {
+const interactionLevels = (accentHex: string) => {
   const rgb =
     hexToRgb(accentHex) || (hexToRgb(DEFAULT_THEME_COLOR_VALUE) as Rgb);
-  const toward = isDark ? WHITE : BLACK;
+  const fg = readableOn(rgb);
+  const toward = fg === "#ffffff" ? BLACK : WHITE;
   return {
     hover: rgbToHex(mix(rgb, toward, 0.15)),
     active: rgbToHex(mix(rgb, toward, 0.3)),
@@ -644,7 +670,7 @@ const variantToBlock = (
   el: ElementPlusLevels,
   isDark: boolean,
 ): string => {
-  const inter = interactionLevels(v.accent, isDark);
+  const inter = interactionLevels(v.accent);
   return `
 ${selector} {
   --color-accent: ${v.accent};
@@ -655,7 +681,7 @@ ${selector} {
   --color-accent-active: ${inter.active};
   --color-link: ${v.link};
   --color-category: ${v.category};
-  --color-category-strong: ${v.categoryStrong || deriveCategoryStrong(v.category, isDark)};
+  --color-category-strong: ${v.categoryStrong || v.accentDeep};
   --color-category-soft: ${v.categorySoft};
   --color-fav: ${v.fav};
   --color-fav-soft: ${v.favSoft};
@@ -717,17 +743,17 @@ ${selector} {
  * 输入框与多行文本共用同一组控件令牌 → 与玻璃卡同源。详见 design-system.md §6.1。
  */
 const ELEMENT_PLUS_COMPONENTS = `
-/* 次要按钮：玻璃卡底色 + 站点描边；hover 转 accent */
+/* 次要按钮：玻璃卡底色 + 站点描边；hover 转 accent（**文字档**，见下） */
 .el-button {
   --el-button-bg-color: var(--control-bg);
   --el-button-border-color: var(--control-border);
   --el-button-text-color: var(--text-secondary);
   --el-button-hover-bg-color: var(--bg-hover);
   --el-button-hover-border-color: var(--color-accent);
-  --el-button-hover-text-color: var(--color-accent);
+  --el-button-hover-text-color: var(--color-accent-deep);
   --el-button-active-bg-color: var(--bg-hover);
   --el-button-active-border-color: var(--color-accent);
-  --el-button-active-text-color: var(--color-accent);
+  --el-button-active-text-color: var(--color-accent-deep);
   --el-button-disabled-bg-color: var(--control-bg);
   --el-button-disabled-border-color: var(--control-border);
   --el-button-disabled-text-color: var(--text-muted);
@@ -747,11 +773,11 @@ const ELEMENT_PLUS_COMPONENTS = `
   --el-button-active-text-color: var(--color-accent-text);
 }
 
-/* plain 主按钮：EP 用「极浅底 + accent 字」，底色仍需换成站点的 accent 浅底 */
+/* plain 主按钮：EP 用「极浅底 + 主色字」，底色换成站点 accent 浅底、**文字走文字档** */
 .el-button--primary.is-plain {
   --el-button-bg-color: var(--color-accent-light);
   --el-button-border-color: var(--color-accent);
-  --el-button-text-color: var(--color-accent);
+  --el-button-text-color: var(--color-accent-deep);
   --el-button-hover-bg-color: var(--color-accent);
   --el-button-hover-border-color: var(--color-accent);
   --el-button-hover-text-color: var(--color-accent-text);
@@ -767,13 +793,38 @@ const ELEMENT_PLUS_COMPONENTS = `
   --el-button-disabled-text-color: var(--text-muted);
 }
 
-/* 幽灵按钮（EP link 档）：透明底、行内低强调，hover 转 accent + --bg-hover */
+/* 幽灵按钮（EP link 档）：透明底、行内低强调，hover 转 accent（文字档）+ --bg-hover */
 .el-button.is-link {
   --el-button-text-color: var(--text-secondary);
-  --el-button-hover-text-color: var(--color-accent);
+  --el-button-hover-text-color: var(--color-accent-deep);
 }
 .el-button.is-link:hover {
   background: var(--bg-hover);
+}
+
+/* ===== 其它「选中态填充」型 EP 组件 =====
+   EP 默认是 --el-color-primary 填充 + **硬白字/硬白勾**（.el-radio-button 的
+   --el-radio-button-checked-text-color: var(--el-color-white)、checkbox 的
+   --el-checkbox-checked-icon-color 同理）。accent 降为亮色后，硬白会重演
+   与主按钮同一类缺陷，所以这些组件的填充一律改成「accent 填充 + 自动前景」。
+   注：--el-color-primary 本身保持**文字档**（见 buildThemeColorCss），
+   因为 EP 把 primary 更多地当文字色用（tag / checkbox 标签 / link / 选中项）。 */
+.el-radio-button {
+  --el-radio-button-checked-bg-color: var(--color-accent);
+  --el-radio-button-checked-border-color: var(--color-accent);
+  --el-radio-button-checked-text-color: var(--color-accent-text);
+}
+
+.el-checkbox {
+  --el-checkbox-checked-bg-color: var(--color-accent);
+  --el-checkbox-checked-input-border-color: var(--color-accent);
+  --el-checkbox-checked-icon-color: var(--color-accent-text); /* 对勾 */
+  --el-checkbox-checked-text-color: var(--color-accent-deep); /* 标签文字 */
+  --el-checkbox-input-border-color-hover: var(--color-accent);
+}
+
+.el-switch {
+  --el-switch-on-color: var(--color-accent);
 }
 
 /* 输入框 / 多行文本：底色 --bg-card、描边 --border-color、圆角 8px、focus 转 accent
@@ -801,8 +852,13 @@ const ELEMENT_PLUS_COMPONENTS = `
  */
 export const buildThemeColorCss = (input?: ThemeColorInput): string => {
   const { light, dark } = resolveThemeColor(input);
-  const elLight = computeElementPlusLevels(light.accent);
-  const elDark = computeElementPlusLevels(dark.accent);
+  // ⚠️ EP 主色取的是 **文字档**（accentDeep）而非装饰档（accent）：
+  // EP 把 --el-color-primary 更多当**文字色**用（tag / checkbox 标签 / link /
+  // 选中项 / 分页当前页），拿亮色的装饰档去喂它会让这些地方全部掉到 3 点几比一。
+  // 「填充型」组件（主按钮 / radio-button / checkbox / switch）已在
+  // ELEMENT_PLUS_COMPONENTS 里单独指向 --color-accent + --color-accent-text。
+  const elLight = computeElementPlusLevels(light.accentDeep);
+  const elDark = computeElementPlusLevels(dark.accentDeep);
   const lightSelection = hexToRgb(light.accent);
   const darkSelection = hexToRgb(dark.accent);
 

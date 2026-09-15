@@ -91,7 +91,7 @@ const emit = defineEmits<{
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-weight: 600;
 }
 

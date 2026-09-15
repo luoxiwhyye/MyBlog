@@ -405,14 +405,15 @@ const COLOR_DIMENSIONS = [
   {
     key: 'accent',
     label: '强调色',
-    description: '链接、主按钮、当前选中、面包屑高亮、统计数字等交互强调场景。',
-    predefine: ['#0e7490', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
+    description:
+      '链接、主按钮、当前选中、面包屑高亮、统计数字等交互强调场景。建议取【偏亮】的颜色 —— 前台会自动派生文字色（同色族、已去彩度）保证可读。',
+    predefine: ['#088db0', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
   },
   {
     key: 'category',
     label: '分类装饰色',
     description:
-      '分类/标签徽标底、页头页脚青光渐变、边框与高亮描边、时间线圆点等【装饰】场景 —— 取一个偏亮、轻快的颜色即可；真正当文字用的地方（徽标文字、链接 hover、TOC 高亮）前台会自动派一个更深的同色族版本保可读。',
+      '分类/标签徽标底、页头页脚青光渐变、边框与高亮描边、时间线圆点等【装饰】场景 —— 取一个偏亮、轻快的颜色即可。注：前台所有品牌【文字】色统一由强调色派生（不再单独取色），所以这里只影响图形。',
     predefine: ['#0284c7', '#0d9488', '#2563eb', '#8b5cf6', '#d97706'],
   },
   {
@@ -450,7 +451,7 @@ const THEME_COLOR_PRESET_MAP = [
     name: '青瓷蓝（当前/默认）',
     value: 'slate',
     colors: {
-      site_theme_accent_light: '#0e7490',
+      site_theme_accent_light: '#088db0',
       site_theme_accent_dark: '#67e8f9',
       site_theme_category_light: '#0284c7',
       site_theme_category_dark: '#38bdf8',

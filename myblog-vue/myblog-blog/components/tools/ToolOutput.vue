@@ -304,7 +304,7 @@ const prettyJson = (value: unknown) => {
 }
 
 .image-download {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;

@@ -334,7 +334,7 @@ useArchiveJsonLd(articles);
 .summary-num {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-variant-numeric: tabular-nums;
 }
 
@@ -470,7 +470,7 @@ $tl-dot-center: 10px;
 }
 
 .article-link:hover .article-title {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 
 /* 键盘可达性：与 friends 的卡片一致，补焦点描边 */

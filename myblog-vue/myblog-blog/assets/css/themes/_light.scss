@@ -38,13 +38,27 @@
 
   // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_LIGHT 逐项一致。
   // 运行时由 themeColor.ts 注入覆盖，此处是无 JS 时的静态回退）
-  --color-accent: #0e7490; // cyan-700
-  --color-accent-light: rgba(14, 116, 144, 0.12); // 强调浅底（标签底 / 激活底）
-  --color-accent-deep: #155e75; // 强调深色文字 / 描边
-  --color-link: #0e7490;
-  // accent 填充式控件的交互档：亮色主题向下压深（暗色档见 _dark.scss）
-  --color-accent-hover: #0c637a;
-  --color-accent-active: #0a5165;
+  //
+  // ⚠️ accent 分两级（2026-09-15 拆，与 --color-category 同一套思路）：
+  //   --color-accent      只管【填充 / 描边 / 浅底 / 渐变】—— 只需非文本 3:1，故取亮色，
+  //                       整体观感才轻快。填充上的文字由 --color-accent-text 自动推导
+  //                       （亮底 → 深墨字）。
+  //   --color-accent-deep 只管【文字 / 图标】—— 链接 hover、当前选中、统计数字、
+  //                       TOC 高亮等，必须 ≥ 4.5:1。
+  // 拆开的原因：旧 `#0e7490` 是被那 40 处「当文字用」逼深的，装饰层永远轻快不起来。
+  // 旧值原封不动地保留在 --color-accent-deep 上
+  --color-accent: #088db0; // cyan-600 档（比标准 cyan-600 #0891b2 再深 2%，为守住描边 3:1）
+  // 强调浅底（标签底 / 激活底 / plain 按钮底）。⚠️ 12% → 10%：
+  // 「浅底 + --color-accent-deep 文字」是最吃对比度的一对，实测 12% 时
+  // 在最不利底色（背景图深蓝天区的玻璃卡）上只有 4.47，10% 为 4.59。
+  --color-accent-light: rgba(8, 141, 176, 0.1);
+  --color-accent-deep: #1f6a8c; // 文字/图标档（**去彩度**：sat 82% → 64%，与周围灰蓝同族）
+  --color-link: #1f6a8c;
+  // accent 填充式控件的交互档。⚠️ 方向随「自动前景色」而定：浅底 + 深墨字时
+  // 必须**提亮**（压深会把对比度拉到 4.5 以下：实测压深 3.51、提亮 5.72）。
+  // 规则见 themeColor.ts 的 interactionLevels()。
+  --color-accent-hover: #2d9ebc;
+  --color-accent-active: #52afc8;
 
   // ==== 控件令牌（按钮 / 输入框 / 评论框统一的表单控件外观）====
   // 由 utils/themeColor.ts 的运行时注入块指向 Element Plus 变量 —— 组件外观与玻璃卡同源。
@@ -80,11 +94,12 @@
   --color-fav-soft: rgba(245, 158, 11, 0.22); // 收藏高亮底色/搜索 mark
   // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：亮色版用薄荷青，起 #75E1F1、末更浅
   --gradient-brand: linear-gradient(135deg, #75e1f1, #bff4fa);
-  // 渐变/排名徽标上的文字：原 #2e9aaa 压在 #75e1f1 上仅 2.18:1，抬深到 cyan-800（最浅处 4.77:1）
-  --gradient-brand-text: #155e75;
+  // 渐变/排名徽标上的文字：原 #2e9aaa 压在 #75e1f1 上仅 2.18:1，已抬深；
+  // 2026-09-15 再去彩度（高饱和的青色字在灰蓝页面里很突兀）
+  --gradient-brand-text: #2e5763;
   // 热门文章排名徽标（top3）：亮色版更亮
   --hot-rank-gradient: linear-gradient(135deg, #75e1f1, #aeeef8);
-  --hot-rank-text: #155e75;
+  --hot-rank-text: #2e5763;
   --deco-a: rgba(143, 224, 232, 0.16); // 薄荷青装饰
   --deco-b: rgba(74, 155, 232, 0.14); // 天蓝装饰
   --shadow-glow:

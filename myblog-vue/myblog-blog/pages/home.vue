@@ -473,7 +473,7 @@ useWebsiteJsonLd();
     transform var(--transition-bounce);
 
   &:hover {
-    color: var(--color-accent);
+    color: var(--color-accent-deep);
     border-color: var(--color-accent);
     background: var(--color-accent-light);
     transform: translateY(-1px);

@@ -191,7 +191,7 @@ usePageSeo({
 }
 
 .tools-eyebrow {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-weight: 700;
   margin-bottom: 10px;
 }
@@ -299,7 +299,7 @@ usePageSeo({
   padding: 7px 16px;
   border-radius: 999px;
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-size: 13px;
   text-decoration: none;
   transition: color 0.2s, background-color 0.2s, box-shadow var(--transition-bounce);

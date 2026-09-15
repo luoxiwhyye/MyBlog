@@ -183,7 +183,7 @@ const siteLogo = computed(() => {
 .nav-link:hover,
 .nav-link.router-link-active {
   background-color: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   box-shadow: var(--shadow-glow);
 }
 

@@ -317,7 +317,7 @@ usePageSeo({
 }
 
 .social-link:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-color: var(--color-accent);
   /* 原先写 var(--color-accent-soft, var(--color-category-soft))，
      而 --color-accent-soft 全站未定义（design-system 检查清单明确列为禁用），
@@ -382,7 +382,7 @@ usePageSeo({
 .stat-num {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   line-height: 1;
 }
 
@@ -460,7 +460,7 @@ usePageSeo({
 }
 
 .friends-more {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-size: $font-size-sm;
   text-decoration: none;
 }

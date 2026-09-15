@@ -181,13 +181,13 @@ watch(model, savePrefs, { deep: true });
   transition: color 0.2s, border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 .reading-settings-btn:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-color: var(--color-accent);
   box-shadow: var(--shadow-glow);
 }
 
 .reading-settings-btn.active {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-color: var(--color-accent);
   background: var(--color-accent-light);
 }
@@ -251,7 +251,7 @@ watch(model, savePrefs, { deep: true });
 
 .rs-step:hover:not(:disabled) {
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 
 .rs-step:disabled {
@@ -285,12 +285,12 @@ watch(model, savePrefs, { deep: true });
 }
 
 .rs-lines button:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-color: var(--color-accent);
 }
 
 .rs-lines button.active {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   border-color: var(--color-accent);
   background: var(--color-accent-light);
   font-weight: 600;
@@ -313,7 +313,7 @@ watch(model, savePrefs, { deep: true });
 }
 
 .rs-reset:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 
 .rs-drop-enter-active,

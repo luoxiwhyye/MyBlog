@@ -105,7 +105,7 @@ const goHome = () => {
 .not-found-code {
   font-size: 120px;
   font-weight: 800;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   line-height: 1;
   margin: 0 0 8px;
   opacity: 0.8;
@@ -161,6 +161,6 @@ const goHome = () => {
 }
 
 .not-found-suggestions a:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 </style>

@@ -309,7 +309,7 @@ watch(
 
 .tag {
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   padding: 2px 8px;
   border-radius: 4px;
   opacity: 0.8;

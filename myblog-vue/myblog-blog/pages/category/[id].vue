@@ -151,7 +151,7 @@ useBreadcrumbJsonLd([
 }
 
 .breadcrumb a:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 
 .breadcrumb-sep {

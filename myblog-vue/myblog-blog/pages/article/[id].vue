@@ -1045,7 +1045,7 @@ useHead(() => {
 }
 
 .breadcrumb a:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
 }
 
 .breadcrumb-sep {
@@ -1250,7 +1250,7 @@ useHead(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-size: $font-size-xs;
   font-weight: 600;
 }
@@ -1532,14 +1532,14 @@ useHead(() => {
 
 .category {
   background: var(--color-category-soft);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   padding: 4px 12px;
   border-radius: 4px;
 }
 
 .tag {
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   padding: 4px 12px;
   border-radius: 4px;
   opacity: 0.8;
@@ -1747,7 +1747,7 @@ useHead(() => {
 }
 
 .article-body :deep(.code-copy:hover) {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   background: var(--color-accent-light);
 }
 
@@ -1893,7 +1893,7 @@ useHead(() => {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-card);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   z-index: 100;
@@ -1967,7 +1967,7 @@ useHead(() => {
 /* 当前章节：左侧青绿指示条 + 浅底，随滚动跟随 */
 .toc button.active {
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-weight: 600;
   border-left: 2px solid var(--color-category);
 }
@@ -2206,7 +2206,7 @@ useHead(() => {
 
 .mobile-toc-list button.active {
   background: var(--color-accent-light);
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-weight: 600;
 }
 

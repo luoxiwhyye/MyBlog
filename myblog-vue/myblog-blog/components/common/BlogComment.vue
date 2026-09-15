@@ -282,7 +282,7 @@ const handleReplySubmitted = () => {
 }
 
 .comment-content :deep(.mention) {
-  color: var(--color-accent);
+  color: var(--color-accent-deep);
   font-weight: 600;
   background: var(--color-accent-light);
   border-radius: 4px;
