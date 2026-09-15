@@ -83,15 +83,11 @@ defineProps<{
   padding: 10px 20px;
   border-radius: 8px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s;
-}
-
-html.dark .empty-action {
-  color: var(--color-accent-deep);
 }
 
 .empty-action:hover {

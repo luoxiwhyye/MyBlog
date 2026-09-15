@@ -1,18 +1,19 @@
 <template>
   <div class="category">
-    <div class="page-header">
-      <h1>分类</h1>
-    </div>
+    <PageHeader
+      :title="t('category.title')"
+      :description="t('category.description')"
+    />
     <div v-if="pending" class="loading">
       <el-icon class="is-loading">
         <Loading />
       </el-icon>
-      加载中...
+      {{ t('archive.loading') }}
     </div>
     <EmptyState
       v-else-if="categories.length === 0"
-      message="暂无分类"
-      description="还没有包含文章的分类，欢迎常回来看看。"
+      :message="t('category.empty')"
+      :description="t('category.emptyDesc')"
       :action-text="t('notFound.backHome')"
       action-to="/home"
     />
@@ -64,8 +65,8 @@ const goToCategory = (id: number) => {
 };
 
 usePageSeo({
-  title: "分类",
-  description: "浏览博客的全部文章分类，快速按主题查找内容。",
+  title: t("category.title"),
+  description: t("category.description"),
 });
 </script>
 
@@ -73,20 +74,7 @@ usePageSeo({
 @use "../../assets/css/abstracts/variables" as *;
 
 .category {
-  max-width: 1400px;
   margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: $spacing-8;
-}
-
-.category h1 {
-  text-align: center;
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  margin: 8px 0 0;
-  color: var(--text-primary);
-  text-shadow: var(--text-shadow-on-bg);
 }
 
 .loading {
@@ -107,9 +95,8 @@ usePageSeo({
   width: 100%;
   max-width: 420px;
   justify-self: center;
-  padding: $spacing-8;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card-lg);
+  /* 走站点唯一的卡片配方 */
+  @include card-glass($padding: $spacing-8);
   text-align: center;
   cursor: pointer;
   transition:
@@ -117,9 +104,6 @@ usePageSeo({
     transform var(--transition-bounce),
     background-color 0.3s,
     border-color 0.3s;
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur)) saturate(130%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
 }
 
 .category-card:hover {
@@ -136,11 +120,5 @@ usePageSeo({
 
 .category-card p {
   color: var(--text-secondary);
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    margin-bottom: $spacing-6;
-  }
 }
 </style>

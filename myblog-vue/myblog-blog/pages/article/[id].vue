@@ -1463,7 +1463,6 @@ useHead(() => {
   color: var(--text-primary);
   margin-bottom: clamp(10px, 2vw, 15px);
   line-height: 1.35;
-  text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
 
 .article-meta {

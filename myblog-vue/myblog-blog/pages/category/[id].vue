@@ -1,29 +1,32 @@
 <template>
   <div class="category-detail">
-    <nav class="breadcrumb">
-      <NuxtLink to="/home">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        首页
-      </NuxtLink>
-      <span class="breadcrumb-sep">/</span>
-      <NuxtLink to="/category">分类</NuxtLink>
-      <span class="breadcrumb-sep">/</span>
-      <span class="breadcrumb-current">{{ categoryName }}</span>
-    </nav>
-
-    <h1>{{ categoryName }}</h1>
-    <p class="stats">共 {{ total }} 篇文章</p>
+    <!-- 页头卡：面包屑 + 标题 + 文章数 合成一张卡（原先面包屑与标题是两个独立块） -->
+    <PageHeader
+      :title="categoryName"
+      :description="t('common.articleCount', { count: total })"
+    >
+      <nav class="breadcrumb">
+        <NuxtLink to="/home">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          {{ t('nav.home') }}
+        </NuxtLink>
+        <span class="breadcrumb-sep">/</span>
+        <NuxtLink to="/category">{{ t('nav.category') }}</NuxtLink>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">{{ categoryName }}</span>
+      </nav>
+    </PageHeader>
 
     <div v-if="pending" class="loading">
       <el-icon class="is-loading">
         <Loading />
       </el-icon>
-      加载中...
+      {{ t('archive.loading') }}
     </div>
     <EmptyState
       v-else-if="articles.length === 0"
-      message="该分类下暂无文章"
-      description="换个分类看看吧，或者稍后回来。"
+      :message="t('category.emptyArticles')"
+      :description="t('category.emptyArticlesDesc')"
       :action-text="t('notFound.backHome')"
       action-to="/home"
     />
@@ -92,7 +95,10 @@ const { data: articlePage, pending } = await useAsyncData(
 const articles = computed(() => articlePage.value.list);
 const total = computed(() => articlePage.value.total);
 const categoryName = computed(() => {
-  return categories.value.find((item) => item.id === categoryId.value)?.typeName || "分类详情";
+  return (
+    categories.value.find((item) => item.id === categoryId.value)?.typeName ||
+    t("category.notFound")
+  );
 });
 
 const handlePageUpdate = (page: number, size: number) => {
@@ -111,8 +117,8 @@ usePageSeo({
 
 // 面包屑结构化数据（BreadcrumbList）
 useBreadcrumbJsonLd([
-  { name: "首页", url: "/home" },
-  { name: "分类", url: "/category" },
+  { name: t("nav.home"), url: "/home" },
+  { name: t("nav.category"), url: "/category" },
   { name: categoryName.value, url: `/category/${categoryId.value}` },
 ]);
 </script>
@@ -121,23 +127,17 @@ useBreadcrumbJsonLd([
 @use "../../assets/css/abstracts/variables" as *;
 
 .category-detail {
-  max-width: 1400px;
   margin: 0 auto;
 }
 
+/* 面包屑（在页头卡内）：靠右对齐、与标题同一行 */
 .breadcrumb {
-  margin-bottom: $spacing-6;
-  margin-top: $spacing-2;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  /* 导航条（非内容卡片）：垂直 $spacing-4(15px) / 水平 $spacing-5(18.75px) */
-  padding: $spacing-4 $spacing-5;
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-card-lg);
+  margin-left: auto;
+  flex-shrink: 0;
   font-size: 14px;
 }
 
@@ -167,20 +167,6 @@ useBreadcrumbJsonLd([
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 260px;
-}
-
-.category-detail h1 {
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  margin-bottom: 8px;
-  color: var(--text-primary);
-  text-align: center;
-  text-shadow: var(--text-shadow-on-bg), var(--text-glow);
-}
-
-.stats {
-  text-align: center;
-  color: var(--text-muted);
-  margin-bottom: $spacing-6;
 }
 
 .loading {

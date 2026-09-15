@@ -1,9 +1,9 @@
 <template>
   <div class="friends-page">
-    <div class="page-header">
-      <h1>{{ t("friends.title") }}</h1>
-      <p class="page-desc">{{ t("friends.description") }}</p>
-    </div>
+    <PageHeader
+      :title="t('friends.title')"
+      :description="t('friends.description')"
+    />
 
     <div v-if="pending" class="friends-loading">
       <el-skeleton animated :rows="3" />
@@ -17,8 +17,8 @@
     />
     <EmptyState
       v-else-if="links.length === 0"
-      :message="t('friends.title')"
-      :description="t('friends.description')"
+      :message="t('friends.empty')"
+      :description="t('friends.emptyDesc')"
       :action-text="t('notFound.backHome')"
       action-to="/home"
     />
@@ -147,43 +147,6 @@ usePageSeo({
   max-width: 1200px;
   margin: 0 auto;
   padding-bottom: 32px;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: $spacing-8;
-  margin-top: $spacing-4;
-}
-
-.page-header h1 {
-  /* 站内页头字号基线：与 archive / category / message-board 保持一致 */
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  font-weight: 800;
-  color: var(--text-primary);
-  text-shadow: var(--text-shadow-on-bg);
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-header h1::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  /* 用 em 跟随 clamp 字号联动，避免固定 28px 在小屏下高出一截 */
-  height: 1.1em;
-  border-radius: 3px;
-  background: var(
-    --gradient-brand,
-    linear-gradient(180deg, var(--color-category), var(--color-accent))
-  );
-}
-
-.page-desc {
-  margin-top: 12px;
-  color: var(--text-secondary);
-  font-size: 15px;
-  text-shadow: var(--text-shadow-on-bg);
 }
 
 .friends-loading {

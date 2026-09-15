@@ -1,6 +1,6 @@
 <template>
   <div class="about">
-    <h1>{{ t('nav.about') }}</h1>
+    <PageHeader :title="t('about.title')" :description="t('about.description')" />
 
     <!-- 个人品牌名片墙：头部横排 -->
     <div class="about-hero">
@@ -189,18 +189,6 @@ usePageSeo({
 .about {
   max-width: 960px;
   margin: clamp(12px, 3vw, 20px) auto;
-}
-
-.about h1 {
-  text-align: center;
-  /* 归入全站 h1 基线：其余页面（archive / category / tag / friends / message-board）
-     统一用 clamp(1.5rem, 3.5vw, 2rem)，本页原先自成一档 clamp(22px, 4.6vw, 32px)。
-     注：双层 text-shadow 保留 —— 「标题加柔和光晕 --text-glow」是设计规范明确要求的，
-     且 article / category[id] / tag[id] / index 也同样使用双层。 */
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  margin-bottom: clamp(16px, 4vw, $spacing-8);
-  color: var(--text-primary);
-  text-shadow: var(--text-shadow-on-bg), var(--text-glow);
 }
 
 /* 玻璃卡片基类：所有区块统一质感 */

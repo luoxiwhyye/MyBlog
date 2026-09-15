@@ -3,10 +3,10 @@
     <FeatureDisabled v-if="featureDisabled" feature="留言板" />
 
     <template v-else>
-    <div class="page-header">
-      <h1>{{ t('messageBoard.title') }}</h1>
-      <p class="page-desc">{{ t('messageBoard.description') }}</p>
-    </div>
+    <PageHeader
+      :title="t('messageBoard.title')"
+      :description="t('messageBoard.description')"
+    />
 
     <!-- 发表留言 -->
     <el-card class="message-form-card" shadow="never">
@@ -235,23 +235,6 @@ const handleSubmit = async () => {
 .message-board-page {
   max-width: 820px;
   margin: 0 auto;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 24px;
-
-  h1 {
-    font-size: clamp(1.5rem, 3.5vw, 2rem);
-    color: var(--text-primary);
-    margin: 0 0 8px;
-  }
-}
-
-.page-desc {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin: 0;
 }
 
 .message-form-card {

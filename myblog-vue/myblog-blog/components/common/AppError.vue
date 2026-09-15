@@ -104,15 +104,11 @@ const emit = defineEmits<{
   border: none;
   border-radius: 8px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s, transform 0.2s;
-}
-
-html.dark .error-action {
-  color: var(--color-accent-deep);
 }
 
 .error-action:hover {

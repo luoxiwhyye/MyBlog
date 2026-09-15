@@ -29,9 +29,12 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+
 .site-icp {
   display: inline-block;
-  font-size: 13px;
+  /* 与 .footer-admin 的 $font-size-sm 统一（原为写死的 13px，两处差 0.1px 但来源不同） */
+  font-size: $font-size-sm;
   color: var(--text-muted);
   text-decoration: none;
   transition: color 0.3s;

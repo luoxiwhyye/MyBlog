@@ -209,22 +209,6 @@ usePageSeo({
   max-width: 760px;
 }
 
-.hero-link {
-  white-space: nowrap;
-  align-self: flex-start;
-  padding: 12px 16px;
-  border-radius: 999px;
-  background: var(--color-accent-light);
-  color: #ffffff;
-  text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.hero-link:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-elevated);
-}
-
 .quick-grid {
   display: grid;
   /* 快捷区（最近使用 / 我的收藏）固定「桌面 3 列 → 平板 2 列 → 手机 1 列」，

@@ -31,7 +31,7 @@ const message = computed(() => t('featureDisabled.title', { feature: props.featu
   padding: 8px 18px;
   border-radius: 999px;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-text);
   font-size: 14px;
   text-decoration: none;
   transition: opacity 0.2s ease;

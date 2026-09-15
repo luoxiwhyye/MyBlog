@@ -1,7 +1,9 @@
 <template>
   <div class="archive">
-    <h1>{{ t('archive.title') }}</h1>
-    <p class="page-desc">{{ t('archive.desc') }}</p>
+    <PageHeader
+      :title="t('archive.title')"
+      :description="t('archive.desc')"
+    />
 
     <!-- 搜索 / 按时间筛选 / 排序 工具栏 -->
     <div class="archive-toolbar">
@@ -288,23 +290,6 @@ useArchiveJsonLd(articles);
 .archive {
   max-width: 800px;
   margin: 0 auto;
-}
-
-.archive h1 {
-  text-align: center;
-  font-size: clamp(1.5rem, 3.5vw, 2rem);
-  margin: $spacing-2 0 0;
-  color: var(--text-primary);
-  text-shadow: var(--text-shadow-on-bg);
-}
-
-/* 副标题：与 friends 的页头语言一致（页头底部同样压在背景图上，故补 text-shadow） */
-.page-desc {
-  margin: $spacing-3 0 $spacing-6;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 15px;
-  text-shadow: var(--text-shadow-on-bg);
 }
 
 .loading {
