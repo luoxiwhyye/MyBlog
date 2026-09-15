@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
 
 .cmdk-item-title :deep(mark) {
   background: transparent;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   font-weight: 700;
 }
 
@@ -584,7 +584,7 @@ onBeforeUnmount(() => {
 
 .cmdk-archive {
   margin-left: auto;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   text-decoration: none;
 
   &:hover {

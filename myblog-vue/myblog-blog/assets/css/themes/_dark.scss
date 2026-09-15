@@ -16,24 +16,34 @@ html.dark {
   --glass-border: rgba(255, 255, 255, 0.18);
 
   // 文字颜色
+  // ⚠️ --text-muted 承担「日期 / 阅读量 / 计数」等元信息，2026-09-15 由 #6b7388
+  //    抬深到 #8b95ab：实测在暗色卡片合成底（--bg-card 叠在暗背景图上）上
+  //    从 3.11:1 提升到 4.91:1。
   --text-primary: #e8e8ed;
   --text-secondary: #b0b8c8;
-  --text-muted: #6b7388;
+  --text-muted: #8b95ab;
 
   // 边框颜色
   --border-color: rgba(55, 70, 100, 0.7);
   --border-light: rgba(50, 65, 95, 0.8);
+
+  // 不透明底（EP 的面板 / 抽屉 / 下拉需要不透明背景）
+  --bg-card-solid: #16213e;
+  --bg-page-solid: #0f0f23;
 
   // 阴影 — 增强层次感
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
   --shadow-elevated:
     0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
 
-  // 主题色
-  --color-accent: #cbd5e1;
-  --color-accent-light: rgba(51, 65, 85, 0.9);
-  --color-accent-deep: #f1f5f9;
-  --color-link: #94a3b8;
+  // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_DARK 逐项一致）
+  --color-accent: #67e8f9; // cyan-300（暗色下反相提亮）
+  --color-accent-light: rgba(103, 232, 249, 0.16);
+  --color-accent-deep: #cffafe;
+  --color-link: #67e8f9;
+  // accent 填充式控件的交互档：暗色主题向上提亮
+  --color-accent-hover: #7eebfa;
+  --color-accent-active: #95effb;
 
   // 语义色（暗色降饱和：清晰但不喧宾，避免与灰蓝基底冲突）
   --color-success: #3fbf2f;
@@ -46,8 +56,10 @@ html.dark {
 
   // ==== 风格扩展（图B 夜间）====
   // 主题无关的 --radius-card-lg / --transition-bounce 由 :root 继承
-  --color-category: #2dd4bf; // 分类徽标（青，提亮以保对比度）
-  --color-category-soft: rgba(45, 212, 191, 0.14);
+  // 分类色两级（同亮色）：装饰给图形、strong 给文字。暗色下两级都得「亮」才看得清
+  --color-category: #38bdf8; // sky-400（作图形 6.89:1）
+  --color-category-strong: #7dd3fc; // sky-300（作文字 8.85:1）
+  --color-category-soft: rgba(56, 189, 248, 0.14);
   --color-fav: #fbbf24; // 收藏/星标（暖橙，提亮）
   --color-fav-soft: rgba(251, 191, 36, 0.2); // 收藏高亮底色/搜索 mark
   // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：暗色版用明亮的青蓝，文字用深色保对比度

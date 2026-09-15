@@ -17,16 +17,13 @@
 @use "base/typography";
 @use "base/utilities";
 
-// 4. 布局
-@use "layouts/default";
-@use "layouts/blog";
-@use "layouts/landing";
-
-// 5. 组件
+// 4. 组件
+// 注：原先的 layouts/{default,blog,landing}.scss 与 components/footer.scss 是只有注释
+// + @use 的空壳（零 CSS 输出、零引用），2026-09-15 已删除。
+// 页面/组件样式一律写在各自的 `<style scoped>` 里。
 @use "components/header";
-@use "components/footer";
 @use "components/sidebar";
 @use "components/article";
 
-// 6. 第三方库覆盖
+// 5. 第三方库覆盖（现为空壳，EP 覆盖改由 utils/themeColor.ts 运行时注入 → 见该文件注释）
 @use "vendors/element-plus";

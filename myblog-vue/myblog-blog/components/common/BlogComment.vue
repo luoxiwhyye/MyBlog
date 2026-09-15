@@ -256,7 +256,7 @@ const handleReplySubmitted = () => {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card-lg);
   border-top-left-radius: 6px;
-  padding: 12px 14px;
+  padding: $spacing-5;
   backdrop-filter: blur(var(--glass-blur));
 }
 

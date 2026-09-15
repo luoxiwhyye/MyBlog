@@ -406,13 +406,14 @@ const COLOR_DIMENSIONS = [
     key: 'accent',
     label: '强调色',
     description: '链接、主按钮、当前选中、面包屑高亮、统计数字等交互强调场景。',
-    predefine: ['#475569', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
+    predefine: ['#0e7490', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
   },
   {
     key: 'category',
-    label: '分类徽标色',
-    description: '分类/标签徽标、页头页脚青光渐变、TOC 高亮等分类强调场景。',
-    predefine: ['#2e9aad', '#0f766e', '#2563eb', '#8b5cf6', '#d97706'],
+    label: '分类装饰色',
+    description:
+      '分类/标签徽标底、页头页脚青光渐变、边框与高亮描边、时间线圆点等【装饰】场景 —— 取一个偏亮、轻快的颜色即可；真正当文字用的地方（徽标文字、链接 hover、TOC 高亮）前台会自动派一个更深的同色族版本保可读。',
+    predefine: ['#0284c7', '#0d9488', '#2563eb', '#8b5cf6', '#d97706'],
   },
   {
     key: 'fav',
@@ -446,13 +447,13 @@ const themeColorKey = (dim: string, mode: string) => `site_theme_${dim}_${mode}`
 // 一键应用预设：每套预设映射到 5 个维度的亮/暗起始色
 const THEME_COLOR_PRESET_MAP = [
   {
-    name: '石墨青（当前/默认）',
+    name: '青瓷蓝（当前/默认）',
     value: 'slate',
     colors: {
-      site_theme_accent_light: '#475569',
-      site_theme_accent_dark: '#cbd5e1',
-      site_theme_category_light: '#2e9aad',
-      site_theme_category_dark: '#2dd4bf',
+      site_theme_accent_light: '#0e7490',
+      site_theme_accent_dark: '#67e8f9',
+      site_theme_category_light: '#0284c7',
+      site_theme_category_dark: '#38bdf8',
       site_theme_fav_light: '#f59e0b',
       site_theme_fav_dark: '#fbbf24',
       site_theme_gradient_light: '#75e1f1',
@@ -467,8 +468,8 @@ const THEME_COLOR_PRESET_MAP = [
     colors: {
       site_theme_accent_light: '#0d9488',
       site_theme_accent_dark: '#2dd4bf',
-      site_theme_category_light: '#0f766e',
-      site_theme_category_dark: '#5eead4',
+      site_theme_category_light: '#0d9488',
+      site_theme_category_dark: '#2dd4bf',
       site_theme_fav_light: '#f59e0b',
       site_theme_fav_dark: '#fbbf24',
       site_theme_gradient_light: '#5eead4',
@@ -483,8 +484,8 @@ const THEME_COLOR_PRESET_MAP = [
     colors: {
       site_theme_accent_light: '#2563eb',
       site_theme_accent_dark: '#60a5fa',
-      site_theme_category_light: '#1d4ed8',
-      site_theme_category_dark: '#93c5fd',
+      site_theme_category_light: '#2563eb',
+      site_theme_category_dark: '#60a5fa',
       site_theme_fav_light: '#f59e0b',
       site_theme_fav_dark: '#fbbf24',
       site_theme_gradient_light: '#93c5fd',
@@ -500,7 +501,7 @@ const THEME_COLOR_PRESET_MAP = [
       site_theme_accent_light: '#7c3aed',
       site_theme_accent_dark: '#a78bfa',
       site_theme_category_light: '#8b5cf6',
-      site_theme_category_dark: '#c4b5fd',
+      site_theme_category_dark: '#a78bfa',
       site_theme_fav_light: '#f59e0b',
       site_theme_fav_dark: '#fbbf24',
       site_theme_gradient_light: '#c4b5fd',

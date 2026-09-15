@@ -291,7 +291,7 @@ useWebsiteJsonLd();
 }
 
 .chip:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   border-color: var(--color-category);
 }
 
@@ -321,7 +321,7 @@ useWebsiteJsonLd();
 }
 
 .chip:hover .chip-count {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--color-category-soft);
 }
 
@@ -348,7 +348,7 @@ useWebsiteJsonLd();
   /* 正文可能是多行：标签对齐到首行，否则居中会在长公告下偏到垂直中间 */
   align-items: flex-start;
   gap: $spacing-4;
-  padding: $spacing-4 $spacing-5;
+  padding: $spacing-5 $spacing-6; /* 卡片内边距基线 ≥ $spacing-5（≈18.75px） */
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
@@ -364,7 +364,7 @@ useWebsiteJsonLd();
   font-weight: 600;
   /* 与正文同倍行高，使标签首行与正文首行居中对齐 */
   line-height: $line-height-relaxed;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--color-category-soft);
 }
 
@@ -488,7 +488,7 @@ useWebsiteJsonLd();
   padding: $spacing-2 $spacing-4;
   border-radius: $border-radius-full;
   font-size: $font-size-sm;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--color-category-soft);
   text-decoration: none;
   transition:

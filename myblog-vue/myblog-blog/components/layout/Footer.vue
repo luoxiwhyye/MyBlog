@@ -135,7 +135,7 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
 }
 
 .footer-admin:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   text-decoration: underline;
 }
 

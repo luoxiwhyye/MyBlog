@@ -177,7 +177,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  /* 列表行（非内容卡片）：垂直 $spacing-4(15px) / 水平 $spacing-5(18.75px) */
+  padding: $spacing-4 $spacing-5;
   border: 1px solid var(--border-light);
   border-radius: $border-radius-md;
   background: var(--bg-hover);

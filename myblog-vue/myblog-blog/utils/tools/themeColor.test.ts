@@ -8,11 +8,11 @@ import {
 } from "../themeColor";
 
 describe("themeColor 工具", () => {
-  it("未配置（无输入）回退到当前设计石墨青", () => {
+  it("未配置（无输入）回退到当前设计青瓷蓝", () => {
     const resolved = resolveThemeColor();
-    expect(resolved.light.accent).toBe("#475569");
-    expect(resolved.dark.accent).toBe("#cbd5e1");
-    expect(resolved.light.accentLight).toBe("rgba(241, 245, 249, 0.9)");
+    expect(resolved.light.accent).toBe("#0e7490");
+    expect(resolved.dark.accent).toBe("#67e8f9");
+    expect(resolved.light.accentLight).toBe("rgba(14, 116, 144, 0.12)");
   });
 
   it("预设值命中对应预设（按 accent 维度亮色）", () => {
@@ -21,7 +21,7 @@ describe("themeColor 工具", () => {
     const resolved = resolveThemeColor({ accent: { light: "#0d9488" } });
     expect(resolved.light.accent).toBe("#0d9488");
     // dark 未设置，保持默认
-    expect(resolved.dark.accent).toBe("#cbd5e1");
+    expect(resolved.dark.accent).toBe("#67e8f9");
   });
 
   it("亮/暗可独立设置（accent 不同色）", () => {
@@ -48,15 +48,14 @@ describe("themeColor 工具", () => {
 
   it("各维度独立解析：仅设置 category 不影响 accent", () => {
     const resolved = resolveThemeColor({ category: { light: "#2563eb" } });
-    // accent 保持默认石墨青
-    expect(resolved.light.accent).toBe("#475569");
+    // accent 保持默认青瓷蓝
+    expect(resolved.light.accent).toBe("#0e7490");
     // category 使用独立值
     expect(resolved.light.category).toBe("#2563eb");
   });
-
   it("按维度设置渐变影响 gradient-brand 但不影响 accent", () => {
     const resolved = resolveThemeColor({ gradient: { light: "#fbbf24" } });
-    expect(resolved.light.accent).toBe("#475569");
+    expect(resolved.light.accent).toBe("#0e7490");
     expect(resolved.light.gradientBrand).toContain("linear-gradient(135deg,");
     expect(resolved.light.gradientBrand).not.toContain("#75e1f1");
     expect(resolved.light.hotRankGradient).toContain("linear-gradient(135deg,");
@@ -82,6 +81,7 @@ describe("themeColor 工具", () => {
     const css = buildThemeColorCss({ accent: { light: "#475569" } });
     [
       "--color-category",
+      "--color-category-strong",
       "--color-category-soft",
       "--color-fav",
       "--color-fav-soft",
@@ -157,12 +157,59 @@ describe("themeColor 工具", () => {
     }
   });
 
-  it("默认预设（石墨青）保留当前设计的扩展色", () => {
+  it("分类色拆两级：装饰档只给图形、文字档保证可读（亮/暗、全部预设）", () => {
+    const channel = (v: number) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (hex: string) => {
+      const h = hex.replace("#", "");
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const preset of THEME_COLOR_PRESETS) {
+      for (const [mode, label] of [
+        ["light", "亮色"],
+        ["dark", "暗色"],
+      ] as const) {
+        const v = preset[mode];
+        // 底色统一按「该主题里最不利于对比度的底座」取：亮色取纯白，暗色取卡片合成色。
+        // 装饰档只需非文本 3:1（WCAG 1.4.11），文字档要 4.5:1。
+        const base = mode === "light" ? "#ffffff" : "#1d2743";
+        expect(
+          contrast(v.category, base),
+          `${preset.key} / ${label}：装饰档 ${v.category} 作图形不足 3:1`,
+        ).toBeGreaterThanOrEqual(3);
+        expect(
+          contrast(v.categoryStrong ?? v.category, base),
+          `${preset.key} / ${label}：分类色文字档 ${v.categoryStrong} 不足 4.5:1`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("分类色文字档未显式声明时由装饰档推导（亮压深 / 暗提亮）", () => {
+    const resolved = resolveThemeColor({ category: { light: "#0284c7" } });
+    expect(resolved.light.category).toBe("#0284c7");
+    expect(resolved.light.categoryStrong).toMatch(/^#[0-9a-f]{6}$/);
+    expect(resolved.light.categoryStrong).not.toBe(resolved.light.category);
+  });
+
+  it("默认预设（青瓷蓝）保留当前设计的扩展色", () => {
     const resolved = resolveThemeColor();
-    expect(resolved.light.category).toBe("#2e9aad");
+    expect(resolved.light.category).toBe("#0284c7");
+    expect(resolved.light.categoryStrong).toBe("#0369a1");
     expect(resolved.light.fav).toBe("#f59e0b");
     expect(resolved.light.gradientBrand).toContain("#75e1f1");
-    expect(resolved.dark.category).toBe("#2dd4bf");
+    expect(resolved.dark.category).toBe("#38bdf8");
+    expect(resolved.dark.categoryStrong).toBe("#7dd3fc");
     expect(resolved.dark.gradientBrand).toContain("#34d0c2");
   });
 });

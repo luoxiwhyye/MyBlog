@@ -16,24 +16,43 @@
   --glass-border: rgba(255, 255, 255, 0.5);
 
   // 文字颜色
+  // ⚠️ --text-muted 承担「日期 / 阅读量 / 计数」等元信息，2026-09-15 由 slate-400
+  //    #94a3b8 抬深到 slate-500 #64748b（对白底 2.56:1 → 4.76:1）。它同时作用于
+  //    输入框占位符与禁用态，改浅会让全站元信息重新回到「看不清」的状态。
   --text-primary: #1e293b;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
 
   // 边框颜色
   --border-color: rgba(203, 213, 225, 0.7);
   --border-light: rgba(226, 232, 240, 0.8);
+
+  // 不透明底（EP 的面板 / 抽屉 / 下拉需要不透明背景，透明卡底会让下层内容透出）
+  --bg-card-solid: #ffffff;
+  --bg-page-solid: #f8fafc;
 
   // 阴影 — 增强层次感
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
   --shadow-elevated:
     0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
 
-  // 主题色
-  --color-accent: #475569;
-  --color-accent-light: rgba(241, 245, 249, 0.9);
-  --color-accent-deep: #1e293b;
-  --color-link: #475569;
+  // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_LIGHT 逐项一致。
+  // 运行时由 themeColor.ts 注入覆盖，此处是无 JS 时的静态回退）
+  --color-accent: #0e7490; // cyan-700
+  --color-accent-light: rgba(14, 116, 144, 0.12); // 强调浅底（标签底 / 激活底）
+  --color-accent-deep: #155e75; // 强调深色文字 / 描边
+  --color-link: #0e7490;
+  // accent 填充式控件的交互档：亮色主题向下压深（暗色档见 _dark.scss）
+  --color-accent-hover: #0c637a;
+  --color-accent-active: #0a5165;
+
+  // ==== 控件令牌（按钮 / 输入框 / 评论框统一的表单控件外观）====
+  // 由 utils/themeColor.ts 的运行时注入块指向 Element Plus 变量 —— 组件外观与玻璃卡同源。
+  // ⚠️ 不要再往 assets/css/vendors/_element-plus.scss 里加变量（那里整体失效）。
+  --control-bg: var(--bg-card);
+  --control-border: var(--border-color);
+  --control-radius: 8px; // = $border-radius-base
+  --control-height: 36px; // 默认控件高度（映射到 EP --el-component-size）
 
   // 文字阴影 — 用于在图片背景上提升可读性
   --text-shadow-on-bg: 0 1px 3px rgba(255, 255, 255, 0.6);
@@ -47,17 +66,25 @@
   --brand-logo-gradient: linear-gradient(135deg, #18233e, #f8fafc);
 
   // ==== 风格扩展（图A 日间）====
-  // 分类徽标：偏青蓝以贴合天空蓝/薄荷青背景（原深青绿 #0f766e 色调偏离、显得突兀）
-  --color-category: #2e9aad; // cyan-700，青蓝
-  --color-category-soft: rgba(14, 116, 144, 0.12); // 徽标底
+  // 分类色拆成两级（2026-09-15）：
+  //   --color-category        只管【图形】—— 边框 / focus 描边 / 时间线圆点 / 装饰条 /
+  //                           渐变 / 填充。这类只需 WCAG 1.4.11 的非文本 3:1，
+  //                           所以可以取亮色，整体观感才「轻快」。
+  //   --color-category-strong 只管【文字】—— 徽标、链接 hover、TOC 高亮等，必须 ≥ 4.5:1。
+  // 拆开的原因：一个令牌同时当文字与装饰时，可读性会把颜色死死压在深色区（旧 teal-700
+  // #0f766e 就是被文字用途逼深的）→ 装饰层永远轻快不起来。
+  --color-category: #0284c7; // sky-600（偏蓝；作图形 ≥3.3:1）
+  --color-category-strong: #0369a1; // sky-700（作文字 ≥4.19:1）
+  --color-category-soft: rgba(2, 132, 199, 0.12); // 徽标底（12%）
   --color-fav: #f59e0b; // 收藏/星标（暖橙，提取自原有硬编码）
   --color-fav-soft: rgba(245, 158, 11, 0.22); // 收藏高亮底色/搜索 mark
-  // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：亮色版用薄荷青，起 #75E1F1、末更浅；文字用深青保对比度
+  // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：亮色版用薄荷青，起 #75E1F1、末更浅
   --gradient-brand: linear-gradient(135deg, #75e1f1, #bff4fa);
-  --gradient-brand-text: #2e9aaa;
+  // 渐变/排名徽标上的文字：原 #2e9aaa 压在 #75e1f1 上仅 2.18:1，抬深到 cyan-800（最浅处 4.77:1）
+  --gradient-brand-text: #155e75;
   // 热门文章排名徽标（top3）：亮色版更亮
   --hot-rank-gradient: linear-gradient(135deg, #75e1f1, #aeeef8);
-  --hot-rank-text: #2e9aad;
+  --hot-rank-text: #155e75;
   --deco-a: rgba(143, 224, 232, 0.16); // 薄荷青装饰
   --deco-b: rgba(74, 155, 232, 0.14); // 天蓝装饰
   --shadow-glow:

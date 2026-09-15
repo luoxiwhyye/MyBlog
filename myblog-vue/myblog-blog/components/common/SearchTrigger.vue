@@ -38,10 +38,10 @@ const { t } = useI18n();
   gap: 6px;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--border-color, #d3d3d3);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   background: transparent;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -55,8 +55,8 @@ const { t } = useI18n();
 }
 
 .search-trigger:hover {
-  background: var(--bg-hover, #f0f0f0);
-  color: var(--text-primary, #333);
+  background: var(--bg-hover);
+  color: var(--text-primary);
   border-color: var(--color-category);
   box-shadow: var(--shadow-glow);
   transform: scale(1.05);

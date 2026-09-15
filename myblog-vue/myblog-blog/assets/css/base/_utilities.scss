@@ -3,6 +3,7 @@
 // ============================================
 
 @use "../abstracts/variables" as *;
+@use "../abstracts/mixins" as *;
 
 // 文本对齐
 .text-left {
@@ -22,13 +23,11 @@
   white-space: nowrap;
 }
 
-// 毛玻璃卡片全局
-.glass-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: $border-radius-lg;
+// 毛玻璃卡片配方（与 abstracts/_mixins.scss 的 @mixin card-glass 同源，唯一配方）
+// 用法：`<div class="card-glass">`；需要差异化参数（圆角/底色/内边距/模糊强度）时
+// 在组件里改用 `@include card-glass($padding: ..., $radius: ...)`。
+.card-glass {
+  @include card-glass;
 }
 
 // ============ 全局滚动条（主题感知） ============

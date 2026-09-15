@@ -361,7 +361,7 @@ const handleSubmit = async () => {
     text-decoration: none;
 
     &:hover {
-      color: var(--color-category);
+      color: var(--color-category-strong);
     }
   }
 }

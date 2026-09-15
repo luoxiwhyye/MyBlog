@@ -1026,7 +1026,8 @@ useHead(() => {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 10px 16px;
+  /* 导航条（非内容卡片）：垂直 $spacing-4(15px) / 水平 $spacing-5(18.75px) */
+  padding: $spacing-4 $spacing-5;
   background: var(--bg-card);
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
@@ -1099,7 +1100,7 @@ useHead(() => {
   display: grid;
   /* auto-fill 保留空轨道：相关推荐仅一条时卡片不被拉伸占满，自然留白 */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: $spacing-4;
+  gap: $spacing-5;
 }
 
 .related-item {
@@ -1142,7 +1143,7 @@ useHead(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   font-size: $font-size-sm;
   font-weight: 600;
 }
@@ -1156,7 +1157,7 @@ useHead(() => {
 }
 
 .related-cat {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   font-size: $font-size-sm;
   font-weight: 600;
 }
@@ -1520,7 +1521,7 @@ useHead(() => {
   background: var(--bg-card);
   backdrop-filter: blur(var(--glass-blur));
   border-left: 4px solid var(--color-category);
-  padding: 10px 12px;
+  padding: $spacing-5 $spacing-6;
   border-radius: 6px;
 }
 
@@ -1900,7 +1901,7 @@ useHead(() => {
 }
 
 .back-top-btn:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   border-color: var(--color-category);
   box-shadow: var(--shadow-glow);
   transform: translateY(-2px);
@@ -2116,14 +2117,14 @@ useHead(() => {
 /* 仅对“可悬停”设备启用 hover，避免触屏点击后 hover 粘滞导致按钮常亮 */
 @media (hover: hover) and (pointer: fine) {
   .mobile-bar-btn:hover {
-    color: var(--color-category);
+    color: var(--color-category-strong);
     background: var(--bg-hover);
   }
 }
 
 /* 触屏：:active 是按下瞬间的短暂反馈，松手即恢复，不会常亮 */
 .mobile-bar-btn:active {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--bg-hover);
 }
 

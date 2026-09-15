@@ -132,7 +132,8 @@ useBreadcrumbJsonLd([
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 10px 16px;
+  /* 导航条（非内容卡片）：垂直 $spacing-4(15px) / 水平 $spacing-5(18.75px) */
+  padding: $spacing-4 $spacing-5;
   background: var(--bg-card);
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);

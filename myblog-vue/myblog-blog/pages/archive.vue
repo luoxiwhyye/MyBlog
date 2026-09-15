@@ -318,7 +318,7 @@ useArchiveJsonLd(articles);
   display: grid;
   /* 容器查询：随宽度平滑增减列（每列 ≥180px 或容器全宽），移动端不强制单列 */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
-  gap: $spacing-4;
+  gap: $spacing-5;
   margin-bottom: $spacing-8;
 }
 
@@ -327,7 +327,7 @@ useArchiveJsonLd(articles);
   flex-direction: column;
   align-items: center;
   gap: clamp(4px, 1.2vw, 6px);
-  padding: clamp(12px, 2.5vw, 20px) clamp(10px, 2.5vw, 12px);
+  padding: clamp($spacing-5, 2.5vw, 20px);
   border-radius: var(--radius-card-lg);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);

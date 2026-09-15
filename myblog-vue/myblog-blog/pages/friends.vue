@@ -310,7 +310,7 @@ usePageSeo({
 }
 
 .friend-card:hover .friend-name {
-  color: var(--color-category);
+  color: var(--color-category-strong);
 }
 
 /* 置顶徽标：复用「最新 / 排名徽标」的品牌渐变语言，数据来自接口已返回但此前未用的 isSticky */
@@ -348,7 +348,7 @@ usePageSeo({
   border-radius: $border-radius-full;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--color-category-soft);
 }
 
@@ -378,7 +378,7 @@ usePageSeo({
 .friend-card:hover .friend-arrow {
   opacity: 1;
   transform: translate(0, 0);
-  color: var(--color-category);
+  color: var(--color-category-strong);
 }
 
 @media (max-width: 768px) {

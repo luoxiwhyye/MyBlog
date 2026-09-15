@@ -223,7 +223,7 @@ const siteLogo = computed(() => {
 }
 
 .mobile-menu-btn:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   border-color: var(--color-category);
 }
 
@@ -249,7 +249,7 @@ const siteLogo = computed(() => {
 
 .drawer-link:hover,
 .drawer-link.router-link-active {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--color-category-soft);
 }
 

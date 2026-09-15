@@ -222,10 +222,8 @@ const prettyJson = (value: unknown) => {
 
 .metric-card,
 .kv-card {
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  padding: 14px;
-  background: var(--bg-card);
+  /* 走站点唯一的卡片配方（abstracts/_mixins.scss），不再手写同一段玻璃声明 */
+  @include card-glass;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -312,7 +310,7 @@ const prettyJson = (value: unknown) => {
   font-weight: 600;
 
   &:hover {
-    color: var(--color-category);
+    color: var(--color-category-strong);
   }
 }
 

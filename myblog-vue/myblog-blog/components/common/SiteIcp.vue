@@ -38,7 +38,7 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 }
 
 .site-icp:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   text-decoration: underline;
 }
 

@@ -1,65 +1,19 @@
 // ============================================
-// 占位符选择器（使用 @extend 继承）
+// 占位符选择器（@extend 继承）
 // ============================================
+//
+// 2026-09-15 清理：原先的 %card / %container / %text-ellipsis / %flex-center /
+// %absolute-center / %scrollbar / %responsive-image / %link 全项目 **零 @extend**，
+// 且每一个都有同名 mixin（`@include text-ellipsis` 等）→ 纯重复，已删除。
+// 保留 %card-glass 作为「卡片配方」在 main.scss 这一编译单元里的可用形态。
 
-@use "variables" as *;
 @use "mixins" as *;
 
-// -------------------- 卡片样式 --------------------
-%card {
-  padding: $spacing-6;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-md;
-  transition: box-shadow $transition-fast;
-
-  &:hover {
-    box-shadow: $shadow-lg;
-  }
-}
-
-// -------------------- 毛玻璃卡片 --------------------
-%glass-card {
-  @include glass-effect;
-  border-radius: $border-radius-lg;
-  padding: $spacing-6;
-}
-
-%glass-card-dark {
-  @include glass-effect(true);
-  border-radius: $border-radius-lg;
-  padding: $spacing-6;
-}
-
-// -------------------- 容器 --------------------
-%container {
-  @include container;
-}
-
-// -------------------- 文本截断 --------------------
-%text-ellipsis {
-  @include text-ellipsis;
-}
-
-// -------------------- 居中 --------------------
-%flex-center {
-  @include flex-center;
-}
-
-%absolute-center {
-  @include absolute-center;
-}
-
-// -------------------- 滚动条 --------------------
-%scrollbar {
-  @include scrollbar;
-}
-
-// -------------------- 响应式图片 --------------------
-%responsive-image {
-  @include responsive-image;
-}
-
-// -------------------- 链接 --------------------
-%link {
-  @include link;
+// -------------------- 毛玻璃卡片（唯一卡片配方）--------------------
+// 与 @mixin card-glass 同源。
+// ⚠️ 组件的 `<style scoped>` 是**独立编译单元**，@extend 只能作用于同一编译单元内的
+//    选择器 → SFC 里请直接 `@include card-glass(...)`，不要指望 @extend 这个占位符。
+//    需要差异化（圆角 / 底色 / 模糊档 / 内边距）时用 mixin 参数表达。
+%card-glass {
+  @include card-glass;
 }

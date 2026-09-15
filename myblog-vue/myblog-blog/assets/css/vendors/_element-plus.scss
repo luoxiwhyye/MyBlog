@@ -1,29 +1,26 @@
 // ============================================
-// vendors/_element-plus.scss - Element Plus 主题定制
+// vendors/_element-plus.scss - （已失效）Element Plus 主题定制
 // ============================================
-
-@use "sass:color";
-@use "../abstracts/variables" as *;
-
-// 覆盖 Element Plus 的 CSS 变量
-:root {
-  --el-color-primary: #{$color-primary};
-  --el-color-primary-light-3: #{color.adjust($color-primary, $lightness: 20%)};
-  --el-color-primary-light-5: #{color.adjust($color-primary, $lightness: 30%)};
-  --el-color-primary-light-7: #{color.adjust($color-primary, $lightness: 40%)};
-  --el-color-primary-light-8: #{color.adjust($color-primary, $lightness: 45%)};
-  --el-color-primary-light-9: #{color.adjust($color-primary, $lightness: 48%)};
-  --el-color-primary-dark-2: #{color.adjust($color-primary, $lightness: -10%)};
-  --el-border-radius-base: #{$border-radius-base};
-  --el-font-family: #{$font-family-base};
-}
-
-html.dark {
-  --el-bg-color: #1a1a2e;
-  --el-bg-color-page: #12121e;
-  --el-text-color-primary: #e8e8e8;
-  --el-text-color-regular: #c0c0c0;
-  --el-text-color-secondary: #9a9a9a;
-  --el-border-color: #2a2a4a;
-  --el-border-color-light: #3a3a5a;
-}
+//
+// ⚠️ 本文件**不再输出任何 CSS**，请勿在此处添加 EP 变量覆盖 —— 它们不会生效。
+//
+// 原因（2026-09-15 实测）：本文件经 main.scss 打包进 `<link rel="stylesheet">`，
+// 而 Element Plus 的 theme-chalk 由组件模块经 Vite 以 `<style>` **内联注入**，
+// 位置在所有 `<link>` 之后 → 同特异性下 EP 默认值胜出。实测对照：
+//
+//   --el-border-radius-base   本文件写 8px       实际 4px
+//   --el-font-family          本文件写站点字体    实际 EP 默认字体栈
+//   --el-bg-color（暗色）     本文件写 #1a1a2e    实际 #141414
+//   --el-text-color-primary   本文件写 #e8e8e8    实际 #e5eaf3
+//   --el-border-color（暗色） 本文件写 #2a2a4a    实际 #4c4d4f
+//
+// 唯一「活着」的一直是 --el-color-primary*，因为 utils/themeColor.ts 又把它往
+// `<head>` 末尾的 `<style id="__blog_theme_color">` 注入了一份（天然在最后）。
+//
+// → **有效位置只有运行时注入块**：`utils/themeColor.ts` 的 variantToBlock()
+//   （`:root` / `html.dark` 的基础变量）与 ELEMENT_PLUS_COMPONENTS
+//   （.el-button / .el-input 等**元素级**选择器 —— EP 在元素上声明这些变量，
+//    元素级声明会遮蔽 :root 的继承值，所以按钮/输入框只能写元素级）。
+//
+// 三级按钮（主 / 次 / 幽灵）与控件令牌（--control-*）的完整说明见
+// documents/design-documents/design-system.md §6.1。

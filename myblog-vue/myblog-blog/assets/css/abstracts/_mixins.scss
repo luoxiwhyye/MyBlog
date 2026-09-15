@@ -61,19 +61,29 @@
   }
 }
 
-// -------------------- 毛玻璃效果 Mixin --------------------
-@mixin glass-effect($is-dark: false) {
-  @if $is-dark {
-    background: $glass-background-dark;
-    backdrop-filter: blur($glass-blur);
-    -webkit-backdrop-filter: blur($glass-blur);
-    border: 1px solid $glass-border-dark;
-  } @else {
-    background: $glass-background-light;
-    backdrop-filter: blur($glass-blur);
-    -webkit-backdrop-filter: blur($glass-blur);
-    border: 1px solid $glass-border-light;
-  }
+// -------------------- 卡片配方：毛玻璃卡片 --------------------
+// 站点唯一的「毛玻璃卡片」配方（design-system.md §7）。所有卡片都应由它产出 ——
+// 30+ 处手写同一段声明必然各自漂移（实测 padding 从 10px 到 30px 都有）。
+//
+// ⚠️ 参数就是差异化卡片的**扩展接口**：圆角 / 底色 / 描边 / 模糊强度 / 内边距
+//    一律通过传参表达，不要在新卡片里重写整段声明。
+// ⚠️ 必须读 CSS 变量（--bg-card / --glass-border / --glass-blur）：Sass 值是静态的，
+//    不随 html.dark 切换。
+@mixin card-glass(
+  $padding: $spacing-5,
+  // 内边距基线：≥ 18.75px（design-system.md §2 的留白下限）
+  $radius: var(--radius-card-lg),
+  $bg: var(--bg-card),
+  $border: var(--glass-border),
+  $saturate: 130%,
+  $blur: var(--glass-blur)
+) {
+  background: $bg;
+  backdrop-filter: blur($blur) saturate($saturate);
+  -webkit-backdrop-filter: blur($blur) saturate($saturate);
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: $padding;
 }
 
 // -------------------- 卡片样式 Mixin --------------------

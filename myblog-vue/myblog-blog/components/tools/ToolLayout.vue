@@ -231,7 +231,7 @@ const scrollToSelected = () => {
 }
 
 .hero-eyebrow {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   font-weight: 700;
   margin-bottom: 8px;
 }

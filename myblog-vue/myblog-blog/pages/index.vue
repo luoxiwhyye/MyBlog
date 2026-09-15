@@ -159,7 +159,7 @@ usePageSeo({
   border-radius: 999px;
   font-size: 13px;
   letter-spacing: 2px;
-  color: var(--color-category);
+  color: var(--color-category-strong);
   background: var(--bg-card);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--glass-blur));
@@ -216,7 +216,7 @@ usePageSeo({
 }
 
 .welcome-link:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   border-color: var(--color-category);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);

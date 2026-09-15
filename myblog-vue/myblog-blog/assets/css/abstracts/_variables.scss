@@ -6,8 +6,9 @@
 @use "sass:color";
 
 // -------------------- 颜色系统 --------------------
-// 品牌色
-$color-primary: #475569;
+// 品牌色：Sass 孪生令牌，需与 themes/_light.scss 的 --color-accent 保持一致。
+// 仅两处引用：base/_typography.scss 的 ::selection 回退、@mixin focus-ring 的默认色。
+$color-primary: #0e7490; // = --color-accent（青瓷蓝，2026-09-15 由石墨 #475569 改为青蓝）
 $color-primary-light: color.adjust($color-primary, $lightness: 10%);
 $color-primary-dark: color.adjust($color-primary, $lightness: -10%);
 $color-secondary: #2c3e50;
@@ -157,15 +158,16 @@ $z-index-popover: 1060;
 $z-index-tooltip: 1070;
 $z-index-toast: 1080;
 
-// -------------------- 毛玻璃效果配置 --------------------
-// 最终视觉方向：高透明（亮 0.8 / 暗 0.65）+ 极低模糊（2px），靠玻璃高光边勾勒轮廓
-$glass-background-light: rgba(255, 255, 255, 0.8);
-$glass-background-dark: rgba(26, 26, 46, 0.65);
-$glass-border-light: rgba(229, 229, 229, 0.85);
-$glass-border-dark: rgba(42, 58, 92, 0.85);
-$glass-blur: 2px;
+// -------------------- 毛玻璃效果 --------------------
+// ⚠️ 毛玻璃的**实际取值已全部走 CSS 变量**（--bg-card / --glass-border / --glass-blur，
+// 定义在 themes/_light.scss / _dark.scss），因为 Sass 值是静态的、不随 html.dark 切换。
+// 原先这里的 $glass-background-* / $glass-border-* / $glass-blur 只被已删除的
+// @mixin glass-effect 使用，2026-09-15 一并删除；配方见 abstracts/_mixins.scss 的
+// @mixin card-glass。设计决策记录见 design-system.md §7（透明度优先、弱模糊 2px）。
 
-// -------------------- Element Plus 主题覆盖变量 --------------------
-$--el-color-primary: $color-primary;
-$--el-font-family: $font-family-base;
-$--el-border-radius-base: $border-radius-base;
+// -------------------- 控件 / Element Plus 覆盖令牌 --------------------
+// 说明：EP 覆盖**不再走 Sass**。有效位置是 utils/themeColor.ts 的运行时注入块
+//（variantToBlock + ELEMENT_PLUS_COMPONENTS），它读取的是 CSS 令牌
+//（--control-* / --color-accent* 等，定义在 themes/_light.scss / _dark.scss）。
+// 以前这里的 $--el-color-primary / $--el-font-family / $--el-border-radius-base
+// 只被已失效的 vendors/_element-plus.scss 使用，2026-09-15 一并删除。

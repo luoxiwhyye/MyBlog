@@ -302,7 +302,7 @@ watch(
 
 .category {
   background: var(--color-category-soft);
-  color: var(--color-category);
+  color: var(--color-category-strong);
   padding: 2px 8px;
   border-radius: 4px;
 }

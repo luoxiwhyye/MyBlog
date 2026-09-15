@@ -232,7 +232,7 @@ usePageSeo({
      容器下 auto-fit 会排成 5+1 的不对称布局；固定 3 列则为 3+3，整齐且卡片
      宽度更舒展。同时避免「只有 1~2 个工具时卡片被拉伸成通栏」。 */
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(10px, 1.5vw, $spacing-5);
+  gap: $spacing-5;
 }
 
 @media (min-width: 640px) {
@@ -254,7 +254,7 @@ usePageSeo({
      auto-fill 保留空轨道，单卡片保持正常卡片宽度、靠左排列。
      min 用 260px：1200px 容器下为 4 列（约 285px/卡），与原先观感接近。 */
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: clamp(10px, 1.5vw, $spacing-5);
+  gap: $spacing-5;
 }
 
 .category-section {
@@ -303,15 +303,12 @@ usePageSeo({
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px;
-  background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  gap: $spacing-3;
+  /* 走站点唯一的卡片配方（圆角/底色/描边/模糊强度均与其它卡片同源） */
+  @include card-glass;
   /* 父容器是可换行(flex-wrap)的多行容器，若用 999px 全胶囊圆角，
      左右两端会被拉成夸张胶囊、与内部多行子项错配割裂。
-     改用常规固定圆角(跟随设计令牌)，子项 .caps-pill 仍保持 999px 胶囊。 */
-  border-radius: var(--radius-card-lg);
-  backdrop-filter: blur(var(--glass-blur));
+     配方已给常规固定圆角，子项 .caps-pill 仍保持 999px 胶囊。 */
 }
 
 .category-caps .caps-pill {
@@ -325,7 +322,7 @@ usePageSeo({
 }
 
 .category-caps .caps-pill:hover {
-  color: var(--color-category);
+  color: var(--color-category-strong);
   box-shadow: var(--shadow-glow);
 }
 

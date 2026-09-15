@@ -27,10 +27,18 @@ export interface ThemeColorVariant {
   accentText?: string;
   /** --color-link */
   link: string;
-  /** --color-category（分类徽标/强调） */
+  /** --color-category（分类色·**装饰档**：边框 / focus 描边 / 时间线圆点 / 装饰条 / 渐变 / 填充） */
   category: string;
   /** --color-category-soft（徽标底） */
   categorySoft: string;
+  /**
+   * --color-category-strong（分类色·**文字档**）
+   *
+   * 分类色分两级：本体只管图形（只需 3:1，故可取得亮一些、整体更轻快）；
+   * 真正当文字用的地方（徽标 / 链接 hover / TOC 高亮）走本字段，必须 ≥4.5:1。
+   * 通常**无需显式赋值**：未提供时由 category 自动推导（亮色压深 / 暗色提亮）。
+   */
+  categoryStrong?: string;
   /** --color-fav（收藏/星标暖橙） */
   fav: string;
   /** --color-fav-soft（收藏高亮底/搜索 mark） */
@@ -62,20 +70,27 @@ export interface ThemeColorPreset {
   dark: ThemeColorVariant;
 }
 
-// 预设：当前博客设计（石墨青/动漫极简）—— 图A 日间 / 图B 夜间
+// 预设：当前博客设计（青瓷蓝 / 动漫极简）—— 图A 日间 / 图B 夜间
+// ⚠️ 本预设必须与 assets/css/themes/_light.scss / _dark.scss 的静态回退值逐项一致。
+// 2026-09-15：accent 由石墨 #475569 换成青瓷蓝 #0e7490（亮）/ #67e8f9（暗）；
+// category 拆成「装饰档 #0284c7 + 文字档 #0369a1」（暗 #38bdf8 / #7dd3fc），色相由 teal
+// 改到偏蓝的 sky —— 起因是作者反馈 teal 系太重，而单令牌同时当文字与装饰时，
+// 文字那 4.5:1 的门槛一定会把颜色压在深色区（旧 #0f766e 就是这么被逼深的）；
+// gradient / deco / fav 本就属青系，与新的 accent 同源，本次不动。
 const SLATE_LIGHT: ThemeColorVariant = {
-  accent: "#475569",
-  accentLight: "rgba(241, 245, 249, 0.9)",
-  accentDeep: "#1e293b",
-  link: "#475569",
-  category: "#2e9aad",
-  categorySoft: "rgba(14, 116, 144, 0.12)",
+  accent: "#0e7490",
+  accentLight: "rgba(14, 116, 144, 0.12)",
+  accentDeep: "#155e75",
+  link: "#0e7490",
+  category: "#0284c7",
+  categoryStrong: "#0369a1",
+  categorySoft: "rgba(2, 132, 199, 0.12)",
   fav: "#f59e0b",
   favSoft: "rgba(245, 158, 11, 0.22)",
   gradientBrand: "linear-gradient(135deg, #75e1f1, #bff4fa)",
-  gradientBrandText: "#2e9aaa",
+  gradientBrandText: "#155e75",
   hotRankGradient: "linear-gradient(135deg, #75e1f1, #aeeef8)",
-  hotRankText: "#2e9aad",
+  hotRankText: "#155e75",
   decoA: "rgba(143, 224, 232, 0.16)",
   decoB: "rgba(74, 155, 232, 0.14)",
   shadowGlow:
@@ -84,12 +99,13 @@ const SLATE_LIGHT: ThemeColorVariant = {
 };
 
 const SLATE_DARK: ThemeColorVariant = {
-  accent: "#cbd5e1",
-  accentLight: "rgba(51, 65, 85, 0.9)",
-  accentDeep: "#f1f5f9",
-  link: "#94a3b8",
-  category: "#2dd4bf",
-  categorySoft: "rgba(45, 212, 191, 0.14)",
+  accent: "#67e8f9",
+  accentLight: "rgba(103, 232, 249, 0.16)",
+  accentDeep: "#cffafe",
+  link: "#67e8f9",
+  category: "#38bdf8",
+  categoryStrong: "#7dd3fc",
+  categorySoft: "rgba(56, 189, 248, 0.14)",
   fav: "#fbbf24",
   favSoft: "rgba(251, 191, 36, 0.2)",
   gradientBrand: "linear-gradient(135deg, #34d0c2, #4fc3f7)",
@@ -110,8 +126,9 @@ const MINT_LIGHT: ThemeColorVariant = {
   accentLight: "rgba(13, 148, 136, 0.12)",
   accentDeep: "#115e59",
   link: "#0d9488",
-  category: "#0f766e",
-  categorySoft: "rgba(15, 118, 110, 0.12)",
+  category: "#0d9488",
+  categoryStrong: "#0f766e",
+  categorySoft: "rgba(13, 148, 136, 0.14)",
   gradientBrand: "linear-gradient(135deg, #5eead4, #99f6e4)",
   gradientBrandText: "#115e59",
   hotRankGradient: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
@@ -127,8 +144,9 @@ const MINT_DARK: ThemeColorVariant = {
   accentLight: "rgba(45, 212, 191, 0.16)",
   accentDeep: "#042f2e",
   link: "#5eead4",
-  category: "#5eead4",
-  categorySoft: "rgba(94, 234, 212, 0.16)",
+  category: "#2dd4bf",
+  categoryStrong: "#5eead4",
+  categorySoft: "rgba(45, 212, 191, 0.16)",
   gradientBrand: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
   gradientBrandText: "#022c27",
   hotRankGradient: "linear-gradient(135deg, #2dd4bf, #4fc3f7)",
@@ -145,8 +163,9 @@ const AZURE_LIGHT: ThemeColorVariant = {
   accentLight: "rgba(37, 99, 235, 0.12)",
   accentDeep: "#1e40af",
   link: "#2563eb",
-  category: "#1d4ed8",
-  categorySoft: "rgba(29, 78, 216, 0.12)",
+  category: "#2563eb",
+  categoryStrong: "#1d4ed8",
+  categorySoft: "rgba(37, 99, 235, 0.14)",
   gradientBrand: "linear-gradient(135deg, #93c5fd, #bfdbfe)",
   gradientBrandText: "#1e3a8a",
   hotRankGradient: "linear-gradient(135deg, #60a5fa, #93c5fd)",
@@ -162,8 +181,9 @@ const AZURE_DARK: ThemeColorVariant = {
   accentLight: "rgba(96, 165, 250, 0.16)",
   accentDeep: "#172554",
   link: "#93c5fd",
-  category: "#93c5fd",
-  categorySoft: "rgba(147, 197, 253, 0.16)",
+  category: "#60a5fa",
+  categoryStrong: "#93c5fd",
+  categorySoft: "rgba(96, 165, 250, 0.16)",
   gradientBrand: "linear-gradient(135deg, #3b82f6, #60a5fa)",
   gradientBrandText: "#0b2545",
   hotRankGradient: "linear-gradient(135deg, #3b82f6, #60a5fa)",
@@ -181,7 +201,8 @@ const WISTERIA_LIGHT: ThemeColorVariant = {
   accentDeep: "#5b21b6",
   link: "#7c3aed",
   category: "#8b5cf6",
-  categorySoft: "rgba(139, 92, 246, 0.12)",
+  categoryStrong: "#6d28d9",
+  categorySoft: "rgba(139, 92, 246, 0.14)",
   gradientBrand: "linear-gradient(135deg, #c4b5fd, #ddd6fe)",
   gradientBrandText: "#4c1d95",
   hotRankGradient: "linear-gradient(135deg, #a78bfa, #c4b5fd)",
@@ -197,8 +218,9 @@ const WISTERIA_DARK: ThemeColorVariant = {
   accentLight: "rgba(167, 139, 250, 0.16)",
   accentDeep: "#2e1065",
   link: "#c4b5fd",
-  category: "#c4b5fd",
-  categorySoft: "rgba(196, 181, 253, 0.16)",
+  category: "#a78bfa",
+  categoryStrong: "#c4b5fd",
+  categorySoft: "rgba(167, 139, 250, 0.16)",
   gradientBrand: "linear-gradient(135deg, #8b5cf6, #a78bfa)",
   gradientBrandText: "#241349",
   hotRankGradient: "linear-gradient(135deg, #8b5cf6, #a78bfa)",
@@ -218,6 +240,7 @@ const AMBER_LIGHT: ThemeColorVariant = {
   accentDeep: "#92400e",
   link: "#d97706",
   category: "#b45309",
+  categoryStrong: "#92400e",
   categorySoft: "rgba(180, 83, 9, 0.12)",
   gradientBrand: "linear-gradient(135deg, #fbbf24, #fde68a)",
   gradientBrandText: "#78350f",
@@ -237,6 +260,7 @@ const AMBER_DARK: ThemeColorVariant = {
   accentDeep: "#451a03",
   link: "#fcd34d",
   category: "#f59e0b",
+  categoryStrong: "#fbbf24",
   categorySoft: "rgba(245, 158, 11, 0.16)",
   gradientBrand: "linear-gradient(135deg, #f59e0b, #fbbf24)",
   gradientBrandText: "#451a03",
@@ -248,12 +272,14 @@ const AMBER_DARK: ThemeColorVariant = {
     "0 0 0 1px rgba(251, 191, 36, 0.25), 0 8px 30px rgba(69, 26, 3, 0.55)",
 };
 
-// 预设主题色：当前博客设计（石墨青 Slate）作为默认预设，其余贴合动漫极简风格
+// 预设主题色：当前博客设计（青瓷蓝 Slate）作为默认预设，其余贴合动漫极简风格
+// ⚠️ 预设的 value 是「accent 亮色值」：后台一键应用预设、以及 THEME_COLOR_PRESET_MAP
+//（admin Settings.vue）的键都靠它对应，改名/改值必须两处同步。
 export const THEME_COLOR_PRESETS: ThemeColorPreset[] = [
   {
     key: "slate",
-    name: "石墨青（当前/默认）",
-    value: "#475569",
+    name: "青瓷蓝（当前/默认）",
+    value: "#0e7490",
     light: SLATE_LIGHT,
     dark: SLATE_DARK,
   },
@@ -416,12 +442,24 @@ const applyAccentDim = (baseHex: string, isDark: boolean) => {
   };
 };
 
-/** 分类徽标维度：category / category-soft（主色 = 传入 hex） */
+/**
+ * 分类色的【文字档】推导：亮色压深、暗色提亮（保持同色族）。
+ * 分类色的本体只当图形用（3:1 即可，所以可以取亮色）；真正当文字的地方要 ≥4.5:1，
+ * 故需要一个同色族的深/浅版本 —— 与 accentText 同理，只是方向相反（那个是选白或深墨）。
+ */
+const deriveCategoryStrong = (categoryHex: string, isDark: boolean): string => {
+  const c =
+    parseHex(categoryHex) || (hexToRgb(DEFAULT_THEME_COLOR_VALUE) as Rgb);
+  return rgbToHex(isDark ? lighten(c, 0.25) : darken(c, 0.18));
+};
+
+/** 分类维度：category（图形）+ category-strong（文字）+ category-soft（徽标底） */
 const applyCategoryDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
   return {
     category: baseHex,
+    categoryStrong: deriveCategoryStrong(baseHex, isDark),
     categorySoft: toRgba(c, isDark ? 0.14 : 0.12),
   };
 };
@@ -578,18 +616,46 @@ export const computeElementPlusLevels = (
   };
 };
 
+/**
+ * 站点字体栈 = abstracts/_variables.scss 的 $font-family-base。
+ * EP 组件的文字必须回落到站点字体（EP 默认栈是另一套）。
+ */
+const FONT_FAMILY_BASE =
+  '"Avenir", Helvetica, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif';
+
+/**
+ * accent 填充式控件的交互档。
+ * EP 默认的「hover 提亮」假设主色是中明度色，而本项目的 accent 会随主题反相
+ * （亮 #0e7490 深 / 暗 #67e8f9 浅）→ 亮色主题必须向下压深，否则白字对比度掉到 3:1 级。
+ */
+const interactionLevels = (accentHex: string, isDark: boolean) => {
+  const rgb =
+    hexToRgb(accentHex) || (hexToRgb(DEFAULT_THEME_COLOR_VALUE) as Rgb);
+  const toward = isDark ? WHITE : BLACK;
+  return {
+    hover: rgbToHex(mix(rgb, toward, 0.15)),
+    active: rgbToHex(mix(rgb, toward, 0.3)),
+  };
+};
+
 const variantToBlock = (
   selector: string,
   v: ThemeColorVariant,
   el: ElementPlusLevels,
-): string => `
+  isDark: boolean,
+): string => {
+  const inter = interactionLevels(v.accent, isDark);
+  return `
 ${selector} {
   --color-accent: ${v.accent};
   --color-accent-light: ${v.accentLight};
   --color-accent-deep: ${v.accentDeep};
   --color-accent-text: ${v.accentText || readableOn(parseHex(v.accent) ?? WHITE)};
+  --color-accent-hover: ${inter.hover};
+  --color-accent-active: ${inter.active};
   --color-link: ${v.link};
   --color-category: ${v.category};
+  --color-category-strong: ${v.categoryStrong || deriveCategoryStrong(v.category, isDark)};
   --color-category-soft: ${v.categorySoft};
   --color-fav: ${v.fav};
   --color-fav-soft: ${v.favSoft};
@@ -609,11 +675,126 @@ ${selector} {
   --el-color-primary-light-8: ${el.light8};
   --el-color-primary-light-9: ${el.light9};
   --el-color-primary-dark-2: ${el.dark2};
+
+  /* Element Plus 的基础变量必须写在「运行时注入块」里：
+     assets/css/vendors/_element-plus.scss 的 :root 声明会被 EP 自己的样式表盖掉
+     —— main.scss 是 <link>，而 EP 的 theme-chalk 由组件模块以 <style> 内联注入、
+     位置更靠后，同特异性下后写者胜。本 <style> 恒在 <head> 末尾 → 最后生效。 */
+  --el-border-radius-base: var(--control-radius);
+  --el-border-radius-small: 4px;
+  --el-font-family: ${FONT_FAMILY_BASE};
+  --el-component-size: var(--control-height);
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-secondary);
+  --el-text-color-secondary: var(--text-muted);
+  --el-text-color-placeholder: var(--text-muted);
+  --el-text-color-disabled: var(--text-muted);
+  --el-bg-color: var(--bg-card-solid);
+  --el-bg-color-page: var(--bg-page-solid);
+  --el-bg-color-overlay: var(--bg-card-solid);
+  --el-fill-color-blank: var(--bg-card-solid);
+  --el-border-color: var(--border-color);
+  --el-border-color-light: var(--border-light);
+  --el-border-color-lighter: var(--border-light);
+  --el-border-color-hover: var(--color-accent);
+  --el-mask-color: var(--bg-backdrop);
+  --el-disabled-bg-color: var(--bg-hover);
+  --el-disabled-text-color: var(--text-muted);
+  --el-disabled-border-color: var(--border-light);
 }`;
+};
+
+/**
+ * Element Plus 组件级覆盖（只输出一份，值全部走 CSS 变量 → 自动跟主题）。
+ *
+ * ⚠️ 必须用**元素级选择器**：EP 把 --el-button-* / --el-input-* 声明在
+ * .el-button / .el-input 元素上，元素级声明会遮蔽 :root 的继承值
+ * （实测 :root 上设 --el-button-text-color 无效，.el-button 上立即生效）。
+ * ⚠️ 本块内顺序不能颠倒：EP 自己的 .el-button--primary 与我们的 .el-button
+ * 同特异性，靠「后写者胜」分出层级，所以 primary 必须写在 default 之后。
+ *
+ * 三级按钮：主（.el-button--primary）/ 次（EP 默认档）/ 幽灵（EP link 档），
+ * 输入框与多行文本共用同一组控件令牌 → 与玻璃卡同源。详见 design-system.md §6.1。
+ */
+const ELEMENT_PLUS_COMPONENTS = `
+/* 次要按钮：玻璃卡底色 + 站点描边；hover 转 accent */
+.el-button {
+  --el-button-bg-color: var(--control-bg);
+  --el-button-border-color: var(--control-border);
+  --el-button-text-color: var(--text-secondary);
+  --el-button-hover-bg-color: var(--bg-hover);
+  --el-button-hover-border-color: var(--color-accent);
+  --el-button-hover-text-color: var(--color-accent);
+  --el-button-active-bg-color: var(--bg-hover);
+  --el-button-active-border-color: var(--color-accent);
+  --el-button-active-text-color: var(--color-accent);
+  --el-button-disabled-bg-color: var(--control-bg);
+  --el-button-disabled-border-color: var(--control-border);
+  --el-button-disabled-text-color: var(--text-muted);
+}
+
+/* 主按钮：accent 填充面 → 前景一律用 --color-accent-text
+   （原 EP 硬白 --el-color-white 在暗色下是白字压浅灰，实测仅 1.48:1） */
+.el-button--primary {
+  --el-button-bg-color: var(--color-accent);
+  --el-button-border-color: var(--color-accent);
+  --el-button-text-color: var(--color-accent-text);
+  --el-button-hover-bg-color: var(--color-accent-hover);
+  --el-button-hover-border-color: var(--color-accent-hover);
+  --el-button-hover-text-color: var(--color-accent-text);
+  --el-button-active-bg-color: var(--color-accent-active);
+  --el-button-active-border-color: var(--color-accent-active);
+  --el-button-active-text-color: var(--color-accent-text);
+}
+
+/* plain 主按钮：EP 用「极浅底 + accent 字」，底色仍需换成站点的 accent 浅底 */
+.el-button--primary.is-plain {
+  --el-button-bg-color: var(--color-accent-light);
+  --el-button-border-color: var(--color-accent);
+  --el-button-text-color: var(--color-accent);
+  --el-button-hover-bg-color: var(--color-accent);
+  --el-button-hover-border-color: var(--color-accent);
+  --el-button-hover-text-color: var(--color-accent-text);
+  --el-button-active-bg-color: var(--color-accent-active);
+  --el-button-active-border-color: var(--color-accent-active);
+  --el-button-active-text-color: var(--color-accent-text);
+}
+
+.el-button--primary.is-disabled,
+.el-button--primary.is-disabled:hover {
+  --el-button-disabled-bg-color: var(--control-bg);
+  --el-button-disabled-border-color: var(--control-border);
+  --el-button-disabled-text-color: var(--text-muted);
+}
+
+/* 幽灵按钮（EP link 档）：透明底、行内低强调，hover 转 accent + --bg-hover */
+.el-button.is-link {
+  --el-button-text-color: var(--text-secondary);
+  --el-button-hover-text-color: var(--color-accent);
+}
+.el-button.is-link:hover {
+  background: var(--bg-hover);
+}
+
+/* 输入框 / 多行文本：底色 --bg-card、描边 --border-color、圆角 8px、focus 转 accent
+   —— 与 CommentInput.vue 的 tiptap 富文本框同源 */
+.el-input,
+.el-textarea {
+  --el-input-text-color: var(--text-primary);
+  --el-input-bg-color: var(--control-bg);
+  --el-input-border-color: var(--control-border);
+  --el-input-hover-border-color: var(--color-accent);
+  --el-input-focus-border-color: var(--color-accent);
+  --el-input-border-radius: var(--control-radius);
+  --el-input-placeholder-color: var(--text-muted);
+  --el-input-icon-color: var(--text-muted);
+  --el-input-clear-hover-color: var(--text-secondary);
+}
+`;
 
 /**
  * 生成完整的主题色覆盖 CSS（注入 <style> 用）。
- * 区分亮/暗两套变量，并同步 Element Plus 主色与 ::selection 高亮。
+ * 区分亮/暗两套变量，并同步 Element Plus 主色、组件外观与 ::selection 高亮。
  * 覆盖前台所有视觉相关变量，确保切换主题色时各组件联动。
  *
  * @param input 各维度主题色（每维一个 hex，可选）
@@ -626,8 +807,9 @@ export const buildThemeColorCss = (input?: ThemeColorInput): string => {
   const darkSelection = hexToRgb(dark.accent);
 
   return `
-${variantToBlock(":root", light, elLight)}
-${variantToBlock("html.dark", dark, elDark)}
+${variantToBlock(":root", light, elLight, false)}
+${variantToBlock("html.dark", dark, elDark, true)}
+${ELEMENT_PLUS_COMPONENTS}
 ${lightSelection ? `::selection { background: ${toRgba(lightSelection, 0.3)}; }` : ""}
 ${darkSelection ? `html.dark ::selection { background: ${toRgba(darkSelection, 0.3)}; }` : ""}
 `;
