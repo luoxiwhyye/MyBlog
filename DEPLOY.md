@@ -151,6 +151,19 @@ myblog-admin      Up
 | `DB_NAME`     | 数据库名称      | `myblog` |
 | `DB_PORT`     | 宿主机映射端口  | `3307`   |
 
+#### 时区（时间字段口径）
+
+> 完整原理与四条约束见 [README「时间字段与时区」](./README.md#时间字段与时区)。
+
+| 变量            | 说明                                      | 默认值          |
+| --------------- | ----------------------------------------- | --------------- |
+| `TZ`            | 全局时区：mysql 写库墙钟 + 各容器进程时区 | `Asia/Shanghai` |
+| `DB_TIME_ZONE`  | Express 时间字段读时区（**固定偏移**）    | `+08:00`        |
+| `APP_TIME_ZONE` | Spring Boot 时间字段源时区（IANA 名称）   | `Asia/Shanghai` |
+
+> ⚠️ 这三项必须表示同一时区（`TZ` 同时管着 mysql 写库墙钟、后端进程时区与前台 SSR 直出时区）。不匹配**不会报错**，只会让时间字段整体偏移（典型 8 小时）；Express 启动时会自检并在日志里告警。
+> ⚠️ **前台容器 `myblog-blog` 的 `TZ` 不能省**：SSR 直出时间按容器时区展开，容器为 UTC 时 SSR HTML 与浏览器水合结果可能跨天不一致。
+
 #### 缓存
 
 | 变量             | 说明                      | 默认值 |
@@ -476,6 +489,22 @@ docker builder prune -a -f
 # 重新构建
 docker compose --env-file .env.docker up -d --build
 ```
+
+### 6. 时间字段整体偏移 8 小时
+
+`datetime` 列存的是无时区墙钟字面量，两端都按「写入端时区」解释后输出 UTC 瞬时串；任一环节时区不一致都会整体偏移且**不报错**。
+
+```bash
+# 1) 看 mysql 容器的写入时区（期望与 TZ 一致）
+docker compose exec mysql sh -c 'date; echo "TZ=$TZ"'
+
+# 2) 看后端启动自检（Express 会打印读时区与不一致告警）
+docker compose logs myblog-backend | grep -E "读时区|时区不一致"
+```
+
+修复：确认 `.env.docker` 里 `TZ` / `DB_TIME_ZONE` / `APP_TIME_ZONE` 表示同一时区后重建容器。
+
+> ⚠️ 若此前 mysql 容器未设 `TZ`（写库为 UTC），改动 `TZ` 后**存量行的墙钟仍是 UTC**，与新写入的行相差 8 小时；需要抹平的话按 `scripts/` 的备份/恢复流程导出后统一转换，或接受历史偏移。
 
 ---
 

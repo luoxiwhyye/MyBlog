@@ -90,6 +90,7 @@ src/main/java/com/myblog/myblogspringboot/
 | --- | --- | --- |
 | `PORT` | 服务端口 | `3000` |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — |
+| `APP_TIME_ZONE` | 时间字段源时区（IANA 名称，必须与数据库写入端时区一致，详见根 README「时间字段与时区」） | `Asia/Shanghai` |
 | **`JWT_SECRET`** | JWT 密钥（生产必改） | — |
 | `JWT_EXPIRES_IN` | Token 有效期（**毫秒**） | `604800000`（7天） |
 | `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |

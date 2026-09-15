@@ -65,7 +65,7 @@ models/        # 数据模型（Article/Blogger/Comment/FriendLink/MessageBoard/
 routes/        # 路由（含 cache/metrics/emoji/error-log 运维接口）
 scripts/       # 运维 / 迁移脚本（clearCache、verifyUploads、syncMeili、regenerateThumbs、...）
 services/      # meilisearch、mailer、commentNotifier
-utils/         # 日期、分页、响应、图片转换
+utils/         # 分页、响应、图片转换、错误归类
 test/          # 集成测试
 ```
 
@@ -128,8 +128,7 @@ DRY_RUN=1 node scripts/clearCache.js --all    # 只预览、不删除
 | --- | --- | --- |
 | `NODE_ENV` | 运行模式 | `development` |
 | `PORT` | 服务端口 | `3000` |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — |
-| `DB_POOL_MAX` | 连接池上限（可选） | `50` |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — || `DB_TIME_ZONE` | 时间字段读时区（**固定偏移** `+08:00`/`Z`，必须与 MySQL 会话 `time_zone` 一致，详见根 README「时间字段与时区」） | `+08:00` || `DB_POOL_MAX` | 连接池上限（可选） | `50` |
 | **`JWT_SECRET`** | JWT 密钥（生产必改） | — |
 | `JWT_EXPIRES_IN` | Token 有效期 | `7d` |
 | `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |

@@ -100,8 +100,12 @@ public class FriendLinkService {
         map.put("isSticky", Boolean.TRUE.equals(link.getIsSticky()));
         int clickCount = link.getClickCount() == null ? 0 : link.getClickCount();
         map.put("clickCount", clickCount);
-        map.put("createdAt", link.getCreatedAt() != null ? link.getCreatedAt().toString() : null);
-        map.put("updatedAt", link.getUpdatedAt() != null ? link.getUpdatedAt().toString() : null);
+        // ⚠️ 这两个字段必须放 LocalDateTime 本体、不能 .toString()：时间字段的 JSON
+        //    口径由 config/JacksonConfig.java 统一成 UTC 瞬时串（...000Z）。
+        //    LocalDateTime.toString() 会给出无时区字面量（2026-09-02T20:07:36），
+        //    绕过 Jackson 序列化器，与 Express 端不一致。
+        map.put("createdAt", link.getCreatedAt());
+        map.put("updatedAt", link.getUpdatedAt());
         return map;
     }
 

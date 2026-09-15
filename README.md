@@ -213,11 +213,26 @@ npm run dev               # http://localhost:5173
 
 > ⚠️ **两种后端不能共用同一份 `.env`**：`JWT_EXPIRES_IN` 在 Express 是**时长字符串**（如 `7d`），在 Spring Boot 是**毫秒数**（如 `604800000`）——把 Express 的 `.env` 直接喂给 Spring 会启动失败（`Failed to convert value of type 'java.lang.String' to required type 'long'`）。其余变量名一致。
 
-- **Express**: 见 [myblog-express/README.md](./myblog-express/README.md)（`NODE_ENV`/`PORT`/`DB_*`/`JWT_*`/`REDIS_*`/`MEILI_*`/`SMTP_*`/`FRONTEND_ORIGIN`/`ADMIN_ORIGIN`/`TRUST_PROXY` 等）
-- **Spring Boot**: 见 [myblog-springboot/README.md](./myblog-springboot/README.md)（`DB_*`/`JWT_*`/`MEILI_*`/`REDIS_*`/`UPLOAD_PATH` 等）
+- **Express**: 见 [myblog-express/README.md](./myblog-express/README.md)（`NODE_ENV`/`PORT`/`DB_*`/`DB_TIME_ZONE`/`JWT_*`/`REDIS_*`/`MEILI_*`/`SMTP_*`/`FRONTEND_ORIGIN`/`ADMIN_ORIGIN`/`TRUST_PROXY` 等）
+- **Spring Boot**: 见 [myblog-springboot/README.md](./myblog-springboot/README.md)（`DB_*`/`APP_TIME_ZONE`/`JWT_*`/`MEILI_*`/`REDIS_*`/`UPLOAD_PATH` 等）
 - **博客前台**: `NUXT_API_BASE`、`NUXT_SITE_URL`
 - **管理后台**: `VITE_API_BASE`
 - **Docker 部署**: 见 [.env.docker.example](./.env.docker.example) 与 [DEPLOY.md](./DEPLOY.md)
+
+### 时间字段与时区
+
+数据库 `datetime` 列存的是**无时区的墙钟字面量**。两端都把它按「写入端时区」解释后输出 **UTC 瞬时串**（`2026-09-13T11:10:49.000Z`，毫秒固定 3 位）：
+
+| 环节 | 配置项 | 取值格式 |
+| --- | --- | --- |
+| MySQL 写入端（`NOW()` / `CURRENT_TIMESTAMP`） | `docker-compose.yml` 中 `mysql` 服务的 `TZ` | IANA 名称（`Asia/Shanghai`） |
+| Express 读 → JSON（`config/database.js`） | `DB_TIME_ZONE` | **固定偏移**（`+08:00` / `Z`；mysql2 不支持 IANA 名称） |
+| Spring Boot 读 → JSON（`config/JacksonConfig.java`） | `APP_TIME_ZONE` | IANA 名称（`Asia/Shanghai`） |
+| 博客前台 SSR 直出时间 | `docker-compose.yml` 中 `myblog-blog` 服务的 `TZ` | IANA 名称（`Asia/Shanghai`） |
+
+> ⚠️ **四项必须表示同一时区**。不匹配时**不会报错**，只会让时间字段整体偏移（典型 8 小时）——Express 启动时会自检并在控制台打印告警。
+> ⚠️ **前台容器的 `TZ` 不能省**：`utils/format.ts` 用 dayjs 按**运行时时区**展开带 `Z` 的串，容器保持 UTC 会让 SSR 直出的时间与浏览器水合的北京时间不一致（跨天时表现为 hydration mismatch）。管理后台是纯静态 SPA，时间由浏览器时区渲染，不需要设。
+> ⚠️ 若把数据库改成 **UTC 存储**，`DB_TIME_ZONE` 与 `APP_TIME_ZONE` 必须同步改为 `+00:00` / `UTC`。
 
 ---
 
@@ -273,12 +288,11 @@ npm run dev               # http://localhost:5173
 
 ## 双后端差异
 
-两种后端共用同一份数据库（Spring Boot `ddl-auto: none`），REST 路径、统一响应 `{ code, message, data }` 与缓存 / 限流口径已对齐；以下是仍然存在或有意保留的差异：
+两种后端共用同一份数据库（Spring Boot `ddl-auto: none`），REST 路径、统一响应 `{ code, message, data }`、时间字段 JSON 格式（UTC 瞬时串，见[时间字段与时区](#时间字段与时区)）与缓存 / 限流口径已对齐；以下是仍然存在或有意保留的差异：
 
 | 维度 | Express | Spring Boot | 说明 |
 | --- | --- | --- | --- |
 | 运维脚本 | `myblog-express/scripts/` 下 11 个（清缓存 / 数据体检 / 文件体检 / 回填索引 / 状态迁移 …） | 无 | 脚本直连同一份 MySQL / Redis，不依赖后端进程；用 Spring 部署时仍可在 `myblog-express/` 目录下执行 |
-| 时间字段 JSON 格式 | UTC 瞬时串（`2026-09-06T00:41:16Z`） | 本地无时区串（`2026-09-06T08:41:16`） | 同一瞬时、写法不同；浏览器时区为北京时两端显示一致，服务端 TZ 为 UTC 时会有偏移 |
 | `.env` | `JWT_EXPIRES_IN=7d`（时长字符串） | `JWT_EXPIRES_IN=604800000`（毫秒） | **两端不能共用同一份 `.env`** |
 | 可观测 | 自研 `/metrics` + winston 日志 | 额外提供 Actuator + Micrometer（`/actuator/health`、`/actuator/prometheus`） | Spring 侧增量，非缺口 |
 | 缓存降级 | Redis 不可用时直查数据库 | Redis 不可用时降级为内存缓存 | 行为差异，不影响接口契约 |

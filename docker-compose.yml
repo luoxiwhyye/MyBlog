@@ -24,6 +24,10 @@ services:
     container_name: myblog-mysql
     restart: unless-stopped
     environment:
+      # ⚠️ 决定 datetime 列的写入时区（NOW() / CURRENT_TIMESTAMP 取容器本地时间）。
+      #    必须与后端 TZ 及 DB_TIME_ZONE / APP_TIME_ZONE 表示同一时区，
+      #    否则时间字段会整体偏移且不报错（详见 DEPLOY.md「时间字段与时区」）。
+      TZ: ${TZ:-Asia/Shanghai}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
       MYSQL_DATABASE: ${DB_NAME:-myblog}
       MYSQL_CHARSET: utf8mb4
@@ -117,11 +121,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      # 后端进程时区（日志时间戳）；与 mysql / 前台的 TZ 保持一致
+      TZ: ${TZ:-Asia/Shanghai}
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:-root}
       DB_NAME: ${DB_NAME:-myblog}
+      # 时间字段读时区（固定偏移）；必须与 mysql 服务的 TZ 表示同一时区
+      DB_TIME_ZONE: ${DB_TIME_ZONE:-+08:00}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -165,6 +173,10 @@ services:
   #     DB_USER: root
   #     DB_PASSWORD: ${DB_PASSWORD:-root}
   #     DB_NAME: ${DB_NAME:-myblog}
+  #     # 后端进程时区；必须与 mysql 服务的 TZ 表示同一时区
+  #     TZ: ${TZ:-Asia/Shanghai}
+  #     # 时间字段源时区（IANA 名称）；必须与 mysql 服务的 TZ 表示同一时区
+  #     APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Shanghai}
   #     REDIS_HOST: redis
   #     REDIS_PORT: 6379
   #     REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -213,6 +225,9 @@ services:
     environment:
       NUXT_API_BASE: ${NUXT_API_BASE:-http://myblog-backend:3000/api/v1}
       NUXT_SITE_URL: ${NUXT_SITE_URL:-http://localhost:3001}
+      # ⚠️ SSR 直出时间用的是容器时区：必须设为访客所在时区（默认 Asia/Shanghai），
+      #    否则 SSR HTML 与浏览器水合结果可能跨天不一致。详见 DEPLOY.md「时间字段与时区」。
+      TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "${BLOG_PORT:-3001}:3001"
     depends_on:

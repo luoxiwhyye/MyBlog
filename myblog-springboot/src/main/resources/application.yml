@@ -34,6 +34,9 @@ spring:
       max-request-size: 20MB
 
   jackson:
+    # ⚠️ date-format / time-zone 只作用于 java.util.Date / Calendar，
+    #    对 java.time（LocalDateTime 等）**无效**；时间字段的 JSON 口径由
+    #    config/JacksonConfig.java + app.time-zone 决定，别靠这两行对齐。
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX
     time-zone: Asia/Shanghai
     # ⚠️ 必须是 always（而非 non_null）：Express 的 utils/response.js 固定输出
@@ -90,6 +93,12 @@ server:
     max-http-form-post-size: 10MB
 
 app:
+  # 时间字段的「源时区」：无时区的 LocalDateTime 按此时区解释成瞬时后，
+  # 输出 UTC 瞬时串（与 Express 逐字节一致）。
+  # ⚠️ 必须等于「数据库写入端时区」：MySQL 会话 time_zone（docker-compose 里
+  #    由 mysql 服务的 TZ 决定）/ Express 的 DB_TIME_ZONE / JDBC 的 serverTimezone。
+  #    数据库若改为 UTC 存储，这里必须同步改，否则整体偏移 8 小时且不报错。
+  time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
   jwt:
     secret: ${JWT_SECRET:dev-secret-do-not-use-in-production}
     expiration-ms: ${JWT_EXPIRES_IN:604800000}
