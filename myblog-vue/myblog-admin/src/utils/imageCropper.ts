@@ -17,7 +17,26 @@ import { ElMessage } from 'element-plus'
 export interface CropPreset {
   label: string
   aspect: number | null
+  /** 「自定义」项：aspect 由对话框里用户输入的宽 / 高实时算出，不由本表提供 */
+  custom?: boolean
 }
+
+/**
+ * 自定义比例的可操作范围（宽/高之比）。
+ *
+ * 裁剪框本身就是「输出区域」（输出 = 框内画面按原图像素换算），所以框的比例
+ * **就是**输出的比例，不能像「原图比例」那样做视觉收敛 —— 否则「输出比例 ==
+ * 输入比例」就不成立。因此改为**限制输入**：超出这个范围时，对话框会把另一侧
+ * 的数值夹回区间内（用户能直接看到夹后的值，不会出现 100:1 那种细缝框）。
+ */
+export const CUSTOM_RATIO_MIN = 1 / 6
+export const CUSTOM_RATIO_MAX = 6
+/** 自定义比例宽 / 高的输入上下限 */
+export const CUSTOM_EDGE_MIN = 1
+export const CUSTOM_EDGE_MAX = 100
+
+/** 各上传入口的「自定义」项：新建对象而非共享引用，避免今后被误改 */
+const customPreset = (): CropPreset => ({ label: '自定义', aspect: null, custom: true })
 
 export interface CropOptions {
   /** 对话框标题 */
@@ -40,28 +59,33 @@ const PRESET_DEFS = {
     { label: '16:9', aspect: 16 / 9 },
     { label: '4:3', aspect: 4 / 3 },
     { label: '原图比例', aspect: null },
+    customPreset(),
   ],
   'article-content': [
     { label: '原图比例', aspect: null },
     { label: '16:9', aspect: 16 / 9 },
     { label: '1:1', aspect: 1 },
+    customPreset(),
   ],
-  avatar: [{ label: '1:1', aspect: 1 }],
-  emoji: [{ label: '1:1', aspect: 1 }],
+  avatar: [{ label: '1:1', aspect: 1 }, customPreset()],
+  emoji: [{ label: '1:1', aspect: 1 }, customPreset()],
   'setting-logo': [
     { label: '原图比例', aspect: null },
     { label: '1:1', aspect: 1 },
+    customPreset(),
   ],
-  'setting-favicon': [{ label: '1:1', aspect: 1 }],
+  'setting-favicon': [{ label: '1:1', aspect: 1 }, customPreset()],
   'setting-bg-desktop': [
     { label: '16:9', aspect: 16 / 9 },
     { label: '4:3', aspect: 4 / 3 },
     { label: '原图比例', aspect: null },
+    customPreset(),
   ],
   'setting-bg-mobile': [
     { label: '9:16', aspect: 9 / 16 },
     { label: '3:4', aspect: 3 / 4 },
     { label: '原图比例', aspect: null },
+    customPreset(),
   ],
 }
 

@@ -62,9 +62,44 @@
         </div>
       </div>
 
+      <div v-if="isCustomRatio" class="cropper-custom">
+        <span class="cropper-custom-label">宽 : 高</span>
+        <el-input-number
+          v-model="customW"
+          class="cropper-custom-input"
+          :min="CUSTOM_EDGE_MIN"
+          :max="CUSTOM_EDGE_MAX"
+          :controls="false"
+          size="small"
+          @change="handleCustomEdgeChange('w')"
+        />
+        <span class="cropper-custom-colon">:</span>
+        <el-input-number
+          v-model="customH"
+          class="cropper-custom-input"
+          :min="CUSTOM_EDGE_MIN"
+          :max="CUSTOM_EDGE_MAX"
+          :controls="false"
+          size="small"
+          @change="handleCustomEdgeChange('h')"
+        />
+        <div class="cropper-custom-quick">
+          <el-button
+            v-for="ratio in QUICK_RATIOS"
+            :key="ratio.label"
+            link
+            size="small"
+            @click="applyQuickRatio(ratio)"
+          >
+            {{ ratio.label }}
+          </el-button>
+        </div>
+      </div>
+
       <p class="cropper-hint">
         在图片上拖动可调整位置，滚轮或上方滑块可缩放；框内即为最终效果。
         <span v-if="isOriginalRatio">「原图比例」不会强制裁剪，不动即为原图。</span>
+        <span v-else-if="isCustomRatio">自定义比例即输出比例，可在 1:6 ~ 6:1 之间调整。</span>
       </p>
     </div>
 
@@ -92,6 +127,10 @@ import {
   cropperOptions,
   cropperVisible,
   cropPresets,
+  CUSTOM_EDGE_MAX,
+  CUSTOM_EDGE_MIN,
+  CUSTOM_RATIO_MAX,
+  CUSTOM_RATIO_MIN,
   type CropPreset,
 } from '@/utils/imageCropper'
 
@@ -105,6 +144,15 @@ const FREE_ASPECT_MIN = 0.4
 const FREE_ASPECT_MAX = 2.5
 const ZOOM_MIN = 1
 const ZOOM_MAX = 4
+
+/** 自定义比例的快捷值 */
+const QUICK_RATIOS = [
+  { label: '1:1', w: 1, h: 1 },
+  { label: '4:3', w: 4, h: 3 },
+  { label: '16:9', w: 16, h: 9 },
+  { label: '3:4', w: 3, h: 4 },
+  { label: '9:16', w: 9, h: 16 },
+]
 
 const DEFAULT_PRESETS: CropPreset[] = cropPresets('article-content')
 
@@ -120,6 +168,10 @@ const offsetX = ref(0)
 const offsetY = ref(0)
 const stageW = ref(MAX_STAGE_W)
 const stageH = ref(MAX_STAGE_H)
+// 自定义比例的宽 / 高（整数）。只在本次会话里有效：每次打开对话框都从推荐比例
+// 重新开始，避免「上次的 7:3」被下次剪封面时默默用上。
+const customW = ref(16)
+const customH = ref(9)
 const imgNatural = reactive({ w: 0, h: 0 })
 const previewUrl = ref('')
 const loading = ref(false)
@@ -134,7 +186,24 @@ let dragStartY = 0
 let dragStartOffsetX = 0
 let dragStartOffsetY = 0
 
-const aspect = computed<number | null>(() => presets.value[presetIndex.value]?.aspect ?? null)
+const currentPreset = computed(() => presets.value[presetIndex.value])
+const isCustomRatio = computed(() => currentPreset.value?.custom === true)
+
+/**
+ * 当前生效的比例。
+ *
+ * ⚠️ 自定义比例**必须原值使用、不做视觉收敛**：裁剪框本身就是「输出区域」
+ * （`outputSize` 由 `cropNaturalW/H` = `stageW/H ÷ drawScale` 反算），框的比例就是
+ * 输出的比例。一旦像「原图比例」那样把框夹到 0.4~2.5，就变成「输入 100:1、
+ * 输出 2.5:1」了。因此改为**限制输入**（见 `clampCustomRatio`），
+ * 保证框既可用、比例又精确。
+ */
+const aspect = computed<number | null>(() => {
+  const preset = currentPreset.value
+  if (!preset) return null
+  if (preset.custom) return customW.value / customH.value
+  return preset.aspect ?? null
+})
 const isOriginalRatio = computed(() => aspect.value === null)
 
 const coverScale = computed(() => {
@@ -178,6 +247,62 @@ const imageStyle = computed(() => ({
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
+/**
+ * 把比例拆成一对「尽量简洁」的整数（如 1.778 → 16:9），用于做自定义比例的起点。
+ * 从最小的分母开始找，误差严格更小才替换 —— 于是 1.778 会停在 16:9 而不是 32:18。
+ */
+const ratioToEdges = (ratio: number) => {
+  let best = { w: 16, h: 9, error: Infinity }
+  for (let h = CUSTOM_EDGE_MIN; h <= CUSTOM_EDGE_MAX; h++) {
+    const w = Math.round(h * ratio)
+    if (w < CUSTOM_EDGE_MIN || w > CUSTOM_EDGE_MAX) continue
+    const error = Math.abs(w / h - ratio) / ratio
+    if (error < best.error - 1e-9) best = { w, h, error }
+  }
+  return { w: best.w, h: best.h }
+}
+
+/**
+ * 保证「宽 / 高」的两个值落在可操作区间：改一侧就把另一侧夹回范围内。
+ *
+ * 夹的是输入而不是比例，所以用户看到的数值就是实际生效的比例，
+ * 既不会出现 100:1 那种几乎点不中的细缝框，也不会出现「显示与输出不符」。
+ */
+const clampCustomRatio = (changed: 'w' | 'h') => {
+  if (changed === 'w') {
+    const minH = Math.max(CUSTOM_EDGE_MIN, Math.ceil(customW.value / CUSTOM_RATIO_MAX))
+    const maxH = Math.max(
+      minH,
+      Math.min(CUSTOM_EDGE_MAX, Math.floor(customW.value / CUSTOM_RATIO_MIN)),
+    )
+    customH.value = clamp(customH.value, minH, maxH)
+  } else {
+    const minW = Math.max(CUSTOM_EDGE_MIN, Math.ceil(customH.value * CUSTOM_RATIO_MIN))
+    const maxW = Math.max(
+      minW,
+      Math.min(CUSTOM_EDGE_MAX, Math.floor(customH.value * CUSTOM_RATIO_MAX)),
+    )
+    customW.value = clamp(customW.value, minW, maxW)
+  }
+}
+
+const handleCustomEdgeChange = (changed: 'w' | 'h') => {
+  clampCustomRatio(changed)
+  updateStageSize()
+}
+
+const applyQuickRatio = (ratio: { label: string; w: number; h: number }) => {
+  customW.value = ratio.w
+  customH.value = ratio.h
+  updateStageSize()
+}
+
+/** 切到「自定义」时的起点：优先沿用上一个比例，否则用原图比例 */
+const seedCustomRatio = (base: number) => {
+  const { w, h } = ratioToEdges(clamp(base, CUSTOM_RATIO_MIN, CUSTOM_RATIO_MAX))
+  customW.value = w
+  customH.value = h
+}
 /** 让图片始终盖满裁剪框：可拖动的余量 = 图片超出框的一半 */
 const clampOffsets = () => {
   const maxX = Math.max(0, (imageW.value - stageW.value) / 2)
@@ -271,7 +396,11 @@ const handleReset = () => {
 const handlePresetChange = (value: string | number | boolean | undefined) => {
   const index = typeof value === 'number' ? value : Number(value)
   if (!Number.isInteger(index) || index < 0 || index >= presets.value.length) return
+  // 切到「自定义」时，用「切之前生效的比例」做起点 —— 从 9:16 / 原图比例切过去
+  // 都比固定 16:9 更贴当下的意图
+  const base = aspect.value ?? (imgNatural.w && imgNatural.h ? imgNatural.w / imgNatural.h : 16 / 9)
   presetIndex.value = index
+  if (presets.value[index]?.custom) seedCustomRatio(base)
   handleReset()
 }
 
@@ -439,6 +568,32 @@ const handleVisibleChange = (value: boolean) => {
 
 .cropper-zoom-slider {
   width: 150px;
+}
+
+/* 自定义比例行：宽 : 高 两个输入框 + 快捷比例 */
+.cropper-custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2;
+  margin-top: $spacing-3;
+  color: var(--text-secondary);
+  font-size: $font-size-sm;
+}
+
+.cropper-custom-input {
+  width: 76px;
+}
+
+.cropper-custom-colon {
+  color: var(--text-muted);
+}
+
+.cropper-custom-quick {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  color: var(--text-muted);
 }
 
 .cropper-hint {
