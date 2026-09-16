@@ -43,6 +43,20 @@ public class CommentNotifierService {
                 .replace("\"", "&quot;");
     }
 
+    /**
+     * 评论 / 留言内容是「标记文本」（图片 → [img:url]），邮件里把标记可读化为 [图片]。
+     *
+     * 先替换标记再转义，与 Express services/commentNotifier.js 的 formatCommentContent 一致。
+     */
+    private static final java.util.regex.Pattern IMG_MARKER =
+            java.util.regex.Pattern.compile("\\\\[img:https?://[^\\\\s\\\\]]+\\\\]",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    private String formatCommentContent(String value) {
+        if (value == null) return "";
+        return escapeHtml(IMG_MARKER.matcher(value).replaceAll("[图片]"));
+    }
+
     private String wrapTemplate(String title, String bodyHtml) {
         return """
                 <div style="max-width:600px;margin:0 auto;font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:#f7f8fa;padding:24px;">
@@ -90,7 +104,7 @@ public class CommentNotifierService {
                 escapeHtml(siteUrl),
                 article.getId(),
                 escapeHtml(article.getTitle()),
-                escapeHtml(content)));
+                formatCommentContent(content)));
 
         mailService.sendMail(bloggerEmail,
                 "【" + siteName + "】收到来自 " + authorName + " 的新评论", html);
@@ -99,10 +113,10 @@ public class CommentNotifierService {
     /**
      * 通知被回复的评论者
      */
-    public void notifyReplied(Article article, Comment parent, String replierName, String content) {
-        if (article == null || parent == null) return;
-        String parentEmail = parent.getAuthorEmail();
-        if (parentEmail == null || parentEmail.isBlank()) {
+    public void notifyReplied(Article article, Comment recipient, String replierName, String content) {
+        if (article == null || recipient == null) return;
+        String recipientEmail = recipient.getAuthorEmail();
+        if (recipientEmail == null || recipientEmail.isBlank()) {
             return;
         }
 
@@ -118,16 +132,16 @@ public class CommentNotifierService {
                   <a href="%s/article/%d" style="color:#475569;">点击查看完整讨论 →</a>
                 </p>
                 """.formatted(
-                escapeHtml(parent.getAuthorName()),
+                escapeHtml(recipient.getAuthorName()),
                 escapeHtml(replierName),
                 escapeHtml(siteUrl),
                 article.getId(),
                 escapeHtml(article.getTitle()),
-                escapeHtml(content),
+                formatCommentContent(content),
                 escapeHtml(siteUrl),
                 article.getId()));
 
-        mailService.sendMail(parentEmail,
+        mailService.sendMail(recipientEmail,
                 "【" + siteName + "】" + replierName + " 回复了您的评论", html);
     }
 }

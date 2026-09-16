@@ -22,7 +22,8 @@ MyBlog 的 Node.js 后端实现（与 `myblog-springboot` 共用同一份数据�
 - **表情包管理**、**前端错误日志聚合**（`POST /error-log` 公开接收 → `client_error_log` 落库 → admin 查看/清空）
 - Redis 缓存（预热 / 命中统计 / 一键清空 / 写失效）、性能监控（`/metrics`）
 - 图片上传并自动生成 WebP 变体；Meilisearch 全文搜索
-- 评论 / 回复 / @提及邮件通知；健康检查 `/health`（DB / Redis / Meili）
+- **邮件通知 4 类**（无 SMTP 自动停用）：① 顶层评论 → 博主（创建即发）；② 回复 → 被回复者（**审核通过后**发一次）；③ 新留言 → 博主；④ 留言审核通过 → 留言者。②④ 的收件人需在提交时勾选「邮件通知我」（默认**不勾**，见 `comment.notify_email` / `message_board.notify_email`）
+- 健康检查 `/health`（DB / Redis / Meili）
 
 ## 快速开始
 

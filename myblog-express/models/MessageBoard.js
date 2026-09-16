@@ -5,11 +5,14 @@ const pool = require("../config/database");
  */
 
 const getMessages = async (offset, limit, filters = {}, isAdmin = false) => {
+  // 「接收通知」只对管理端返回：公开列表没必要把访客的订阅偏好也发出去
+  const notifyColumn = isAdmin ? ", notify_email AS notifyEmail" : "";
+
   let query = `
     SELECT id,
            author_name AS authorName, author_email AS authorEmail,
            author_url AS authorUrl, author_ip AS authorIp,
-           content, status, create_at AS createdAt
+           content, status, create_at AS createdAt${notifyColumn}
     FROM message_board
     WHERE 1=1
   `;
@@ -62,8 +65,8 @@ const getMessageById = async (id) => {
 const createMessage = async (messageData) => {
   const [result] = await pool.query(
     `INSERT INTO message_board
-     (author_name, author_email, author_url, author_ip, content, status, create_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+     (author_name, author_email, author_url, author_ip, content, status, notify_email, create_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       messageData.authorName,
       messageData.authorEmail,
@@ -71,6 +74,8 @@ const createMessage = async (messageData) => {
       messageData.authorIp || "",
       messageData.content,
       "pending",
+      // 访客显式勾选才为 1；未勾选 / 未传 = 0（不接收）
+      messageData.notifyEmail ? 1 : 0,
     ],
   );
   return result.insertId;

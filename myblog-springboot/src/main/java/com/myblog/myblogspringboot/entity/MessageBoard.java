@@ -36,6 +36,10 @@ public class MessageBoard {
     @Column(nullable = false, length = 20)
     private String status = "pending";
 
+    /** 是否同意「留言通过审核后邮件通知我」（0=不接收，默认） */
+    @Column(name = "notify_email", nullable = false)
+    private Boolean notifyEmail = false;
+
     @Column(name = "create_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -64,6 +68,9 @@ public class MessageBoard {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Boolean getNotifyEmail() { return notifyEmail; }
+    public void setNotifyEmail(Boolean notifyEmail) { this.notifyEmail = notifyEmail; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

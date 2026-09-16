@@ -66,6 +66,8 @@ export const zh = {
     invalidEmail: "请输入有效的邮箱地址",
     invalidUrl: "网址需以 http(s):// 开头",
     loadError: "加载失败",
+    // 邮件订阅开关（默认不勾）。留言板没有回复链路，这里唯一的触发点是「审核通过」
+    notifyApproved: "留言通过审核后，邮件通知我",
   },
   home: {
     hero: {
@@ -128,6 +130,10 @@ export const zh = {
     submitReply: "提交回复",
     cancel: "取消",
     commentSubmitted: "评论已提交，感谢您的分享。经审核通过后即可显示。",
+    // 邮件订阅开关（默认不勾）。两个键拆开是为了今后能按位置分别改文案
+    //（顶层评论 = 我的评论被回复；回复表单 = 我的回复被回复）
+    notifyReplyOnComment: "有人回复我时，邮件通知我",
+    notifyReplyOnReply: "有人回复我时，邮件通知我",
   },
   archive: {
     title: "归档",
@@ -266,6 +272,7 @@ export const en: typeof zh = {
     invalidEmail: "Please enter a valid email address",
     invalidUrl: "URL must start with http(s)://",
     loadError: "Failed to load",
+    notifyApproved: "Email me when my message is approved",
   },
   home: {
     hero: {
@@ -329,6 +336,8 @@ export const en: typeof zh = {
     submitReply: "Submit Reply",
     cancel: "Cancel",
     commentSubmitted: "Comment submitted. It will be displayed after review.",
+    notifyReplyOnComment: "Email me when someone replies to me",
+    notifyReplyOnReply: "Email me when someone replies to me",
   },
   archive: {
     title: "Archive",

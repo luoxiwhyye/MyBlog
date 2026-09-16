@@ -81,20 +81,20 @@ const notifyBlogger = async ({
 const notifyReplied = async ({
   articleTitle,
   articleId,
-  parentAuthorName,
-  parentEmail,
+  recipientName,
+  recipientEmail,
   replierName,
   content,
   siteUrl,
 }) => {
-  if (!parentEmail) {
+  if (!recipientEmail) {
     return { skipped: true };
   }
 
   const html = wrapTemplate(
     "您的评论收到回复",
     `
-      <p>您好，${escapeHtml(parentAuthorName)}：</p>
+      <p>您好，${escapeHtml(recipientName)}：</p>
       <p><strong>${escapeHtml(replierName)}</strong> 回复了您在文章
         <a href="${escapeHtml(siteUrl)}/article/${articleId}" style="color:#475569;font-weight:600;">
           《${escapeHtml(articleTitle)}》
@@ -110,7 +110,7 @@ const notifyReplied = async ({
   );
 
   return sendMail({
-    to: parentEmail,
+    to: recipientEmail,
     subject: `【${getSiteName()}】${replierName} 回复了您的评论`,
     html,
   });

@@ -68,6 +68,14 @@
         </el-table-column>
         <el-table-column label="文章ID" prop="articleId" width="100" />
         <el-table-column label="点赞数" prop="likeCount" width="80" />
+        <!-- 访客是否勾选「有人回复我时，邮件通知我」——用来排查「为什么没发回复邮件」 -->
+        <el-table-column label="邮件通知" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.notifyEmail ? 'success' : 'info'" size="small">
+              {{ scope.row.notifyEmail ? '接收' : '不接收' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="scope">
             <el-tag

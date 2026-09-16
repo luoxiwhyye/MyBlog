@@ -51,6 +51,14 @@
           </template>
         </el-table-column>
         <el-table-column label="内容" prop="content" min-width="240" show-overflow-tooltip />
+        <!-- 访客是否勾选「留言通过审核后，邮件通知我」——用来排查「为什么没发审核邮件」 -->
+        <el-table-column label="邮件通知" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.notifyEmail ? 'success' : 'info'" size="small">
+              {{ scope.row.notifyEmail ? '接收' : '不接收' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)">

@@ -63,6 +63,9 @@
               placeholder="写下您的回复..."
             />
           </div>
+          <el-checkbox v-model="replyForm.notifyEmail" class="reply-form-notify">
+            {{ t('article.notifyReplyOnReply') }}
+          </el-checkbox>
           <div class="reply-actions">
             <el-button type="primary" native-type="submit" :loading="submitting">
               提交回复
@@ -97,6 +100,9 @@ defineOptions({
   name: "BlogComment",
 });
 
+// 回复区文案多数仍为硬编码中文（既有状况），只有新增的邮件订阅勾选框走 i18n
+const { t } = useI18n();
+
 const props = defineProps<{
   comment: Comment;
 }>();
@@ -116,6 +122,9 @@ const replyForm = reactive({
   authorEmail: "",
   authorUrl: "",
   content: "",
+  // 邮件订阅开关，**默认不勾**（不接收）。不持久化（订阅是「同意收信」的意愿，
+  // 不像名字 / 邮箱那样只是少填一次的便利），提交后也不重置。
+  notifyEmail: false,
 });
 
 const normalizeUrl = (url: string) => {
@@ -174,10 +183,14 @@ const handleReply = async () => {
       articleId: props.comment.articleId,
       // 两级扁平结构：回复任意层的评论，都挂到其所属顶级评论下（第二层）
       parentId: props.comment.parentId ?? props.comment.id,
+      // 但「回复谁」要如实上报：parentId 已被规整到顶层，只有这个字段能让
+      // 二级回复者（= 本条评论的作者）在勾选了通知时真的收到邮件
+      replyToId: props.comment.id,
       authorName: replyForm.authorName,
       authorEmail: replyForm.authorEmail,
       authorUrl: replyForm.authorUrl || undefined,
       content: replyForm.content,
+      notifyEmail: replyForm.notifyEmail,
     });
     ElMessage.success("回复成功");
     showReply.value = false;
@@ -349,6 +362,18 @@ const handleReplySubmitted = () => {
 .reply-textarea-wrap {
   position: relative;
   margin-bottom: 12px;
+}
+
+/* 邮件订阅开关：位于输入框与操作按钮之间，默认不勾 */
+.reply-form-notify {
+  /* display: flex（块级）让它独占一行，不依赖后续元素是否块级，理由同文章页 */
+  display: flex;
+  margin-bottom: 12px;
+
+  :deep(.el-checkbox__label) {
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
 }
 
 .reply-actions {

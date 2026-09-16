@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +47,19 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(400, message));
+    }
+
+    /**
+     * 请求体解析失败（JSON 语法错 / 类型对不上，如布尔字段收到字符串）不要落到兜底的 500。
+     *
+     * 这是**客户端**错误：Express 侧同类输入由 express-validator 拦成 400，
+     * Spring 若返回 500 会让双端对「错误请求」的契约不一致（也把客户端错误计入了错误率指标）。
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        log.warn("请求体无法解析: {}", ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(400, "请求体格式不正确"));
     }
 
     @ExceptionHandler(Exception.class)

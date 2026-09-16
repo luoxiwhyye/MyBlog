@@ -30,6 +30,9 @@
             placement="bottom"
           />
         </div>
+        <el-checkbox v-model="form.notifyEmail" class="message-form-notify">
+          {{ t('messageBoard.notifyApproved') }}
+        </el-checkbox>
         <div class="message-form-actions">
           <el-button type="primary" native-type="submit" :loading="submitting">
             {{ t('messageBoard.submit') }}
@@ -169,11 +172,17 @@ const loadMore = async () => {
 };
 
 // 发言表单
+//
+// notifyEmail = 邮件订阅开关，**默认不勾**（不接收）。
+// 不写进 localStorage：名字 / 邮箱是「便于下次少填」的便利，而订阅是「同意收信」的
+// 意愿，两者性质不同 —— 持久化会让回访者在不知情的情况下持续订阅。
+// 提交后也不重置：同一次会话里勾了就是勾了，重置等于静默反悔。
 const form = reactive({
   authorName: "",
   authorEmail: "",
   authorUrl: "",
   content: "",
+  notifyEmail: false,
 });
 
 const submitting = ref(false);
@@ -213,6 +222,7 @@ const handleSubmit = async () => {
       authorEmail: form.authorEmail,
       authorUrl: form.authorUrl || undefined,
       content: form.content,
+      notifyEmail: form.notifyEmail,
     });
     ElMessage.success(t("messageBoard.success") || "留言成功");
     submitted.value = true;
@@ -292,6 +302,18 @@ const handleSubmit = async () => {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* 邮件订阅开关：位于输入框与提交按钮之间，默认不勾 */
+.message-form-notify {
+  /* display: flex（块级）让它独占一行，不依赖后续元素是否块级，理由同文章页 */
+  display: flex;
+  margin-top: 12px;
+
+  :deep(.el-checkbox__label) {
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
 }
 
 .message-loading {

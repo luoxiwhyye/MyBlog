@@ -99,6 +99,7 @@ CREATE TABLE `comment`  (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '评论ID',
   `article_id` int NOT NULL COMMENT '文章外键',
   `parent_id` int NULL DEFAULT NULL COMMENT '父评论ID，用于嵌套评论',
+  `reply_to_id` int NULL DEFAULT NULL COMMENT '被回复的具体评论ID（回复二级评论时才会与 parent_id 不同；只用于定位通知收件人）',
   `author_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '昵称',
   `author_email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '邮箱（用于Gravatar头像）',
   `author_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '访客个人博客/网站地址（选填）',
@@ -106,6 +107,7 @@ CREATE TABLE `comment`  (
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '评论内容',
   `status` enum('pending','approved','deleted') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '评论状态',
   `like_count` int NOT NULL DEFAULT 0 COMMENT '点赞数',
+  `notify_email` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否同意在有回复时邮件通知（0=不接收，默认）',
   -- `delete_token` varchar(64) NULL DEFAULT NULL COMMENT '删除凭证（可选：用于访客自删评论）',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
   PRIMARY KEY (`id`) USING BTREE,
@@ -116,7 +118,10 @@ CREATE TABLE `comment`  (
   INDEX `idx_comment_article_status`(`article_id` ASC, `status` ASC, `create_at` DESC) USING BTREE,--
   -- UNIQUE INDEX `uk_delete_token` (`delete_token`),
   CONSTRAINT `fk_comment_article` FOREIGN KEY (`article_id`) REFERENCES `article` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT `fk_comment_parent` FOREIGN KEY (`parent_id`) REFERENCES `comment` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  -- SET NULL 而非 CASCADE：目标评论被彻底删除时，只应丢失「回复谁」的信息，
+  -- 不能把回复者自己那条评论也删掉
+  CONSTRAINT `fk_comment_reply_to` FOREIGN KEY (`reply_to_id`) REFERENCES `comment` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '评论表（访客：昵称/邮箱/网址）' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -212,6 +217,7 @@ CREATE TABLE `message_board`  (
   `author_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '提交IP',
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '留言内容',
   `status` enum('pending','approved','deleted') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '留言状态',
+  `notify_email` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否同意在审核通过时邮件通知（0=不接收，默认）',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_message_status`(`status` ASC) USING BTREE,

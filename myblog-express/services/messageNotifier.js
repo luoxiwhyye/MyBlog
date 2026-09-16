@@ -71,4 +71,48 @@ const notifyBlogger = async ({
   });
 };
 
-module.exports = { notifyBlogger };
+/**
+ * 通知留言者「您的留言已通过审核」（收件人 = 留言者本人）。
+ *
+ * 与 notifyBlogger 是**两封不同的信**：留言板的收件人有两个 ——
+ * 新留言创建时通知博主（notifyBlogger），审核通过时通知留言者（本函数）。
+ * 留言之间没有回复链路，这里就是留言板那个勾选框唯一的触发点。
+ *
+ * 幂等：由调用方保证只在「非 approved → approved」时调用一次。
+ * fire-and-forget：内部自捕获异常，不影响状态更新主流程。
+ */
+const notifyApproved = async ({
+  authorName,
+  content,
+  siteUrl,
+  authorEmail,
+}) => {
+  if (!authorEmail) {
+    return { skipped: true };
+  }
+
+  const html = wrapTemplate(
+    "您的留言已通过审核",
+    `
+      <p>您好，${escapeHtml(authorName)}：</p>
+      <p>您在留言板写下的留言已通过审核，现在已公开展示：</p>
+      <blockquote style="margin:16px 0;padding:12px 16px;background:#f1f5f9;border-left:4px solid #475569;border-radius:0 8px 8px 0;color:#475569;">
+        ${formatCommentContent(content)}
+      </blockquote>
+      <p style="color:#94a3b8;font-size:13px;">
+        您勾选了「留言通过审核后，邮件通知我」才会收到本邮件；不勾选则不会有任何邮件。
+      </p>
+      <p style="margin-top:12px;">
+        <a href="${escapeHtml(siteUrl)}/message-board" style="color:#475569;">前往留言板查看 →</a>
+      </p>
+    `,
+  );
+
+  return sendMail({
+    to: authorEmail,
+    subject: `【${getSiteName()}】您的留言已通过审核`,
+    html,
+  });
+};
+
+module.exports = { notifyBlogger, notifyApproved };

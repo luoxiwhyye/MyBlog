@@ -24,7 +24,7 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 共用同一份数据库与�
 - **表情包管理与分组**、**仪表盘 / 未读红点**（`DashboardController`）、**前端错误日志聚合**（`/error-log`）
 - Redis 缓存（预热 / 命中统计 / 一键清空）、性能监控 `/metrics`、健康检查 `/health`、Actuator 指标端点
 - 图片上传并自动生成 WebP 变体
-- 评论 / 回复 / @提及邮件通知（无 SMTP 自动停用；**回复通知在审核通过后发送**）
+- **邮件通知 4 类**（无 SMTP 自动停用）：① 顶层评论 → 博主（创建即发）；② 回复 → 被回复者（**审核通过后**发一次）；③ 新留言 → 博主；④ 留言审核通过 → 留言者。②④ 的收件人需在提交时勾选「邮件通知我」（默认**不勾**，见 `comment.notify_email` / `message_board.notify_email`）
 
 > ℹ️ 与 Express 端的差异（运维脚本、时间字段格式、`.env` 不共用等）见根目录 [README.md](../README.md) 的「双后端差异」。
 

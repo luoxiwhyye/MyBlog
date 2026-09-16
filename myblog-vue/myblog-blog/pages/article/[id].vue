@@ -191,6 +191,9 @@
                   placeholder="写下您的评论..."
                 />
               </div>
+              <el-checkbox v-model="commentForm.notifyEmail" class="comment-form-notify">
+                {{ t('article.notifyReplyOnComment') }}
+              </el-checkbox>
               <el-button type="primary" native-type="submit" :loading="submitting" class="submit-btn">
                 发表评论
               </el-button>
@@ -377,6 +380,8 @@ const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
+// 评论区大部分文案仍是硬编码中文（既有状况），只有新增的邮件订阅勾选框走 i18n
+const { t } = useI18n();
 
 await settingsStore.ensureSettings();
 await bloggerStore.ensureProfile();
@@ -422,6 +427,10 @@ const commentForm = ref({
   authorEmail: "",
   authorUrl: "",
   content: "",
+  // 邮件订阅开关，**默认不勾**（不接收）。不写进 localStorage：名字 / 邮箱是
+  // 「便于下次少填」的便利，而订阅是「同意收信」的意愿 —— 持久化会让回访者在
+  // 不知情的情况下持续订阅。提交后也不重置，同一次会话里勾了就是勾了。
+  notifyEmail: false,
 });
 
 const commentFormRef = ref<any>(null);
@@ -819,6 +828,7 @@ const handleComment = async () => {
       authorEmail: commentForm.value.authorEmail,
       authorUrl: commentForm.value.authorUrl || undefined,
       content: commentForm.value.content,
+      notifyEmail: commentForm.value.notifyEmail,
     });
     ElMessage.success("评论已提交，审核通过后将显示。");
     saveCommentInfo();
@@ -1856,8 +1866,28 @@ useHead(() => {
   margin-bottom: 14px;
 }
 
+/* 邮件订阅开关：位于输入框与提交按钮之间，默认不勾 */
+.comment-form-notify {
+  /* ⚠️ 必须显式声明 display：el-checkbox 默认是 inline-flex，与同为行内级的
+     el-button 是「行内级兄弟」→ 两者会排在**同一行**（实测按钮紧贴复选框右侧、
+     水平间距 0，只因两者 margin 不同而错开几像素）。改成 flex（块级）后它独占一行，
+     按钮自动落到下一行。
+     不要靠「后面那个元素恰好是块级」来换行 —— 那样一旦按钮行改成 inline-flex
+     就会静默并排回去。 */
+  display: flex;
+  /* 与上方 comment-textarea-wrap 的 margin-bottom 同为 14px：
+     输入框 → 选项 → 主操作 三段等距 */
+  margin-bottom: 14px;
+
+  :deep(.el-checkbox__label) {
+    font-size: $font-size-sm;
+    color: var(--text-secondary);
+  }
+}
+
+/* 与上方元素的垂直间距完全由“前者”的 margin-bottom 决定，避免两处相加 */
 .submit-btn {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 .quick-nav {

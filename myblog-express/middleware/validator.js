@@ -64,6 +64,16 @@ const validateComment = [
     .optional({ values: "falsy" })
     .isInt({ min: 1 })
     .withMessage("parentId 必须是正整数"),
+  // 被回复的**具体**评论（回复二级评论时与 parentId 不同）；仅用于定位通知收件人
+  body("replyToId")
+    .optional({ values: "falsy" })
+    .isInt({ min: 1 })
+    .withMessage("replyToId 必须是正整数"),
+  // 邮件订阅开关（可选，默认不接收）：是否是 boolean 由控制器统一归一化
+  body("notifyEmail")
+    .optional({ values: "null" })
+    .isBoolean()
+    .withMessage("notifyEmail 必须是布尔值"),
 ];
 
 // 验证留言板提交
@@ -82,6 +92,11 @@ const validateMessage = [
     .trim()
     .isLength({ min: 1, max: 1000 })
     .withMessage("留言内容长度应在1-1000字符之间"),
+  // 邮件订阅开关（可选，默认不接收）
+  body("notifyEmail")
+    .optional({ values: "null" })
+    .isBoolean()
+    .withMessage("notifyEmail 必须是布尔值"),
 ];
 
 // 验证结果中间件

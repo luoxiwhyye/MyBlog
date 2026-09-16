@@ -81,16 +81,17 @@ public class CommentService {
 
             for (Comment reply : allReplies) {
                 repliesMap.computeIfAbsent(reply.getParentId(), k -> new ArrayList<>())
-                        .add(toMap(reply));
+                        .add(toMap(reply, isAdmin));
             }
 
             for (Comment comment : commentPage.getContent()) {
-                Map<String, Object> map = toMap(comment);
+                Map<String, Object> map = toMap(comment, isAdmin);
                 map.put("replies", repliesMap.getOrDefault(comment.getId(), List.of()));
                 list.add(map);
             }
         } else {
-            list = commentPage.getContent().stream().map(this::toMap).toList();
+            list = commentPage.getContent().stream()
+                    .map(c -> toMap(c, isAdmin)).toList();
         }
 
         return new PageResponse<>(list, commentPage.getTotalElements(), page, pageSize);
@@ -113,6 +114,10 @@ public class CommentService {
         Comment comment = new Comment();
         comment.setArticleId(request.getArticleId());
         comment.setParentId(request.getParentId());
+        // 「回复谁」单独记录：前端会把 parentId 规整到顶层，丢掉这个信息会让二级回复者
+        // 永远收不到通知（对标 Express createComment 的 replyToId）
+        comment.setReplyToId(request.getReplyToId() != null
+                ? request.getReplyToId() : request.getParentId());
         comment.setAuthorName(request.getAuthorName());
         comment.setAuthorEmail(request.getAuthorEmail());
         comment.setAuthorUrl(request.getAuthorUrl());
@@ -120,6 +125,8 @@ public class CommentService {
         comment.setContent(request.getContent());
         comment.setStatus("pending");
         comment.setLikeCount(0);
+        // 访客显式勾选才为 true；未传 / null = 不接收
+        comment.setNotifyEmail(Boolean.TRUE.equals(request.getNotifyEmail()));
 
         Comment saved = commentRepository.save(comment);
 
@@ -207,21 +214,34 @@ public class CommentService {
      * 与顶层评论「创建即通知博主」不同：回复等到 approved 后才发信，避免未审核的
      * 垃圾 / 恶意回复直接打扰被回复者（邮件没有退订途径），与「审核通过后才展示」
      * 的语义一致。（对标 Express controllers/commentController.js 的 notifyCommentReplied）
+     *
+     * 订阅开关：收件人（= 被回复的那条评论的作者）必须勾选过「有人回复我时，邮件通知我」。
+     * 列默认 0 → 存量评论者不再收到回复邮件，这是「默认不接收」的预期结果。
+     *
+     * ⚠️ 收件人是 replyToId 指向的那条评论的作者，不是 parentId：评论是两级扁平结构，
+     * 回复二级评论时 parentId 已被规整到顶层，只有 replyToId 才代表「你回复的是谁」。
+     * replyToId 为空时（存量数据 / 旧客户端）回退用 parentId，与改动前的行为一致。
      */
     private void notifyRepliedAfterApproved(Integer commentId) {
         Comment reply = commentRepository.findById(commentId).orElse(null);
         if (reply == null || reply.getParentId() == null) {
             return;
         }
-        Comment parent = commentRepository.findById(reply.getParentId()).orElse(null);
-        if (parent == null) {
+        Integer targetId = reply.getReplyToId() != null
+                ? reply.getReplyToId() : reply.getParentId();
+        Comment recipient = commentRepository.findById(targetId).orElse(null);
+        if (recipient == null) {
+            return;
+        }
+        // 未订阅就静默短路（与「收件人邮箱为空」同一种跳过语义）
+        if (!Boolean.TRUE.equals(recipient.getNotifyEmail())) {
             return;
         }
         Article article = articleRepository.findByIdWithDetails(reply.getArticleId()).orElse(null);
         if (article == null) {
             return;
         }
-        commentNotifier.notifyReplied(article, parent, reply.getAuthorName(), reply.getContent());
+        commentNotifier.notifyReplied(article, recipient, reply.getAuthorName(), reply.getContent());
     }
 
     @Transactional
@@ -236,6 +256,15 @@ public class CommentService {
     }
 
     private Map<String, Object> toMap(Comment c) {
+        return toMap(c, false);
+    }
+
+    /**
+     * @param includeNotifyEmail 仅管理端为 true：「接收通知」是访客的订阅偏好，
+     *                           公开列表没必要一并发出（与 Express 的 getComments 一致）。
+     *                           注意该键必须追加在最后，保证与 Express 的 JSON 键序一致。
+     */
+    private Map<String, Object> toMap(Comment c, boolean includeNotifyEmail) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", c.getId());
         map.put("articleId", c.getArticleId());
@@ -248,6 +277,9 @@ public class CommentService {
         map.put("likeCount", c.getLikeCount());
         map.put("status", c.getStatus());
         map.put("createdAt", c.getCreatedAt());
+        if (includeNotifyEmail) {
+            map.put("notifyEmail", Boolean.TRUE.equals(c.getNotifyEmail()));
+        }
         return map;
     }
 }

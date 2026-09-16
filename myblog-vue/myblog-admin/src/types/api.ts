@@ -86,6 +86,8 @@ export interface Comment {
   status: 'pending' | 'approved' | 'deleted'
   createdAt: string
   replies?: Comment[]
+  /** 访客是否勾选「有人回复我时，邮件通知我」；仅管理端列表返回 */
+  notifyEmail?: boolean
 }
 
 // 网站配置类型

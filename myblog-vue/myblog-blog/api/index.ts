@@ -74,10 +74,13 @@ export const commentApi = {
   create: (data: {
     articleId: number;
     parentId?: number;
+    /** 被回复的**具体**评论（回复二级评论时与 parentId 不同；仅用于定位通知收件人） */
+    replyToId?: number;
     authorName: string;
     authorEmail: string;
     authorUrl?: string;
     content: string;
+    notifyEmail?: boolean;
   }): Promise<ApiResponse<Comment>> => request.post("/comments", data),
 
   like: (id: number): Promise<ApiResponse<void>> =>
@@ -104,6 +107,7 @@ export const messageBoardApi = {
     authorEmail: string;
     authorUrl?: string;
     content: string;
+    notifyEmail?: boolean;
   }): Promise<ApiResponse<{ id: number }>> =>
     request.post("/message-board", data),
 };

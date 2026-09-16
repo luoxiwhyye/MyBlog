@@ -20,6 +20,9 @@ public class MessageBoardRequest {
     @Size(max = 1000, message = "留言内容长度应在1-1000字符之间")
     private String content;
 
+    /** 邮件订阅开关（可选，缺省 = 不接收） */
+    private Boolean notifyEmail;
+
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
 
@@ -31,4 +34,7 @@ public class MessageBoardRequest {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public Boolean getNotifyEmail() { return notifyEmail; }
+    public void setNotifyEmail(Boolean notifyEmail) { this.notifyEmail = notifyEmail; }
 }

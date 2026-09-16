@@ -15,12 +15,15 @@ const getComments = async (
   isAdmin = false,
   options = {},
 ) => {
+  // 「接收通知」只对管理端返回：公开列表没必要把访客的订阅偏好也发出去
+  const notifyColumn = isAdmin ? ", c.notify_email AS notifyEmail" : "";
+
   let query = `
     SELECT c.id, c.article_id AS articleId, c.parent_id AS parentId,
            c.author_name AS authorName, c.author_email AS authorEmail,
            c.author_url AS authorUrl, c.author_ip AS authorIp,
            c.content, c.like_count AS likeCount,
-           c.status, c.create_at AS createdAt
+           c.status, c.create_at AS createdAt${notifyColumn}
     FROM comment c
     WHERE 1=1
   `;
@@ -142,17 +145,21 @@ const getRepliesBatch = async (parentIds) => {
 const createComment = async (commentData) => {
   const [result] = await pool.query(
     `INSERT INTO comment
-     (article_id, parent_id, author_name, author_email, author_url, author_ip, content, status, create_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+     (article_id, parent_id, reply_to_id, author_name, author_email, author_url, author_ip, content, status, notify_email, create_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       commentData.articleId,
       commentData.parentId || null,
+      // 被回复的**具体**评论（回复二级评论时与 parentId 不同）：仅用于定位通知收件人
+      commentData.replyToId || null,
       commentData.authorName,
       commentData.authorEmail,
       commentData.authorUrl || null,
       commentData.authorIp || "",
       commentData.content,
       "pending",
+      // 访客显式勾选才为 1；未勾选 / 未传 = 0（不接收）
+      commentData.notifyEmail ? 1 : 0,
     ],
   );
   return result.insertId;

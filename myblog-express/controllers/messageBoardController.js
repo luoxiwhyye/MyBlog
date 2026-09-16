@@ -5,7 +5,10 @@ const {
   getPaginationParams,
   getPaginationData,
 } = require("../utils/pagination");
-const { notifyBlogger } = require("../services/messageNotifier");
+const {
+  notifyBlogger,
+  notifyApproved,
+} = require("../services/messageNotifier");
 
 /**
  * 获取留言列表
@@ -46,7 +49,8 @@ const getMessages = async (req, res, next) => {
  */
 const createMessage = async (req, res, next) => {
   try {
-    const { authorName, authorEmail, authorUrl, content } = req.body;
+    const { authorName, authorEmail, authorUrl, content, notifyEmail } =
+      req.body;
 
     if (!authorName || !authorEmail || !content) {
       return error(res, "必填字段不能为空", 400);
@@ -70,6 +74,8 @@ const createMessage = async (req, res, next) => {
       authorUrl: authorUrl || null,
       authorIp: ip,
       content,
+      // 邮件订阅开关：只有访客显式勾选才为 true（未传 / 非 true 一律不接收）
+      notifyEmail: notifyEmail === true || notifyEmail === "true",
     });
 
     // 异步通知博主（fire-and-forget，失败不影响主流程）
@@ -116,6 +122,25 @@ const updateMessageStatus = async (req, res, next) => {
     const updated = await messageModel.updateStatus(id, status);
     if (!updated) {
       return error(res, "更新失败", 500);
+    }
+
+    // 通知留言者本人「留言已通过审核」（fire-and-forget）：
+    // 留言板没有回复链路，这就是那个勾选框唯一的触发点。
+    // 只在「非 approved → approved」且留言者勾选过「审核通过后通知我」时发一次，
+    // 重复点「通过」不会重复发信。
+    if (
+      status === "approved" &&
+      message.status !== "approved" &&
+      Number(message.notify_email) === 1
+    ) {
+      notifyApproved({
+        authorName: message.author_name,
+        content: message.content,
+        siteUrl: process.env.SITE_URL || "",
+        authorEmail: message.author_email,
+      }).catch((err) => {
+        console.error("[messageNotifier] 审核通知发送失败:", err.message);
+      });
     }
 
     success(res, null, "留言状态已更新");

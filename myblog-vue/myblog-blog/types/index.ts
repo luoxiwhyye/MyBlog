@@ -64,6 +64,8 @@ export interface Comment {
   createdAt: string;
   createAt?: string;
   replies?: Comment[];
+  /** 是否同意「有人回复我时，邮件通知我」（提交时使用；默认不传 = 不接收） */
+  notifyEmail?: boolean;
 }
 
 export interface ArticleListParams {
@@ -148,6 +150,8 @@ export interface MessageBoard {
   content: string;
   status: "pending" | "approved" | "deleted";
   createdAt: string;
+  /** 是否同意「留言通过审核后，邮件通知我」（提交时使用；默认不传 = 不接收） */
+  notifyEmail?: boolean;
 }
 
 export interface BloggerProfile {
