@@ -51,8 +51,8 @@ public class UploadService {
         Path filePath = uploadDir.resolve(filename);
         file.transferTo(filePath.toFile());
 
-        // 异步生成 WebP 变体（_thumb.webp 缩略图 + .webp 主图），失败不影响原图
-        generateWebpVariants(filePath, filename);
+        // 生成 WebP 变体（_thumb.webp 缩略图 + .webp 主图），失败不影响原图
+        generateVariantsFor(filePath);
 
         // Return full URL
         String relativePath = subDir + "/" + filename;
@@ -65,26 +65,38 @@ public class UploadService {
      *   - 缩略图 _thumb.webp：最长边 ≤ 400px
      * 前端通过 /uploads/xxx_thumb.webp、/uploads/xxx.webp 按需取用，失败自动回退原图。
      * WebP 依赖不可用或转换失败时静默跳过（仅日志）。
+     *
+     * <p>上传路径与 `regenerate-thumbs` 运维工具**共用这一个实现**：变体的尺寸与
+     * 质量只有一处定义，否则回填出来的历史图会与新上传的图不一致。
+     *
+     * @return 两个变体都已落盘返回 true；源图本身是 webp/avif、读不出图像、
+     *         或环境没有 WebP 编码器时返回 false
      */
-    private void generateWebpVariants(Path originalPath, String filename) {
+    public boolean generateVariantsFor(Path imagePath) {
         try {
+            String filename = imagePath.getFileName().toString();
             String ext = extensionOf(filename).toLowerCase();
             if (".webp".equals(ext) || ".avif".equals(ext)) {
-                return; // 已是 WebP/AVIF，不重复转换
+                return false; // 已是 WebP/AVIF，不重复转换
             }
 
-            BufferedImage source = ImageIO.read(originalPath.toFile());
+            BufferedImage source = ImageIO.read(imagePath.toFile());
             if (source == null) {
-                return;
+                return false;
             }
 
             String baseName = filename.substring(0, filename.length() - ext.length());
-            Path dir = originalPath.getParent();
+            Path dir = imagePath.getParent();
+            Path webp = dir.resolve(baseName + ".webp");
+            Path thumb = dir.resolve(baseName + "_thumb.webp");
 
-            writeWebP(resize(source, 1200), dir.resolve(baseName + ".webp"), 0.80f);
-            writeWebP(resize(source, 400), dir.resolve(baseName + "_thumb.webp"), 0.70f);
+            writeWebP(resize(source, 1200), webp, 0.80f);
+            writeWebP(resize(source, 400), thumb, 0.70f);
+
+            return Files.exists(webp) && Files.exists(thumb);
         } catch (Exception e) {
-            log.warn("[upload] WebP 转换失败（不影响原图上传）: {}", e.getMessage());
+            log.warn("[upload] WebP 变体生成失败: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -125,12 +137,34 @@ public class UploadService {
             ImageWriteParam param = writer.getDefaultWriteParam();
             if (param.canWriteCompressed()) {
                 param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                // ⚠️ 必须显式指定压缩类型：webp-imageio 在 compressionType 为 null 时直接抛
+                //    `No compression type set!`（2026-09-16 实测）。它只认 "Lossy" / "Lossless"。
+                //    此前这里只设了 mode 与 quality，于是 Spring 侧的 WebP 变体**从未生成成功过**
+                //    —— 异常被 catch 掉、只打一行 warn，所以一直没人发现（表现为前端拿不到
+                //    xxx.webp / xxx_thumb.webp、静默回退原图）。
+                String type = chooseCompressionType(param.getCompressionTypes());
+                if (type != null) {
+                    param.setCompressionType(type);
+                }
                 param.setCompressionQuality(quality);
             }
             writer.write(null, new IIOImage(image, null, null), param);
         } finally {
             writer.dispose();
         }
+    }
+
+    /** 优先选「有损」类型（与 Express 侧 sharp 的 `webp({ quality })` 一致）；取不到则用第一个 */
+    private static String chooseCompressionType(String[] types) {
+        if (types == null || types.length == 0) {
+            return null;
+        }
+        for (String type : types) {
+            if (type != null && type.toLowerCase().contains("lossy")) {
+                return type;
+            }
+        }
+        return types[0];
     }
 
     private String determineSubDir(String scene) {

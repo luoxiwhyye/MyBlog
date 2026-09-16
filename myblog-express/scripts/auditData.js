@@ -123,6 +123,10 @@ const EXPECTED_COLUMNS = [
   ["emoji", "group_id"],
   ["emoji", "type"],
   ["comment", "parent_id"],
+  // 2026-09-16 批 4：订阅开关 + 「回复谁」（迁移脚本加的列，同样要进安全网）
+  ["comment", "reply_to_id"],
+  ["comment", "notify_email"],
+  ["message_board", "notify_email"],
   ["friend_link", "is_sticky"],
 ];
 
@@ -133,6 +137,7 @@ const EXPECTED_FOREIGN_KEYS = [
   ["article_label", "fk_article_label_label"],
   ["comment", "fk_comment_article"],
   ["comment", "fk_comment_parent"],
+  ["comment", "fk_comment_reply_to"],
   ["emoji", "fk_emoji_group"],
 ];
 
@@ -318,6 +323,32 @@ const checkSemantics = async () => {
   );
   if (Number(selfRefs) > 0) {
     report("error", `${selfRefs} 条评论的 parent_id 指向自己`);
+  }
+
+  // 4) 「回复谁」（reply_to_id）与父评论必须同属一篇文章 —— 由批 4 新增的列引入。
+  //    外键只保证「该评论存在」，管不到「同属一篇文章」；跨文章会让回复通知发给无关的人。
+  const [crossReplyTo] = await pool.query(
+    `SELECT c.id, c.article_id AS articleId, c.reply_to_id AS replyToId, t.article_id AS targetArticleId
+     FROM comment c JOIN comment t ON c.reply_to_id = t.id
+     WHERE c.article_id <> t.article_id`,
+  );
+  if (crossReplyTo.length) {
+    report(
+      "error",
+      `${crossReplyTo.length} 条回复的 reply_to_id 指向另一篇文章的评论（回复通知会发给无关的人）`,
+      crossReplyTo.map(
+        (r) =>
+          `评论#${r.id}（文章#${r.articleId}）→ 目标#${r.replyToId}（文章#${r.targetArticleId}）`,
+      ),
+    );
+  }
+
+  // 5) reply_to_id 指向自己
+  const [[{ replyToSelfRefs }]] = await pool.query(
+    `SELECT COUNT(*) AS replyToSelfRefs FROM comment WHERE reply_to_id = id`,
+  );
+  if (Number(replyToSelfRefs) > 0) {
+    report("error", `${replyToSelfRefs} 条评论的 reply_to_id 指向自己`);
   }
 };
 

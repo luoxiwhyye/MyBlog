@@ -125,9 +125,10 @@ myblog-admin      Up
 | API 接口 | [http://localhost:3000/api/v1](http://localhost:3000/api/v1) |
 | 健康检查 | [http://localhost:3000/health](http://localhost:3000/health) |
 
-### 6. 初始化博主账号（仅 Express 后端自动完成）
+### 6. 初始化博主账号（两端均会自动完成）
 
-如果是首次启动，Express 后端会自动创建博主账号。默认凭据：
+如果是首次启动，后端会自动创建博主账号（Express 的 `utils/initBlogger.js` / Spring 的
+`BlogInitRunner`）。默认凭据：
 
 | 用户名  | 密码       |
 | ------- | ---------- |

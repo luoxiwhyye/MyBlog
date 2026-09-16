@@ -74,20 +74,39 @@ test/          # 集成测试
 
 `scripts/` 下的脚本都可直接 `node scripts/<name>.js` 执行，不影响运行中的服务：
 
-> 这些脚本仅在 Express 侧提供（Spring Boot 侧没有对应实现）。它们直连同一份 MySQL / Redis，
-> 不依赖后端进程，因此即使运行的是 Spring Boot 后端，仍可在 `myblog-express/` 目录下执行。
+> 这些脚本**只连 MySQL / Redis / Meilisearch，不依赖后端进程**，因此即使运行的是
+> Spring Boot 后端，仍可在 `myblog-express/` 目录下执行。
+> 其中 4 个在 Spring 侧有**等价工具**（`--spring.profiles.active=tool`，见
+> [myblog-springboot/README.md](../myblog-springboot/README.md#运维工具tool-profile)）：
+> `auditData` ↔ `--tool=audit`、`verifyUploads` ↔ `--tool=verify-uploads`、
+> `syncMeili` ↔ `--tool=sync-meili`、`regenerateThumbs` ↔ `--tool=regenerate-thumbs`。
 
-- `clearCache.js` — 查看 / 按前缀清除 Redis 缓存（见下）
-- `verifyUploads.js` — 上传图片体检：失联引用、多键共用同一图、孤儿文件（只读）
+**只读体检（价值最高，随时可跑）**
+
+- `auditData.js` — **数据层**体检：结构安全网（表 / 列 / 外键 / 唯一索引）、取值越界
+  （`content_format` / `view_count` / 布尔设置）、语义完整性（跨文章父评论 / 三级嵌套 / 自环 /
+  `reply_to_id` 跨文章）、计数与使用情况、异常值。`STRICT=1` 时**仅当有 error** 才退出码 1
+- `verifyUploads.js` — **文件层**体检：6 类引用（设置图 / 友链头像 / 博主头像 / 表情图 /
+  文章封面 / 正文图）× 5 个目录，查失联 + 多键共用同一图 + 孤儿文件。
+  `STRICT=1` 时**含孤儿也算问题**
+
+**运维动作**
+
+- `clearCache.js` — 查看 / 按前缀清除 Redis 缓存（`--prefix=` / `--all` / `DRY_RUN=1`）
 - `syncMeili.js` — Meilisearch 索引回填 / 重建（`REBUILD=1` 先删索引）
-- `regenerateThumbs.js` — 为历史图片补生成 WebP / 缩略图变体
-- `initBlogger.js` — 初始化博主账号
-- `addUniqueNames.js` — 标签 / 分类重名合并 + 唯一索引
-- `addContentFormat.js` — 回填文章 `content_format`
-- `addMobileBgSettings.js` — 补移动端背景图设置键
-- `migrateEmojiGroup.js` — 表情分组表迁移
+- `regenerateThumbs.js` — 为历史图片补生成 WebP 主图 / 缩略图变体
+- `initBlogger.js` — 初始化博主账号（也有 `npm run init-blogger`）
 
-迁移类脚本均幂等、可重复执行；`addUniqueNames.js` 与 `clearCache.js` 支持 `DRY_RUN=1` 预览。
+**一次性历史迁移（新库直接导 `myblog-1.1.sql` 即可，不需在 Spring 侧重做）**
+
+- `addUniqueNames.js` — 标签 / 分类重名合并 + 唯一索引（`DRY_RUN=1`）
+- `addContentFormat.js` — 新增 `article.content_format` 列并回填
+- `addMobileBgSettings.js` — 补移动端背景图设置键
+- `migrateEmojiGroup.js` — 表情分组表迁移（建表 + 外键 + 枚举扩容）
+- `removeSpamStatus.js` — 收敛评论 `spam` 状态（`--to=` 必填 / `DRY_RUN=1`，存量>0 且未传 `--to` 时**中止不动手**）
+- `addNotifyEmailColumns.js` — 评论 / 留言订阅开关 `notify_email` + 回复目标 `reply_to_id`（`DRY_RUN=1`）
+
+迁移类脚本均幂等、可重复执行；支持 `DRY_RUN` 的脚本会先打印将要执行的语句。
 
 ### 缓存清理
 

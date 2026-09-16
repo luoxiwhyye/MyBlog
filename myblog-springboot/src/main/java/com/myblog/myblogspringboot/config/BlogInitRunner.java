@@ -1,15 +1,18 @@
 package com.myblog.myblogspringboot.config;
 
-import com.myblog.myblogspringboot.entity.Blogger;
-import com.myblog.myblogspringboot.repository.BloggerRepository;
+import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import com.myblog.myblogspringboot.entity.Blogger;
+import com.myblog.myblogspringboot.repository.BloggerRepository;
 
 @Component
 public class BlogInitRunner implements CommandLineRunner {
@@ -18,6 +21,7 @@ public class BlogInitRunner implements CommandLineRunner {
 
     private final BloggerRepository bloggerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Environment environment;
 
     @Value("${app.blogger.username:admin}")
     private String defaultUsername;
@@ -31,13 +35,22 @@ public class BlogInitRunner implements CommandLineRunner {
     @Value("${app.blogger.email:admin@blog.com}")
     private String defaultEmail;
 
-    public BlogInitRunner(BloggerRepository bloggerRepository, PasswordEncoder passwordEncoder) {
+    public BlogInitRunner(BloggerRepository bloggerRepository, PasswordEncoder passwordEncoder,
+                          Environment environment) {
         this.bloggerRepository = bloggerRepository;
         this.passwordEncoder = passwordEncoder;
+        this.environment = environment;
     }
 
     @Override
     public void run(String... args) {
+        // tool profile（运维工具）下不做任何初始化写入：
+        // audit / verify-uploads 声称「只读」，若启动时顺手建了账号，这句话就不成立了。
+        if (environment.acceptsProfiles(Profiles.of("tool"))) {
+            log.info("ℹ️  tool 模式：跳过博主初始化");
+            return;
+        }
+
         // ── 生产环境安全检查：禁止使用默认密码 ──
         String activeProfile = System.getProperty("spring.profiles.active", "");
         if ("production".equalsIgnoreCase(activeProfile)

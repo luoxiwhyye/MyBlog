@@ -292,7 +292,7 @@ npm run dev               # http://localhost:5173
 
 | 维度 | Express | Spring Boot | 说明 |
 | --- | --- | --- | --- |
-| 运维脚本 | `myblog-express/scripts/` 下 11 个（清缓存 / 数据体检 / 文件体检 / 回填索引 / 状态迁移 …） | 无 | 脚本直连同一份 MySQL / Redis，不依赖后端进程；用 Spring 部署时仍可在 `myblog-express/` 目录下执行 |
+| 运维脚本 | `myblog-express/scripts/` 下 12 个（数据体检 / 文件体检 / 清缓存 / 回填索引 / 补缩略图 / 历史迁移 …） | 4 个工具的等价实现（`--spring.profiles.active=tool`：audit / verify-uploads / sync-meili / regenerate-thumbs），历史迁移类**不移植** | 脚本直连同一份 MySQL / Redis，不依赖后端进程；用 Spring 部署时可用 Spring 工具，也可仍到 `myblog-express/` 下跑（见 [Spring 运维工具](./myblog-springboot/README.md#运维工具tool-profile)） |
 | `.env` | `JWT_EXPIRES_IN=7d`（时长字符串） | `JWT_EXPIRES_IN=604800000`（毫秒） | **两端不能共用同一份 `.env`** |
 | 可观测 | 自研 `/metrics` + winston 日志 | 额外提供 Actuator + Micrometer（`/actuator/health`、`/actuator/prometheus`） | Spring 侧增量，非缺口 |
 | 缓存降级 | Redis 不可用时直查数据库 | Redis 不可用时降级为内存缓存 | 行为差异，不影响接口契约 |

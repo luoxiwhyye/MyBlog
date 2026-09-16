@@ -1,5 +1,6 @@
 package com.myblog.myblogspringboot.service;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -40,6 +42,10 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final MeilisearchService meilisearchService;
+
+    /** 索引里 createdAt 的源时区（与写库时区一致，见 config/JacksonConfig.java 的说明） */
+    @Value("${app.time-zone:Asia/Shanghai}")
+    private String timeZone;
 
     public ArticleService(ArticleRepository articleRepository, MeilisearchService meilisearchService) {
         this.articleRepository = articleRepository;
@@ -429,7 +435,14 @@ public class ArticleService {
     }
 
     /**
-     * 同步文章到 Meilisearch
+     * 同步文章到 Meilisearch。
+     *
+     * <p>⚠️ `createdAt` 必须是 **epoch 毫秒（number）**，不能是字符串：
+     * Meili 把它当 sortable 属性用（`sortableAttributes`），Express 侧（增量与全量回填）
+     * 写的都是 `new Date(...).getTime()`。此前这里写的是 `LocalDateTime.toString()`
+     * （如 `2026-09-13T19:10:49`），于是同一个索引里混了两种类型 ——
+     * 排序时行为不可预期，且与全量回填出来的文档长得不一样（谁后写就对）。
+     * 源时区用 `app.time-zone`（与写库时区一致），否则整体偏移 8 小时且不报错。
      */
     private void syncToMeilisearch(ArticleDTO dto) {
         Map<String, Object> doc = new LinkedHashMap<>();
@@ -441,7 +454,11 @@ public class ArticleService {
         doc.put("typeId", dto.getTypeId());
         doc.put("coverImage", dto.getCoverImage() != null ? dto.getCoverImage() : "");
         doc.put("viewCount", dto.getViewCount());
-        doc.put("createdAt", dto.getCreatedAt() != null ? dto.getCreatedAt().toString() : "");
+        doc.put("createdAt", dto.getCreatedAt() == null
+                ? System.currentTimeMillis()
+                : dto.getCreatedAt().atZone(ZoneId.of(timeZone)).toInstant().toEpochMilli());
+        // 与 Express 文档同形（那边是 article.deletedAt || null）；已发布文章的 deletedAt 恒为 null
+        doc.put("deletedAt", null);
         meilisearchService.syncArticle(doc);
     }
 

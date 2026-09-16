@@ -70,6 +70,38 @@ java -jar target/myblog-springboot-0.0.1-SNAPSHOT.jar
 
 > 注意：VS Code Java 分析器可能误报 `instanceof` 模式匹配/unboxing，实际以 `./mvnw -q compile` 为准。
 
+## 运维工具（tool profile）
+
+Spring 侧内置 4 个运维工具，用 **`tool` profile** 运行：不启 Web 容器、不占端口，
+跑完即退出（退出码可用于 CI）。
+
+```bash
+java -jar target/myblog-springboot-0.0.1-SNAPSHOT.jar --spring.profiles.active=tool --tool=list
+```
+
+| `--tool=` | 对应 Express 脚本 | 作用 | 是否写数据 |
+| --- | --- | --- | --- |
+| `audit` | `scripts/auditData.js` | **数据层体检**：结构安全网（表/列/外键/唯一索引）、取值越界、语义完整性（跨文章父评论 / 三级嵌套 / 自环 / `reply_to_id`）、计数与使用情况、异常值 | 只读 |
+| `verify-uploads` | `scripts/verifyUploads.js` | **文件层体检**：6 类引用（设置图 / 友链头像 / 博主头像 / 表情图 / 文章封面 / 正文图）× 5 个目录，查失联 + 多键共用同一图 + 孤儿文件 | 只读 |
+| `sync-meili` | `scripts/syncMeili.js` | Meilisearch 索引**全量回填**（历史文章不会自动入索引） | 写索引 |
+| `regenerate-thumbs` | `scripts/regenerateThumbs.js` | 为历史图片补生成 `.webp` 主图 / `_thumb.webp` 缩略图 | 写文件 |
+
+通用选项：`--strict`（有问题时退出码 1）、`--path=<dir>`（覆盖 uploads 根目录，
+默认取 `app.upload.path`）、`--rebuild`（仅 `sync-meili`：先删索引再重建）。
+
+几个使用要点：
+
+- **退出码**：`0` 正常 / `1` 工具自身失败或（带 `--strict` 时）检出问题 / `2` 用法错误
+  （未指定 `--tool` 或工具名写错）。未指定工具时会打印帮助。
+- **`tool` 模式下会跳过博主初始化**，保证 `audit` / `verify-uploads` 声称的「只读」是真的。
+- **中文输出**：Java 17 在中文 Windows 上默认按 GBK 输出控制台。想看到正常中文
+  请用 PowerShell 7（默认 UTF-8）或先 `chcp 65001`；也可加
+  `-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8`。
+- `sync-meili --rebuild` 会**先删索引**，删到重建之间有短暂的空窗期（搜索会降级），
+  生产上建议在低峰执行。
+- 两个体检工具的工作方式与 Express 侧一致：**只查 DB 约束管不到的东西**
+  （外键能保证的引用存在性不再重复查，改为校验约束本身是否还在）。
+
 ## 主要目录
 
 ```
@@ -81,7 +113,8 @@ src/main/java/com/myblog/myblogspringboot/
 ├── exception/    # 全局异常处理
 ├── repository/   # Spring Data JPA Repository
 ├── security/     # JWT Token 认证
-└── service/      # 业务逻辑（含 Mail/评论通知/缓存统计）
+├── service/      # 业务逻辑（含 Mail/评论通知/缓存统计）
+└── tool/         # 运维工具（tool profile；audit / verify-uploads / sync-meili / regenerate-thumbs）
 ```
 
 ## 环境变量

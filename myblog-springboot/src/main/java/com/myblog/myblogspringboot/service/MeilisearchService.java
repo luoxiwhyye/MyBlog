@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,6 +29,20 @@ public class MeilisearchService {
 
     private static final Logger log = LoggerFactory.getLogger(MeilisearchService.class);
     private static final String INDEX_NAME = "articles";
+    private static final String PRIMARY_KEY = "id";
+
+    /** 索引设置任务 / 建索引任务的等待上限 */
+    private static final long TASK_TIMEOUT_MILLIS = 30_000L;
+
+    /**
+     * 索引设置 —— <b>必须与 Express `services/meilisearch.js` 的 `getIndex()` 完全一致</b>。
+     * PATCH settings 是「整体替换该键」，两个后端谁最后启动谁说了算；
+     * 值不一致会让对方的 filter / sort 静默失效（例如 Express 会把 `deletedAt` 放进 filterable）。
+     */
+    private static final List<String> FILTERABLE_ATTRIBUTES = List.of("status", "typeId", "deletedAt");
+    private static final List<String> SEARCHABLE_ATTRIBUTES = List.of("title", "summary", "content");
+    private static final List<String> SORTABLE_ATTRIBUTES = List.of("createdAt", "viewCount");
+
 
     @Value("${app.meilisearch.host:127.0.0.1}")
     private String host;
@@ -38,7 +53,20 @@ public class MeilisearchService {
     @Value("${app.meilisearch.master-key:}")
     private String masterKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    /**
+     * HTTP 客户端。
+     *
+     * <p>⚠️ 必须用 {@link JdkClientHttpRequestFactory}（JDK HttpClient），**不能用
+     * `new RestTemplate()` 的默认实现**：默认的 `SimpleClientHttpRequestFactory` 基于
+     * `HttpURLConnection`，**不支持 PATCH**，请求会直接抛
+     * `Invalid HTTP method: PATCH`（2026-09-16 实测）。
+     * 而 Meili 的索引设置（filterable / searchable / sortable）与主键修正都只能走 PATCH
+     * —— 于是那些调用**从未成功过**，只是失败被 catch 掉只打一行日志。
+     * 后果：Spring 单独部署时索引没有任何 filterable 属性 → `filter=status = published`
+     * 报 400 → 搜索永远静默降级为 SQL LIKE（第 7 轮修掉 URI 二次编码后仍搜不出结果，
+     * 根因就在这里）。
+     */
+    private final RestTemplate restTemplate = new RestTemplate(new JdkClientHttpRequestFactory());
     private boolean available = false;
     private String baseUrl;
 
@@ -58,29 +86,197 @@ public class MeilisearchService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void ensureIndex() {
+    /**
+     * 确保索引存在且 filterable / searchable / sortable 设置齐备。
+     *
+     * <p>供 `sync-meili` 全量回填工具调用（对标 Express `services/meilisearch.js` 的
+     * `getIndex()`）：**不能只 POST documents** —— 索引不存在时 Meili 会隐式建一个
+     * 没有任何设置的索引，于是 `filter=status = published` 报 400、搜索永远降级 SQL LIKE。
+     *
+     * @return 索引是否就绪
+     */
+    public boolean ensureIndexReady() {
         try {
-            restTemplate.exchange(baseUrl + "/indexes/" + INDEX_NAME, HttpMethod.GET,
-                    new HttpEntity<>(authHeaders()), Map.class);
+            ensureIndex();
+            return true;
         } catch (Exception e) {
-            Map<String, Object> body = new LinkedHashMap<>();
-            body.put("uid", INDEX_NAME);
-            body.put("primaryKey", "id");
-            restTemplate.postForEntity(baseUrl + "/indexes",
-                    new HttpEntity<>(body, authHeaders()), Map.class);
-            updateSettings("filterableAttributes", List.of("status", "typeId"));
-            updateSettings("searchableAttributes", List.of("title", "summary", "content"));
-            updateSettings("sortableAttributes", List.of("createdAt", "viewCount"));
+            log.warn("Meilisearch 索引初始化失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 删除索引（供全量重建；索引本来不存在也视为成功）。
+     *
+     * @return 是否删除成功
+     */
+    public boolean deleteIndex() {
+        try {
+            restTemplate.exchange(baseUrl + "/indexes/" + INDEX_NAME, HttpMethod.DELETE,
+                    new HttpEntity<>(authHeaders()), Map.class);
+            return true;
+        } catch (Exception e) {
+            // 404 = 本来就不存在，等价于「已删干净」
+            return e.getMessage() != null && e.getMessage().contains("404");
+        }
+    }
+
+    /**
+     * 批量写入文档（对标 Express `index.addDocuments(batch)`）。
+     *
+     * @return Meili 的 taskUid；失败返回 null
+     */
+    @SuppressWarnings("unchecked")
+    public Long addDocuments(List<Map<String, Object>> docs) {
+        if (docs == null || docs.isEmpty()) {
+            return null;
+        }
+        try {
+            ResponseEntity<Map> resp = restTemplate.postForEntity(
+                    baseUrl + "/indexes/" + INDEX_NAME + "/documents",
+                    new HttpEntity<>(docs, authHeaders()), Map.class);
+            Object taskUid = resp.getBody() == null ? null : resp.getBody().get("taskUid");
+            return taskUid instanceof Number number ? number.longValue() : null;
+        } catch (Exception e) {
+            log.warn("Meilisearch 批量写入失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 等待 task 完成（对标 Express `client.waitForTask(taskUid)`）。
+     *
+     * @return `succeeded` / task 自身返回的状态 / `timeout`
+     */
+    @SuppressWarnings("unchecked")
+    public String waitForTask(long taskUid, long timeoutMillis) {
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                ResponseEntity<Map> resp = restTemplate.exchange(
+                        baseUrl + "/tasks/" + taskUid, HttpMethod.GET,
+                        new HttpEntity<>(authHeaders()), Map.class);
+                Object status = resp.getBody() == null ? null : resp.getBody().get("status");
+                String text = status == null ? "" : status.toString();
+                if (!"enqueued".equals(text) && !"processing".equals(text)) {
+                    return text;
+                }
+            } catch (Exception e) {
+                log.debug("Meilisearch task 查询失败: {}", e.getMessage());
+            }
+            try {
+                Thread.sleep(200L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return "interrupted";
+            }
+        }
+        return "timeout";
+    }
+
+    /**
+     * 索引内的文档数（对标 Express `index.getStats().numberOfDocuments`）。
+     *
+     * @return 文档数；查询失败或索引不存在返回 -1
+     */
+    @SuppressWarnings("unchecked")
+    public long documentCount() {
+        try {
+            ResponseEntity<Map> resp = restTemplate.exchange(
+                    baseUrl + "/indexes/" + INDEX_NAME + "/stats", HttpMethod.GET,
+                    new HttpEntity<>(authHeaders()), Map.class);
+            Object count = resp.getBody() == null ? null : resp.getBody().get("numberOfDocuments");
+            return count instanceof Number number ? number.longValue() : -1L;
+        } catch (Exception e) {
+            return -1L;
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void updateSettings(String key, Object value) {
+    private void ensureIndex() {
+        // ── 建索引是**异步任务**，必须等它落地 ──
+        // 2026-09-16 实测：不等就写文档会踩两个坑 ——
+        //   ① 文档写入会抢先「隐式建索引」并做**主键推断**，而文档里同时有 id 与 typeId
+        //      → 推断失败（index_primary_key_multiple_candidates_found）→ 整批 0 条写入；
+        //   ② 隐式建出来的索引 primaryKey = null，此后想设主键只能靠 PATCH，很麻烦。
+        // 此前只有 syncArticle 在启动数秒后才被调用，靠「时间差」侥幸没暴露；
+        // sync-meili 工具是「建索引后立刻写文档」，一跑就现原形。
+        Map<String, Object> info = fetchIndexInfo();
+        if (info == null) {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("uid", INDEX_NAME);
+            body.put("primaryKey", PRIMARY_KEY);
+            waitForTaskQuietly(postForTaskUid("/indexes", body), TASK_TIMEOUT_MILLIS, "建索引");
+        } else if (!PRIMARY_KEY.equals(String.valueOf(info.get("primaryKey")))) {
+            // 索引存在但主键不对/为空（隐式建出来的）：修一次，只能对空索引生效
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("primaryKey", PRIMARY_KEY);
+            waitForTaskQuietly(patchForTaskUid("/indexes/" + INDEX_NAME, body), TASK_TIMEOUT_MILLIS, "修正主键");
+        }
+
+        // 索引设置每次启动都幂等补齐：PATCH 该键是**整体替换**，
+        // 因此这三组值必须与 Express services/meilisearch.js 的 getIndex() 完全一致，
+        // 否则两个后端谁最后启动，谁就把对方的设置覆盖掉。
+        updateSettings("filterableAttributes", FILTERABLE_ATTRIBUTES);
+        updateSettings("searchableAttributes", SEARCHABLE_ATTRIBUTES);
+        updateSettings("sortableAttributes", SORTABLE_ATTRIBUTES);
+    }
+
+    private Map<String, Object> fetchIndexInfo() {
         try {
-            restTemplate.patchForObject(baseUrl + "/indexes/" + INDEX_NAME + "/settings",
-                    new HttpEntity<>(Map.of(key, value), authHeaders()), Map.class);
-        } catch (Exception ignored) {}
+            ResponseEntity<Map> resp = restTemplate.exchange(baseUrl + "/indexes/" + INDEX_NAME, HttpMethod.GET,
+                    new HttpEntity<>(authHeaders()), Map.class);
+            return resp.getBody();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void updateSettings(String key, Object value) {
+        Long taskUid = patchForTaskUid("/indexes/" + INDEX_NAME + "/settings",
+                Map.of(key, value));
+        // 不等设置落地的话，紧接着的 search 可能因属性尚未生效而报 400 → 静默降级 LIKE
+        waitForTaskQuietly(taskUid, TASK_TIMEOUT_MILLIS, "设置 " + key);
+    }
+
+    /** POST 并取回 taskUid；失败返回 null */
+    private Long postForTaskUid(String path, Object body) {
+        try {
+            ResponseEntity<Map> resp = restTemplate.postForEntity(baseUrl + path,
+                    new HttpEntity<>(body, authHeaders()), Map.class);
+            return taskUidOf(resp);
+        } catch (Exception e) {
+            log.warn("Meilisearch POST {} 失败: {}", path, e.getMessage());
+            return null;
+        }
+    }
+
+    /** PATCH 并取回 taskUid；失败返回 null */
+    private Long patchForTaskUid(String path, Object body) {
+        try {
+            ResponseEntity<Map> resp = restTemplate.exchange(baseUrl + path, HttpMethod.PATCH,
+                    new HttpEntity<>(body, authHeaders()), Map.class);
+            return taskUidOf(resp);
+        } catch (Exception e) {
+            log.warn("Meilisearch PATCH {} 失败: {}", path, e.getMessage());
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Long taskUidOf(ResponseEntity<Map> resp) {
+        Object taskUid = resp.getBody() == null ? null : resp.getBody().get("taskUid");
+        return taskUid instanceof Number number ? number.longValue() : null;
+    }
+
+    private void waitForTaskQuietly(Long taskUid, long timeoutMillis, String what) {
+        if (taskUid == null) {
+            return;
+        }
+        String status = waitForTask(taskUid, timeoutMillis);
+        if (!"succeeded".equals(status)) {
+            log.warn("Meilisearch {} 未成功（task {}）: {}", what, taskUid, status);
+        }
     }
 
     private HttpHeaders authHeaders() {
@@ -98,9 +294,8 @@ public class MeilisearchService {
     public void syncArticle(Map<String, Object> document) {
         if (!available) return;
         try {
-            List<Map<String, Object>> docs = List.of(document);
             restTemplate.postForEntity(baseUrl + "/indexes/" + INDEX_NAME + "/documents",
-                    new HttpEntity<>(docs, authHeaders()), Map.class);
+                    new HttpEntity<>(List.of(document), authHeaders()), Map.class);
         } catch (Exception e) {
             log.debug("Meilisearch sync failed: {}", e.getMessage());
         }
