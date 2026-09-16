@@ -244,7 +244,19 @@ usePageSeo({
 .category-section {
   display: grid;
   gap: $spacing-6;
-  scroll-margin-top: 88px;
+  /* 站内锚点避让距离，值 = sticky 顶栏 + sticky 胶囊条 + 视觉间距。
+     实测（1111px）：header 高 61、胶囊条 sticky 在 72~145 → 160px；
+     实测（390px）：胶囊条会折成 2 行、占据 72~186 → 200px（见下方媒体查询）。
+     ⚠️ 这个值会被 app/router.options.ts 的 scrollBehavior 读走并换算成落点，
+     所以「改这里」就等于「改锚点跳转后的落点」，不需要动 JS。 */
+  scroll-margin-top: 160px;
+}
+
+/* 移动端胶囊条折行后更高，需要给更大的避让（否则区块标题会被胶囊条盖住） */
+@media (max-width: 768px) {
+  .category-section {
+    scroll-margin-top: 200px;
+  }
 }
 
 /* ===== 分类块：标题 + 工具卡合并为一个整体卡片，消除割裂感 ===== */

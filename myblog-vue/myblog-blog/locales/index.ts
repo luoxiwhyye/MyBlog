@@ -161,6 +161,7 @@ export const zh = {
     perPage: "条/页",
   },
   theme: {
+    label: "外观",
     light: "切换到亮色模式",
     dark: "切换到暗色模式",
   },
@@ -367,6 +368,7 @@ export const en: typeof zh = {
     perPage: "/ page",
   },
   theme: {
+    label: "Appearance",
     light: "Switch to light mode",
     dark: "Switch to dark mode",
   },
