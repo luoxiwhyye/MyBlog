@@ -4,7 +4,7 @@
 //
 // ⚠️ 本文件**不再输出任何 CSS**，请勿在此处添加 EP 变量覆盖 —— 它们不会生效。
 //
-// 原因（2026-09-15 实测）：本文件经 main.scss 打包进 `<link rel="stylesheet">`，
+// 原因（实测）：本文件经 main.scss 打包进 `<link rel="stylesheet">`，
 // 而 Element Plus 的 theme-chalk 由组件模块经 Vite 以 `<style>` **内联注入**，
 // 位置在所有 `<link>` 之后 → 同特异性下 EP 默认值胜出。实测对照：
 //

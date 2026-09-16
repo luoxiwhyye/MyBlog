@@ -105,10 +105,9 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
    （原先 max-width 1400px vs 正文 1200px，实测文字错位 103px）。
    两处共用 $layout-max-width / $layout-gutter，避免再次各自漂移。
 
-   2026-09-15 改为**两行分层**：上行 slogan 居中、下行元信息成组居中。
-   改前是 `space-between` 的左右两块 —— 1200px 容器里常见文案下中间会留 ≥400px 空档，
-   且单段 slogan 用 `align-items: center` 对齐两行块的整体中线，视觉上既没贴版权
-   也没贴 meta，是「信息分散」的根源。 */
+   两行分层：上行 slogan 居中、下行元信息成组居中。
+   ⚠️ 不要改回 `space-between` 的左右两块 —— 1200px 容器里常见文案下中间会留 ≥400px 空档，
+   且单段 slogan 会被 `align-items: center` 对齐到两行块的整体中线，既没贴版权也没贴 meta。 */
 .container {
   width: 100%;
   max-width: $layout-max-width;

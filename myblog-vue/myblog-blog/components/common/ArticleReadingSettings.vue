@@ -182,13 +182,13 @@ watch(model, savePrefs, { deep: true });
 }
 .reading-settings-btn:hover {
   color: var(--color-accent-deep);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
   box-shadow: var(--shadow-glow);
 }
 
 .reading-settings-btn.active {
   color: var(--color-accent-deep);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
   background: var(--color-accent-light);
 }
 
@@ -286,12 +286,12 @@ watch(model, savePrefs, { deep: true });
 
 .rs-lines button:hover {
   color: var(--color-accent-deep);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
 }
 
 .rs-lines button.active {
   color: var(--color-accent-deep);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
   background: var(--color-accent-light);
   font-weight: 600;
 }

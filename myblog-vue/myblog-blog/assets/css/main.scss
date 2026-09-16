@@ -18,9 +18,8 @@
 @use "base/utilities";
 
 // 4. 组件
-// 注：原先的 layouts/{default,blog,landing}.scss 与 components/footer.scss 是只有注释
-// + @use 的空壳（零 CSS 输出、零引用），2026-09-15 已删除。
-// 页面/组件样式一律写在各自的 `<style scoped>` 里。
+// ⚠️ 页面/组件样式一律写在各自的 `<style scoped>` 里 —— 这个目录下只保留
+// 跨页面复用的全局样式（header / sidebar / article）。
 @use "components/header";
 @use "components/sidebar";
 @use "components/article";

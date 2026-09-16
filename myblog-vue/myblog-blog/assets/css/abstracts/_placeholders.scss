@@ -2,10 +2,9 @@
 // 占位符选择器（@extend 继承）
 // ============================================
 //
-// 2026-09-15 清理：原先的 %card / %container / %text-ellipsis / %flex-center /
-// %absolute-center / %scrollbar / %responsive-image / %link 全项目 **零 @extend**，
-// 且每一个都有同名 mixin（`@include text-ellipsis` 等）→ 纯重复，已删除。
-// 保留 %card-glass 作为「卡片配方」在 main.scss 这一编译单元里的可用形态。
+// ⚠️ 只保留确有 @extend 的场景：全项目零 @extend 的占位符不得新增
+// （同名 mixin 存在时一律用 `@include`）。
+// 当前只保留 %card-glass，作为「卡片配方」在 main.scss 这一编译单元里的可用形态。
 
 @use "mixins" as *;
 

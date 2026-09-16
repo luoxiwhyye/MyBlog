@@ -192,11 +192,11 @@ onBeforeUnmount(() => {
 
 .history-item:hover {
   background: var(--bg-card);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
 }
 
 .history-item.active {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
   /* 原为 var(--color-accent-soft, var(--color-category-soft)) —— 前者全站未定义，
      实际一直吃回退值；直接写真实存在的强调浅底令牌。 */
   background: color-mix(in srgb, var(--color-accent-light) 55%, transparent);

@@ -328,7 +328,7 @@ html.dark .pager-num.active {
 }
 
 .jump-input:focus {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
 }
 
 .jump-suffix {

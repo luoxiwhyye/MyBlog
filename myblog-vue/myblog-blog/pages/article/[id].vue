@@ -1245,7 +1245,7 @@ useHead(() => {
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
   transform: translateY(-2px);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
 }
 
 .pagination-prev {

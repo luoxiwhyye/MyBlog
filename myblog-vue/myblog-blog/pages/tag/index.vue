@@ -18,15 +18,16 @@
       action-to="/home"
     />
     <div v-else class="tags-cloud">
-      <!-- 权重分级：字号/字重随文章数递增（以最多文章的标签为分母）。
-           用 <NuxtLink> 而不是 span + @click —— 标签云是导航，链接才能中键打开 /
-           新窗口打开 / 被爬虫跟随（原先 span 两者都做不到）。 -->
+      <!-- 胶囊一律<NuxtLink>而不是 span + @click —— 标签云是导航，链接才能中键打开 /
+           新窗口打开 / 被爬虫跟随（原先 span 两者都做不到）。
+           权重只由条目右侧的计数表达，不再用字号分级：实测 27 个标签分布在
+           5 / 3 / 2 / 1 篇四档，21 个（78%）落在最小档，字号分级在这种分布下
+           会把「权重」表达成一个几乎不变的常量（实测卡片高度 35~36px 全等）。 -->
       <NuxtLink
         v-for="(tag, i) in tags"
         :key="tag.id"
         :to="`/tag/${tag.id}`"
         class="tag-item"
-        :style="weightStyle(tag.articleCount)"
         v-reveal="i * 30"
       >
         {{ tag.labelName }}
@@ -69,24 +70,6 @@ const tags = computed(() =>
   allTags.value.filter((tag) => tag.articleCount > 0),
 );
 
-// 权重分级分母：最多文章的标签。全部为空时取 1，避免除零。
-const maxCount = computed(() =>
-  Math.max(1, ...tags.value.map((tag) => tag.articleCount)),
-);
-
-/**
- * 按相对权重给字号/字重分级（四档）。
- * 直接线性映射会让“1 篇 vs 30 篇”拉出巨大字号差、居中的标签云会很难看，
- * 故按比例分档：前 25% 最大、25~50% 次之，以此类推。
- */
-const weightStyle = (count: number) => {
-  const ratio = count / maxCount.value;
-  if (ratio >= 0.75) return { fontSize: "17px", fontWeight: 700 };
-  if (ratio >= 0.5) return { fontSize: "15.5px", fontWeight: 600 };
-  if (ratio >= 0.25) return { fontSize: "14px", fontWeight: 500 };
-  return { fontSize: "13px", fontWeight: 400 };
-};
-
 usePageSeo({
   title: t("tag.title"),
   description: t("tag.description"),
@@ -111,6 +94,10 @@ usePageSeo({
   flex-wrap: wrap;
   gap: $spacing-3;
   justify-content: center;
+  /* 标签不再直接压在背景图上：容器走站点唯一的卡片配方。
+     原来每个胶囊是 16% 透明底 + 无边框，观感完全由背景图的亮暗决定
+     （压在深蓝区上看不清、压在云区上又糊），换成卡片后可读性由卡片保证。 */
+  @include card-glass;
 }
 
 .tag-item {
@@ -118,11 +105,14 @@ usePageSeo({
   align-items: baseline;
   gap: 6px;
   padding: 8px 18px;
+  /* 统一字号（改用 rem 跟根字号走，不再写 px）：标签云是导航入口，
+     取原四档的中间偏上值。 */
+  font-size: 0.95rem;
   background: var(--color-accent-light);
   color: var(--color-accent-deep);
   border-radius: 20px;
   text-decoration: none;
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .tag-item__count {
@@ -132,7 +122,6 @@ usePageSeo({
 }
 
 .tag-item:hover {
-  opacity: 1;
   transform: scale(1.05);
   box-shadow: var(--shadow-glow);
 }

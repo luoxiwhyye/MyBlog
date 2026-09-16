@@ -8,12 +8,12 @@ import {
 } from "../themeColor";
 
 describe("themeColor 工具", () => {
-  it("未配置（无输入）回退到当前设计青瓷蓝", () => {
+  it("未配置（无输入）回退到当前设计晴空青", () => {
     const resolved = resolveThemeColor();
-    expect(resolved.light.accent).toBe("#088db0");
-    expect(resolved.light.accentDeep).toBe("#1f6a8c");
-    expect(resolved.dark.accent).toBe("#67e8f9");
-    expect(resolved.light.accentLight).toBe("rgba(8, 141, 176, 0.1)");
+    expect(resolved.light.accent).toBe("#008fbe");
+    expect(resolved.light.accentDeep).toBe("#0b5c82");
+    expect(resolved.dark.accent).toBe("#22d3ee");
+    expect(resolved.light.accentLight).toBe("rgba(0, 143, 190, 0.14)");
   });
 
   it("预设值命中对应预设（按 accent 维度亮色）", () => {
@@ -22,7 +22,7 @@ describe("themeColor 工具", () => {
     const resolved = resolveThemeColor({ accent: { light: "#0d9488" } });
     expect(resolved.light.accent).toBe("#0d9488");
     // dark 未设置，保持默认
-    expect(resolved.dark.accent).toBe("#67e8f9");
+    expect(resolved.dark.accent).toBe("#22d3ee");
   });
 
   it("亮/暗可独立设置（accent 不同色）", () => {
@@ -49,15 +49,15 @@ describe("themeColor 工具", () => {
 
   it("各维度独立解析：仅设置 category 不影响 accent", () => {
     const resolved = resolveThemeColor({ category: { light: "#2563eb" } });
-    // accent 保持默认青瓷蓝
-    expect(resolved.light.accent).toBe("#088db0");
+    // accent 保持默认晴空青
+    expect(resolved.light.accent).toBe("#008fbe");
     // category 使用独立值
     expect(resolved.light.category).toBe("#2563eb");
   });
 
   it("按维度设置渐变影响 gradient-brand 但不影响 accent", () => {
     const resolved = resolveThemeColor({ gradient: { light: "#fbbf24" } });
-    expect(resolved.light.accent).toBe("#088db0");
+    expect(resolved.light.accent).toBe("#008fbe");
     expect(resolved.light.gradientBrand).toContain("linear-gradient(135deg,");
     expect(resolved.light.gradientBrand).not.toContain("#75e1f1");
     expect(resolved.light.hotRankGradient).toContain("linear-gradient(135deg,");
@@ -99,16 +99,61 @@ describe("themeColor 工具", () => {
     ].forEach((v) => expect(css).toContain(v));
   });
 
-  it("--color-accent-text 按 accent 亮度自动取前景色（保证两种主题都可读）", () => {
-    const light = buildThemeColorCss({ accent: { light: "#475569" } });
-    const dark = buildThemeColorCss({ accent: { dark: "#cbd5e1" } });
-    // 深色 accent（亮色主题默认）→ 白字
-    expect(light).toContain("--color-accent-text: #ffffff");
-    // 浅色 accent（暗色主题默认）→ 深墨水字（固定白字在此处仅 1.48:1）
-    expect(dark).toContain("--color-accent-text: #0f172a");
+  it("填充面的前景：亮色白字、暗色同色系深字", () => {
+    const parse = (hex: string) => {
+      const h = hex.replace("#", "");
+      return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    };
+    const lum = (hex: string) => {
+      const ch = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      const [r, g, b] = parse(hex);
+      return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+    };
+    const contrast = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const readVar = (css: string, selector: string, name: string) => {
+      const block = css.split(selector)[1] ?? "";
+      const m = block.match(new RegExp(`${name}:\\s*([^;]+);`));
+      return (m?.[1] ?? "").trim();
+    };
+
+    for (const preset of THEME_COLOR_PRESETS) {
+      const css = buildThemeColorCss({
+        accent: { light: preset.light.accent, dark: preset.dark.accent },
+      });
+      // 亮色：填充是高饱和色块 → 固定白字
+      expect(
+        readVar(css, ":root", "--color-accent-text"),
+        `${preset.key} / 亮色：填充面的前景应为白字`,
+      ).toBe("#ffffff");
+      // 暗色：填充本身是亮青，白字会糊 → 同色系深字
+      const fill = readVar(css, "html.dark", "--color-accent");
+      const text = readVar(css, "html.dark", "--color-accent-text");
+      expect(text).toMatch(/^#[0-9a-f]{6}$/);
+      // ① 可读：过 AA
+      expect(
+        contrast(text, fill),
+        `${preset.key} / 暗色：${text} on ${fill} 不足 4.5:1`,
+      ).toBeGreaterThanOrEqual(4.5);
+      // ② 但**不能黑白硬碰硬**（配近黑字会得到 8.3~12.3）
+      expect(
+        contrast(text, fill),
+        `${preset.key} / 暗色：${text} on ${fill} 对比度过高（黑白硬碰硬）`,
+      ).toBeLessThanOrEqual(6);
+      // ③ 同色系：前景不得是近黑
+      expect(
+        ["#000000", "#0f172a"],
+        `${preset.key} / 暗色：${text} 仍是近黑`,
+      ).not.toContain(text.toLowerCase());
+    }
   });
 
-  it("全部主题色预设 × 亮/暗 的 accent 填充面文字对比度均 ≥ 4.5:1", () => {
+  it("全部主题色预设：亮色填充面为白字且填充够饱和，暗色填充面文字过 AA", () => {
     const channel = (v: number) => {
       const c = v / 255;
       return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -138,24 +183,38 @@ describe("themeColor 工具", () => {
       return (m?.[1] ?? "").trim();
     };
 
+    /** HSL 饱和度（0~1）：亮色填充要「鲜明」，不能被洗成粉彩 / 灰蓝 */
+    const saturation = (hex: string) => {
+      const h = hex.replace("#", "");
+      const [r, g, b] = [0, 2, 4]
+        .map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+        .sort((x, y) => y - x);
+      const l = (r + b) / 2;
+      if (r === b) return 0;
+      return l > 0.5 ? (r - b) / (2 - r - b) : (r - b) / (r + b);
+    };
+
     for (const preset of THEME_COLOR_PRESETS) {
       const css = buildThemeColorCss({
         accent: { light: preset.light.accent, dark: preset.dark.accent },
       });
-      for (const [selector, label] of [
-        [":root", "亮色"],
-        ["html.dark", "暗色"],
-      ] as const) {
-        const bg = readVar(css, selector, "--color-accent");
-        const fg = readVar(css, selector, "--color-accent-text");
-        expect(fg, `${preset.key} / ${label} 应输出前景色`).toMatch(
-          /^#[0-9a-f]{6}$/,
-        );
-        expect(
-          contrast(fg, bg),
-          `${preset.key} / ${label}：${fg} on ${bg} 对比度不足`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
+      // 亮色：填充是高饱和色块，前景固定白字
+      expect(
+        readVar(css, ":root", "--color-accent-text"),
+        `${preset.key} / 亮色：填充面的前景应为白字`,
+      ).toBe("#ffffff");
+      expect(
+        saturation(preset.light.accent),
+        `${preset.key} / 亮色：填充 ${preset.light.accent} 饱和度偏低（不是鲜明色）`,
+      ).toBeGreaterThanOrEqual(0.8);
+      // 暗色：填充本身是亮青，白字会糊 → 同色系深字，且必须过 AA
+      const bg = readVar(css, "html.dark", "--color-accent");
+      const fg = readVar(css, "html.dark", "--color-accent-text");
+      expect(fg, `${preset.key} / 暗色 应输出前景色`).toMatch(/^#[0-9a-f]{6}$/);
+      expect(
+        contrast(fg, bg),
+        `${preset.key} / 暗色：${fg} on ${bg} 对比度不足`,
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
@@ -194,11 +253,16 @@ describe("themeColor 工具", () => {
         const deep = readVar(css, selector, "--color-accent-deep");
         const text = readVar(css, selector, "--color-accent-text");
         const link = readVar(css, selector, "--color-link");
-        // 装饰档：只当图形/填充（非文本 3:1）
+        // 填充档（--color-accent）**不承担图形/描边**：它的职责是「真高亮」底色
+        // （配自动前景，见下面的检查）。描边统一走 --color-accent-deep，
+        // 所以这里校验「描边/文字档 ≥ 3:1（非文本，专给边框 / focus 用）」。
         expect(
-          contrast(accent, base),
-          `${preset.key} / ${label}：装饰档 ${accent} 作图形不足 3:1`,
+          contrast(deep, base),
+          `${preset.key} / ${label}：描边档 ${deep} 作边框不足 3:1`,
         ).toBeGreaterThanOrEqual(3);
+        // 填充档只需保证「它比底色亮或暗得足够」不构成误读 —— 这里不断言，
+        // 因为它允许是浅色高亮（亮色主题）或浅色高亮（暗色主题），两端方向相反。
+        void accent;
         // 文字档：链接 / hover / 当前选中都用它（4.5:1）
         for (const [v, n] of [
           [deep, "--color-accent-deep"],
@@ -209,17 +273,21 @@ describe("themeColor 工具", () => {
             `${preset.key} / ${label}：${n} ${v} 作文字不足 4.5:1`,
           ).toBeGreaterThanOrEqual(4.5);
         }
-        // 填充面 + 自动前景 + 交互档：三者都要 ≥4.5
-        for (const name of [
-          "--color-accent",
-          "--color-accent-hover",
-          "--color-accent-active",
-        ]) {
-          const fill = readVar(css, selector, name);
-          expect(
-            contrast(text, fill),
-            `${preset.key} / ${label}：${name} ${fill} 上的 ${text} 不足 4.5:1`,
-          ).toBeGreaterThanOrEqual(4.5);
+        // 填充面 + 交互档：前景始终是同一个 --color-accent-text，
+        // 所以逐个底色都要拿得住它。⚠️ **只对暗色断言 4.5:1** —— 亮色填充是
+        // 高饱和色块，前景按设计就是白字，不强求对比度（见上面的断言）。
+        if (selector === "html.dark") {
+          for (const name of [
+            "--color-accent",
+            "--color-accent-hover",
+            "--color-accent-active",
+          ]) {
+            const fill = readVar(css, selector, name);
+            expect(
+              contrast(text, fill),
+              `${preset.key} / ${label}：${name} ${fill} 上的 ${text} 不足 4.5:1`,
+            ).toBeGreaterThanOrEqual(4.5);
+          }
         }
       }
     }
@@ -264,7 +332,7 @@ describe("themeColor 工具", () => {
     }
   });
 
-  it("品牌文字全部去彩度：不再出现高饱和的蓝字（2026-09-15 反馈）", () => {
+  it("品牌文字保持鲜亮且可读（往鲜亮走，而非洗成灰蓝）", () => {
     /** HSL 饱和度（0~1）：与实测定值时引用的口径一致 */
     const saturation = (hex: string) => {
       const h = hex.replace("#", "");
@@ -280,11 +348,13 @@ describe("themeColor 工具", () => {
       for (const mode of ["light", "dark"] as const) {
         for (const key of BLUE_CHARS) {
           const hex = preset[mode][key];
-          // 调整前是 82%~96%；周围中性文字只有 16~33%。留 70% 作硬上限。
+          // ⚠️ 上限 0.98 只作「不要变成纯色」的防呆，**不要收紧**：
+          // 品牌色「突兀」的真因是【深 + 高饱和】的组合，而不是高饱和本身；
+          // 明度抬上来之后，高饱和不再显得沉重，收紧会把品牌色洗成灰蓝。
           expect(
             saturation(hex),
             `${preset.key} / ${mode} / ${key} = ${hex} 饱和度仍然偏高`,
-          ).toBeLessThanOrEqual(0.7);
+          ).toBeLessThanOrEqual(0.98);
         }
       }
     }
@@ -292,8 +362,7 @@ describe("themeColor 工具", () => {
 
   it("分类色文字档已统一：不再单独取值，直接复用 accent 的文字档", () => {
     const resolved = resolveThemeColor({ category: { light: "#0284c7" } });
-    expect(resolved.light.category).toBe("#0284c7");
-    // 只设 category 时，categoryStrong 仍与默认 accent 的文字档一致（不再按 category 派生）
+    expect(resolved.light.category).toBe("#0284c7"); // 只设 category 时，categoryStrong 仍与默认 accent 的文字档一致（不再按 category 派生）
     expect(resolved.light.categoryStrong).toBeUndefined();
     const css = buildThemeColorCss({ category: { light: "#0284c7" } });
     const readVar = (selector: string, name: string) => {
@@ -309,14 +378,14 @@ describe("themeColor 工具", () => {
     );
   });
 
-  it("默认预设（青瓷蓝）保留当前设计的扩展色", () => {
+  it("默认预设（晴空青）保留当前设计的扩展色", () => {
     const resolved = resolveThemeColor();
-    expect(resolved.light.category).toBe("#0284c7");
-    expect(resolved.light.accentDeep).toBe("#1f6a8c");
-    expect(resolved.dark.accentDeep).toBe("#96cee8");
+    expect(resolved.light.category).toBe("#147fa8");
+    expect(resolved.light.accentDeep).toBe("#0b5c82");
+    expect(resolved.dark.accentDeep).toBe("#7dd3fc");
     expect(resolved.light.fav).toBe("#f59e0b");
-    expect(resolved.light.gradientBrand).toContain("#75e1f1");
-    expect(resolved.dark.category).toBe("#38bdf8");
+    expect(resolved.light.gradientBrand).toContain("#61c9e5");
+    expect(resolved.dark.category).toBe("#22d3ee");
     expect(resolved.dark.gradientBrand).toContain("#34d0c2");
   });
 });

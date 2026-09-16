@@ -1,113 +1,77 @@
-// ============================================
-// themes/_light.scss - 亮色主题 CSS 变量
-// ============================================
-
 :root {
-  // 背景色 — bg-primary 透明以直接展示原图，卡片组件保持 opaque
-  --bg-primary: rgba(248, 250, 252, 0);
-  --bg-card: rgba(255, 255, 255, 0.8);
-  --bg-header: rgba(255, 255, 255, 0.35);
-  --bg-header-solid: rgba(255, 255, 255, 0.85);
-  --bg-hover: rgba(245, 245, 245, 0.85);
-  --bg-code: rgba(240, 240, 240, 0.85);
-  --bg-backdrop: rgba(248, 250, 252, 0.75);
-  // 毛玻璃：高透明为主、低模糊为辅 + 柔和高光玻璃边（亮色）
+  // 页面与卡片背景。
+  --bg-primary: rgba(241, 249, 255, 0);
+  --bg-card: rgba(244, 251, 255, 0.7);
+  --bg-header: rgba(238, 249, 255, 0.54);
+  --bg-header-solid: rgba(244, 251, 255, 0.92);
+  --bg-hover: rgba(224, 244, 255, 0.9);
+  --bg-code: rgba(230, 243, 250, 0.9);
+  --bg-backdrop: rgba(241, 249, 255, 0.8);
   --glass-blur: 2px;
   --glass-border: rgba(255, 255, 255, 0.5);
 
-  // 文字颜色
-  // ⚠️ --text-muted 承担「日期 / 阅读量 / 计数」等元信息，2026-09-15 由 slate-400
-  //    #94a3b8 抬深到 slate-500 #64748b（对白底 2.56:1 → 4.76:1）。它同时作用于
-  //    输入框占位符与禁用态，改浅会让全站元信息重新回到「看不清」的状态。
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #18324b;
+  --text-secondary: #3f6075;
+  --text-muted: #668296;
 
-  // 边框颜色
-  --border-color: rgba(203, 213, 225, 0.7);
-  --border-light: rgba(226, 232, 240, 0.8);
+  --border-color: rgba(55, 124, 164, 0.28);
+  --border-light: rgba(104, 165, 196, 0.24);
 
-  // 不透明底（EP 的面板 / 抽屉 / 下拉需要不透明背景，透明卡底会让下层内容透出）
-  --bg-card-solid: #ffffff;
-  --bg-page-solid: #f8fafc;
+  --bg-card-solid: #f4fbff;
+  --bg-page-solid: #f1f9ff;
 
-  // 阴影 — 增强层次感
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(24, 78, 112, 0.08), 0 4px 16px rgba(24, 78, 112, 0.07);
   --shadow-elevated:
-    0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
+    0 2px 8px rgba(24, 78, 112, 0.1), 0 8px 24px rgba(24, 78, 112, 0.07);
 
-  // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_LIGHT 逐项一致。
-  // 运行时由 themeColor.ts 注入覆盖，此处是无 JS 时的静态回退）
-  //
-  // ⚠️ accent 分两级（2026-09-15 拆，与 --color-category 同一套思路）：
-  //   --color-accent      只管【填充 / 描边 / 浅底 / 渐变】—— 只需非文本 3:1，故取亮色，
-  //                       整体观感才轻快。填充上的文字由 --color-accent-text 自动推导
-  //                       （亮底 → 深墨字）。
-  //   --color-accent-deep 只管【文字 / 图标】—— 链接 hover、当前选中、统计数字、
-  //                       TOC 高亮等，必须 ≥ 4.5:1。
-  // 拆开的原因：旧 `#0e7490` 是被那 40 处「当文字用」逼深的，装饰层永远轻快不起来。
-  // 旧值原封不动地保留在 --color-accent-deep 上
-  --color-accent: #088db0; // cyan-600 档（比标准 cyan-600 #0891b2 再深 2%，为守住描边 3:1）
-  // 强调浅底（标签底 / 激活底 / plain 按钮底）。⚠️ 12% → 10%：
-  // 「浅底 + --color-accent-deep 文字」是最吃对比度的一对，实测 12% 时
-  // 在最不利底色（背景图深蓝天区的玻璃卡）上只有 4.47，10% 为 4.59。
-  --color-accent-light: rgba(8, 141, 176, 0.1);
-  --color-accent-deep: #1f6a8c; // 文字/图标档（**去彩度**：sat 82% → 64%，与周围灰蓝同族）
-  --color-link: #1f6a8c;
-  // accent 填充式控件的交互档。⚠️ 方向随「自动前景色」而定：浅底 + 深墨字时
-  // 必须**提亮**（压深会把对比度拉到 4.5 以下：实测压深 3.51、提亮 5.72）。
-  // 规则见 themeColor.ts 的 interactionLevels()。
-  --color-accent-hover: #2d9ebc;
-  --color-accent-active: #52afc8;
+  // 品牌色。
+  --color-accent: #008fbe; // 填充/高亮档，呼应天空与湖青
+  --color-accent-light: rgba(0, 143, 190, 0.14);
+  --color-accent-deep: #0b5c82; // 文字/描边档
+  --color-link: #0b5c82;
+  --color-accent-hover: #0f7fae;
+  --color-accent-active: #0b709d;
+  --surface-brand-soft: #e8f6fc;
 
-  // ==== 控件令牌（按钮 / 输入框 / 评论框统一的表单控件外观）====
-  // 由 utils/themeColor.ts 的运行时注入块指向 Element Plus 变量 —— 组件外观与玻璃卡同源。
-  // ⚠️ 不要再往 assets/css/vendors/_element-plus.scss 里加变量（那里整体失效）。
-  --control-bg: var(--bg-card);
-  --control-border: var(--border-color);
+  // 控件令牌。
+  --control-bg: var(--bg-card-solid);
+  --control-border: var(--color-accent-deep);
   --control-radius: 8px; // = $border-radius-base
   --control-height: 36px; // 默认控件高度（映射到 EP --el-component-size）
 
-  // 文字阴影 — 用于在图片背景上提升可读性
-  --text-shadow-on-bg: 0 1px 3px rgba(255, 255, 255, 0.6);
+  // 背景图上的文字可读性。
+  --text-shadow-on-bg: 0 1px 3px rgba(241, 249, 255, 0.82);
+  --scrim-on-bg: radial-gradient(
+    ellipse 62% 56% at 50% 46%,
+    rgba(241, 249, 255, 0.72),
+    rgba(241, 249, 255, 0.36) 58%,
+    rgba(241, 249, 255, 0) 80%
+  );
 
-  // ==== 风格扩展（主题无关）====
-  // 卡片圆角升级档 / 弹性过渡 — 暗色自动继承
+  // 主题共享装饰令牌。
   --radius-card-lg: 16px;
   --radius-hero-xl: 24px;
   --transition-bounce: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  // 品牌 Logo 渐变 — 主题不变（深海军蓝→近白，白字在亮/暗均可读）
-  --brand-logo-gradient: linear-gradient(135deg, #18233e, #f8fafc);
+  --brand-logo-gradient: linear-gradient(135deg, #0b5c82, #61c9e5);
 
-  // ==== 风格扩展（图A 日间）====
-  // 分类色拆成两级（2026-09-15）：
-  //   --color-category        只管【图形】—— 边框 / focus 描边 / 时间线圆点 / 装饰条 /
-  //                           渐变 / 填充。这类只需 WCAG 1.4.11 的非文本 3:1，
-  //                           所以可以取亮色，整体观感才「轻快」。
-  //   --color-category-strong 只管【文字】—— 徽标、链接 hover、TOC 高亮等，必须 ≥ 4.5:1。
-  // 拆开的原因：一个令牌同时当文字与装饰时，可读性会把颜色死死压在深色区（旧 teal-700
-  // #0f766e 就是被文字用途逼深的）→ 装饰层永远轻快不起来。
-  --color-category: #0284c7; // sky-600（偏蓝；作图形 ≥3.3:1）
-  --color-category-strong: #0369a1; // sky-700（作文字 ≥4.19:1）
-  --color-category-soft: rgba(2, 132, 199, 0.12); // 徽标底（12%）
+  // 分类和装饰令牌。
+  --color-category: #147fa8;
+  --color-category-strong: #0b5c82; // 文字档 —— 与 --color-accent-deep 同一个色（全站一个品牌文字色）
+  --color-category-soft: rgba(20, 127, 168, 0.14); // 徽标底
   --color-fav: #f59e0b; // 收藏/星标（暖橙，提取自原有硬编码）
   --color-fav-soft: rgba(245, 158, 11, 0.22); // 收藏高亮底色/搜索 mark
-  // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：亮色版用薄荷青，起 #75E1F1、末更浅
-  --gradient-brand: linear-gradient(135deg, #75e1f1, #bff4fa);
-  // 渐变/排名徽标上的文字：原 #2e9aaa 压在 #75e1f1 上仅 2.18:1，已抬深；
-  // 2026-09-15 再去彩度（高饱和的青色字在灰蓝页面里很突兀）
-  --gradient-brand-text: #2e5763;
-  // 热门文章排名徽标（top3）：亮色版更亮
-  --hot-rank-gradient: linear-gradient(135deg, #75e1f1, #aeeef8);
-  --hot-rank-text: #2e5763;
-  --deco-a: rgba(143, 224, 232, 0.16); // 薄荷青装饰
-  --deco-b: rgba(74, 155, 232, 0.14); // 天蓝装饰
+  --gradient-brand: linear-gradient(135deg, #61c9e5, #c5eaf5);
+  --gradient-brand-text: #174e68;
+  --hot-rank-gradient: linear-gradient(135deg, #53b9d8, #b7e4f1);
+  --hot-rank-text: #174e68;
+  --deco-a: rgba(97, 201, 229, 0.18); // 天空青装饰
+  --deco-b: rgba(147, 119, 206, 0.14); // 云层紫灰装饰
   --shadow-glow:
-    0 0 0 1px rgba(255, 255, 255, 0.5), 0 8px 30px rgba(120, 190, 240, 0.25);
+    0 0 0 1px rgba(241, 249, 255, 0.64), 0 8px 30px rgba(22, 143, 190, 0.22);
   --bg-page-overlay: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.06),
-    rgba(255, 255, 255, 0.14)
+    rgba(241, 249, 255, 0.08),
+    rgba(241, 249, 255, 0.16)
   );
-  --text-glow: 0 2px 12px rgba(255, 255, 255, 0.45);
+  --text-glow: 0 2px 12px rgba(241, 249, 255, 0.58);
 }

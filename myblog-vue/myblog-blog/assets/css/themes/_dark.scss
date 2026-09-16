@@ -1,9 +1,5 @@
-// ============================================
-// themes/_dark.scss - 暗色主题 CSS 变量
-// ============================================
-
 html.dark {
-  // 背景色 — bg-primary 透明以直接展示原图，卡片组件保持 opaque
+  // 页面与卡片背景。
   --bg-primary: rgba(15, 15, 35, 0);
   --bg-card: rgba(22, 33, 62, 0.65);
   --bg-header: rgba(15, 15, 35, 0.35);
@@ -11,63 +7,55 @@ html.dark {
   --bg-hover: rgba(31, 47, 80, 0.85);
   --bg-code: rgba(30, 30, 50, 0.85);
   --bg-backdrop: rgba(15, 15, 35, 0.75);
-  // 毛玻璃：高透明为主、低模糊为辅（暗色略提高不透明度以保证阅读稳定）
   --glass-blur: 2px;
   --glass-border: rgba(255, 255, 255, 0.18);
 
-  // 文字颜色
-  // ⚠️ --text-muted 承担「日期 / 阅读量 / 计数」等元信息，2026-09-15 由 #6b7388
-  //    抬深到 #8b95ab：实测在暗色卡片合成底（--bg-card 叠在暗背景图上）上
-  //    从 3.11:1 提升到 4.91:1。
   --text-primary: #e8e8ed;
   --text-secondary: #b0b8c8;
   --text-muted: #8b95ab;
 
-  // 边框颜色
   --border-color: rgba(55, 70, 100, 0.7);
   --border-light: rgba(50, 65, 95, 0.8);
 
-  // 不透明底（EP 的面板 / 抽屉 / 下拉需要不透明背景）
   --bg-card-solid: #16213e;
   --bg-page-solid: #0f0f23;
 
-  // 阴影 — 增强层次感
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
   --shadow-elevated:
     0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.15);
 
-  // 主题色（默认预设 = 青瓷蓝；与 utils/themeColor.ts 的 SLATE_DARK 逐项一致）
-  // accent 两级同亮色：本体管填充/描边，--color-accent-deep 管文字/图标。
-  // 暗色下两者都很亮（对暗卡 10.18 / 13.18），填充上的前景是深墨字。
-  --color-accent: #67e8f9; // cyan-300（暗色下反相提亮）
-  --color-accent-light: rgba(103, 232, 249, 0.16);
-  --color-accent-deep: #96cee8; // 文字/图标档（与亮色同色相 199 / 同饱和度 64%，互为镜像）
-  --color-link: #96cee8;
-  // 交互档：浅底 + 深墨字 → 提亮（同亮色主题的规则）
-  --color-accent-hover: #7eebfa;
-  --color-accent-active: #95effb;
+  // 品牌色。
+  --color-accent: #22d3ee; // 填充/高亮档（cyan-400）
+  --color-accent-light: rgba(34, 211, 238, 0.16);
+  --color-accent-deep: #7dd3fc; // 文字/描边档（对暗卡 avg 7.92 / p95 4.14）
+  --color-link: #7dd3fc;
+  --color-accent-hover: #3dd8f0;
+  --color-accent-active: #5ee0f4;
+  --surface-brand-soft: #112a3d;
 
-  // 语义色（暗色降饱和：清晰但不喧宾，避免与灰蓝基底冲突）
+  // 语义色。
   --color-success: #3fbf2f;
   --color-warning: #e6a23c;
   --color-danger: #f56c6c;
   --color-info: #4d9fff;
 
-  // 文字阴影 — 用于在图片背景上提升可读性
+  // 背景图上的文字可读性。
   --text-shadow-on-bg: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --scrim-on-bg: radial-gradient(
+    ellipse 62% 56% at 50% 46%,
+    rgba(8, 12, 30, 0.68),
+    rgba(8, 12, 30, 0.36) 58%,
+    rgba(8, 12, 30, 0) 80%
+  );
 
-  // ==== 风格扩展（图B 夜间）====
-  // 主题无关的 --radius-card-lg / --transition-bounce 由 :root 继承
-  // 分类色两级（同亮色）：装饰给图形、strong 给文字。暗色下两级都得「亮」才看得清
-  --color-category: #38bdf8; // sky-400（作图形 6.89:1）
-  --color-category-strong: #7dd3fc; // sky-300（作文字 8.85:1）
-  --color-category-soft: rgba(56, 189, 248, 0.14);
+  // 分类和装饰令牌。
+  --color-category: #22d3ee; // 分类装饰档（与填充档同色；作图形用）
+  --color-category-strong: #7dd3fc; // 文字档 —— 与 --color-accent-deep 同一个色
+  --color-category-soft: rgba(34, 211, 238, 0.16);
   --color-fav: #fbbf24; // 收藏/星标（暖橙，提亮）
   --color-fav-soft: rgba(251, 191, 36, 0.2); // 收藏高亮底色/搜索 mark
-  // 品牌渐变（标题竖条 / 最新徽标 / 排名徽标）：暗色版用明亮的青蓝，文字用深色保对比度
   --gradient-brand: linear-gradient(135deg, #34d0c2, #4fc3f7);
   --gradient-brand-text: #132b30;
-  // 热门文章排名徽标（top3）：夜间用明亮的青蓝渐变
   --hot-rank-gradient: linear-gradient(135deg, #34d0c2, #4fc3f7);
   --hot-rank-text: #132b30;
   --deco-a: rgba(90, 140, 220, 0.2); // 冷蓝光装饰

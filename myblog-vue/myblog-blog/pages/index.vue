@@ -114,6 +114,25 @@ usePageSeo({
   will-change: transform;
 }
 
+/* 「文字直接压在背景图上」的柔光衜底。用伪元素而不是盒子：不参与布局、不需
+   改任何间距。它是「不把内容装进卡片」时唯一能修正「大片底色本身就是亮区」的
+   手段 —— 文字阴影只能修补字形边缘（实测标题在亮区仍只有 2.01:1）。
+   四周外扩，让渐变的透明端落在文字之外；z-index:-1 在 .welcome-wrap 自身的
+   层叠上下文内（will-change 已创建），所以只压背景图、不压内容。 */
+.welcome-wrap::before {
+  content: "";
+  position: absolute;
+  /* 横向外扩 24% 是为了「让文字整体落在渐变的满强度区」：椭圆半径按元素宽度
+     的百分比算，只外扩 10% 时文字左右边缘的归一化距离已进入衰减段（实测那里
+     只有 ~0.2 的强度、叠加后最坏只有 3.33:1）。外扩到 24% 后左右边缘也吃满中心
+     强度，而更长的渐变半径反而让边缘过渡更柔。纵向靠固定的 48px 就够（文字
+     上下都离中心很近）。父级 .welcome-page 有 overflow:hidden，溢出不会产生滚动条。 */
+  inset: -48px -24%;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--scrim-on-bg);
+}
+
 /* ===== 头像：呼吸 + 柔光 ===== */
 .avatar-ring {
   position: relative;
@@ -177,6 +196,8 @@ usePageSeo({
   font-size: 1.02rem;
   color: var(--text-secondary);
   margin: -6px 0 0;
+  /* 与标题同属「直接压在图上」的文字，但字号更小、更吃背景图 → 用文字阴影兜底 */
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 .welcome-bio {
@@ -184,6 +205,9 @@ usePageSeo({
   color: var(--text-secondary);
   line-height: 1.8;
   margin: 0;
+  /* 说明文字原先是全页唯一没有阴影的裸文字（实测亮色下平均 4.35:1、压图上最暗处
+     仅 1.45:1）。字号小时更依赖衜底与阴影，两者都要给。 */
+  text-shadow: var(--text-shadow-on-bg);
 }
 
 /* ===== 极简社交链接 ===== */
@@ -222,7 +246,12 @@ usePageSeo({
   transform: translateY(-1px);
 }
 
-/* ===== 单一 CTA ===== */
+/* ===== 单一 CTA =====
+   用「玻璃卡同源配方」而不是实心品牌填充：欢迎页的文字与控件都直接压在背景图上，
+   一块实心色块等于把背景切开 —— 同页的 .welcome-badge / .welcome-link 也是这个配方。
+   文字用品牌**文字/描边档**（--color-accent-deep）：它才是 ≥4.5:1 的那一档；
+   填充档 --color-accent 对浅卡只有 2.77:1，只能当图形、不能当文字。
+   ⚠️ 底变半透明后就少了一层衬底，必须补 --text-shadow-on-bg 兜底。 */
 .enter-btn {
   display: inline-flex;
   align-items: center;
@@ -233,16 +262,26 @@ usePageSeo({
   border-radius: 999px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--bg-card);
-  background: var(--color-accent);
+  color: var(--color-accent-deep);
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  box-shadow: var(--shadow-glow);
+  text-shadow: var(--text-shadow-on-bg);
   text-decoration: none;
   transition:
+    color 0.2s,
+    border-color 0.2s,
     box-shadow var(--transition-bounce),
     transform var(--transition-bounce);
 }
 
 .enter-btn:hover {
-  box-shadow: var(--shadow-glow);
+  /* hover 只做「边框高亮 + 发光 + 微抬升」：再把底填实就又变成贴在图上的一块色 */
+  color: var(--color-accent-deep);
+  border-color: var(--color-accent-deep);
+  box-shadow: var(--shadow-glow), 0 0 18px var(--color-accent-light);
   transform: translateY(-2px);
 }
 

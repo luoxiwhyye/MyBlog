@@ -318,7 +318,7 @@ usePageSeo({
 
 .social-link:hover {
   color: var(--color-accent-deep);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
   /* 原先写 var(--color-accent-soft, var(--color-category-soft))，
      而 --color-accent-soft 全站未定义（design-system 检查清单明确列为禁用），
      实际生效的一直是回退值 —— 直接写回退值，去掉这个不存在的令牌。 */
@@ -496,7 +496,7 @@ usePageSeo({
 
 .friend-chip:hover {
   background: var(--bg-card);
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-deep);
 }
 
 .friend-chip-avatar,

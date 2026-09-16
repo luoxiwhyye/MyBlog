@@ -1,7 +1,7 @@
 // ============================================
 // utils/themeColor.ts - 博客品牌主色工具
 // 主色全部走 CSS 变量，后台可在「外观与品牌」切换；
-// 未配置或非法时回退到默认预设（当前设计 - 石墨青）。
+// 未配置或非法时回退到默认预设（晴空青）。
 //
 // 关键：每个预设要输出【完整】的风格扩展色组（亮/暗），
 // 否则切换主题色时大量组件（分类徽标/品牌渐变/收藏/
@@ -27,10 +27,11 @@ export interface ThemeColorVariant {
    * --color-accent-text（**accent 填充面上的前景色**）
    *
    * --color-accent 会随主题"反相"（亮色下是深色、暗色下是浅色），
-   * 因此写死 `color: #ffffff` 在暗色下会变成"白字压浅灰"（实测对比度仅 1.48:1）。
-   * 本字段用于填充式按钮/徽标的前景，保证两种主题下都能读清。
+   * 因此写死 `color: #ffffff` 在暗色下会变成"白字压亮青"。
+   * 本字段用于填充式按钮/徽标的前景。
    *
-   * 通常**无需显式赋值**：buildThemeColorCss 会按 accent 的亮度自动推导。
+   * 通常**无需显式赋值**：buildThemeColorCss 按当前主题推导
+   *（亮色固定白字、暗色推同色系深字，见 fillTextOn）。
    */
   accentText?: string;
   /** --color-link */
@@ -78,43 +79,40 @@ export interface ThemeColorPreset {
   dark: ThemeColorVariant;
 }
 
-// 预设：当前博客设计（青瓷蓝 / 动漫极简）—— 图A 日间 / 图B 夜间
+// 默认预设（晴空青）。
 // ⚠️ 本预设必须与 assets/css/themes/_light.scss / _dark.scss 的静态回退值逐项一致。
-// 2026-09-15 的第一轮：accent 由石墨 #475569 换成青瓷蓝 #0e7490；category 拆成
-// 「装饰档 + 文字档」并改走偏蓝的 sky。
-// 2026-09-15 的第二轮：**accent 也用同一套两级思路**——本体降为装饰/填充档
-// （#088db0，比原值明显轻快），原值 #0e7490 移作文字档。
-// 2026-09-15 的第三轮（作者反馈「品牌蓝和其他组件相比很突兀」）：根因不是「深」而是
-// **饱和度** —— 周围文字只有 16~33% 彩度，而品牌文字是 82~96%。故把**文字档去彩度**
-//（#0e7490 sat82% → #1f6a8c sat64%）并**统一全站品牌文字为一个颜色**：
-// `--color-category-strong` 不再单独取值，直接回退到 accentDeep，`link` 也同用。
+// ⚠️ 历次品牌色调整的过程记录（谁反馈了什么、试过什么）已抽到
+//    documents/design-documents/design-token-history.md；本文件只留「当前规则」。
 const SLATE_LIGHT: ThemeColorVariant = {
-  accent: "#088db0",
-  accentLight: "rgba(8, 141, 176, 0.1)",
-  accentDeep: "#1f6a8c",
-  link: "#1f6a8c",
-  category: "#0284c7",
-  categorySoft: "rgba(2, 132, 199, 0.12)",
+  // 亮色填充取天空湖青，填充面配白字（见 fillTextOn）
+  accent: "#008fbe",
+  accentLight: "rgba(0, 143, 190, 0.14)",
+  // 文字/描边档：填充同色相压深 —— 链接 / 图标 / 当前选中 / 所有边框与 focus
+  accentDeep: "#0b5c82",
+  link: "#0b5c82",
+  // 分类图形档：与填充同色相但再压深一档（它当边框 / 圆点用，要守非文本 3:1，不能与填充同色）
+  category: "#147fa8",
+  categorySoft: "rgba(20, 127, 168, 0.14)",
   fav: "#f59e0b",
   favSoft: "rgba(245, 158, 11, 0.22)",
-  gradientBrand: "linear-gradient(135deg, #75e1f1, #bff4fa)",
-  gradientBrandText: "#2e5763",
-  hotRankGradient: "linear-gradient(135deg, #75e1f1, #aeeef8)",
-  hotRankText: "#2e5763",
-  decoA: "rgba(143, 224, 232, 0.16)",
-  decoB: "rgba(74, 155, 232, 0.14)",
+  gradientBrand: "linear-gradient(135deg, #61c9e5, #c5eaf5)",
+  gradientBrandText: "#174e68",
+  hotRankGradient: "linear-gradient(135deg, #53b9d8, #b7e4f1)",
+  hotRankText: "#174e68",
+  decoA: "rgba(97, 201, 229, 0.18)",
+  decoB: "rgba(147, 119, 206, 0.14)",
   shadowGlow:
-    "0 0 0 1px rgba(255, 255, 255, 0.5), 0 8px 30px rgba(120, 190, 240, 0.25)",
+    "0 0 0 1px rgba(241, 249, 255, 0.64), 0 8px 30px rgba(22, 143, 190, 0.22)",
   textGlow: "0 2px 12px rgba(255, 255, 255, 0.45)",
 };
 
 const SLATE_DARK: ThemeColorVariant = {
-  accent: "#67e8f9",
-  accentLight: "rgba(103, 232, 249, 0.16)",
-  accentDeep: "#96cee8",
-  link: "#96cee8",
-  category: "#38bdf8",
-  categorySoft: "rgba(56, 189, 248, 0.14)",
+  accent: "#22d3ee",
+  accentLight: "rgba(34, 211, 238, 0.16)",
+  accentDeep: "#7dd3fc",
+  link: "#7dd3fc",
+  category: "#22d3ee",
+  categorySoft: "rgba(34, 211, 238, 0.16)",
   fav: "#fbbf24",
   favSoft: "rgba(251, 191, 36, 0.2)",
   gradientBrand: "linear-gradient(135deg, #34d0c2, #4fc3f7)",
@@ -274,14 +272,14 @@ const AMBER_DARK: ThemeColorVariant = {
     "0 0 0 1px rgba(251, 191, 36, 0.25), 0 8px 30px rgba(69, 26, 3, 0.55)",
 };
 
-// 预设主题色：当前博客设计（青瓷蓝 Slate）作为默认预设，其余贴合动漫极简风格
+// 预设主题色：当前博客设计（晴空青 Slate）作为默认预设，其余贴合动漫极简风格
 // ⚠️ 预设的 value 是「accent 亮色值」：后台一键应用预设、以及 THEME_COLOR_PRESET_MAP
 //（admin Settings.vue）的键都靠它对应，改名/改值必须两处同步。
 export const THEME_COLOR_PRESETS: ThemeColorPreset[] = [
   {
     key: "slate",
-    name: "青瓷蓝（当前/默认）",
-    value: "#088db0",
+    name: "晴空青（当前/默认）",
+    value: "#008fbe",
     light: SLATE_LIGHT,
     dark: SLATE_DARK,
   },
@@ -364,14 +362,8 @@ const lighten = (c: Rgb, weight: number): Rgb => mix(c, WHITE, weight);
 const darken = (c: Rgb, weight: number): Rgb => mix(c, BLACK, weight);
 
 /**
- * 去彩度（往「通道均值」靠）。
- *
- * 为什么需要它：品牌色作为**文字**时必须在 4.5:1 以上，而“够深”的高饱和度蓝
- * 在全是低饱和灰蓝的页面里会显得很突兀（实测：周围文字只有 16~33% 饱和，
- * 品牌文字却是 82~96%）。降低彩度而不动亮度，就能同时拿到「可读」与「不突兀」。
- *
- * 注意：去彩度会略微改变亮度 —— 实测是**小幅提高**对比度（因为底色是蓝调浅底），
- * 所以不会把刚达标的颜色弄得不达标。
+ * 去彩度（往「通道均值」靠），用于品牌**文字/描边档**：
+ * 全站其余文字都是低饱和灰蓝，文字盘保留满饱和会显得笑兀。
  */
 const mute = (c: Rgb, weight: number): Rgb => {
   const avg = (c.r + c.g + c.b) / 3;
@@ -380,9 +372,6 @@ const mute = (c: Rgb, weight: number): Rgb => {
 
 const toRgba = (c: Rgb, alpha: number): string =>
   `rgba(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)}, ${alpha})`;
-
-/** 深墨水色（slate-900 系），用作浅底色上的前景 */
-const INK: Rgb = { r: 15, g: 23, b: 42 };
 
 /** sRGB 相对亮度（WCAG 2.x 定义），用于判断前景该用白还是深色 */
 const relativeLuminance = ({ r, g, b }: Rgb): number => {
@@ -393,15 +382,38 @@ const relativeLuminance = ({ r, g, b }: Rgb): number => {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 };
 
+/** WCAG 对比度 */
+const contrastRatio = (a: Rgb, b: Rgb): number => {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+};
+
 /**
- * 在给定底色上取可读的前景色：对比度更高的那一方胜出（白 / 深墨水）。
- * 用于 --color-accent-text —— accent 随主题反相，固定白字会在暗色下失效。
+ * 填充面上的**前景色**。
+ *
+ * - 亮色：固定白字。亮色填充是高饱和蓝绿，白字与它是同一档强度的对比。
+ * - 暗色：填充本身是亮青，白字会糊在一起 → 用 `deepTextOn` 推一个同色系深字。
+ *
+ * @param fill 填充底色
+ * @param isDark 当前是否为暗色主题
  */
-const readableOn = (bg: Rgb): string => {
-  const l = relativeLuminance(bg);
-  const withWhite = (1 + 0.05) / (l + 0.05);
-  const withInk = (l + 0.05) / (relativeLuminance(INK) + 0.05);
-  return withWhite >= withInk ? "#ffffff" : rgbToHex(INK);
+const fillTextOn = (fill: Rgb, isDark: boolean): string =>
+  isDark ? deepTextOn(fill) : "#ffffff";
+
+/**
+ * 在给定底色上取**同色系深字**：保持色相、把明度压到刚好达标（步长 0.01，
+ * 命中即返回 —— 要的是「刚好达标」而不是「越深越好」，粗步长会白丢一截彩度与亮度）。
+ *
+ * @param bg 底色
+ * @param target 目标对比度（默认 4.6，略高于 AA 下限以留余量）
+ */
+const deepTextOn = (bg: Rgb, target = 4.6): string => {
+  for (let w = 0.3; w <= 0.96; w += 0.01) {
+    const c = darken(bg, Number(w.toFixed(2)));
+    if (contrastRatio(c, bg) >= target) return rgbToHex(c);
+  }
+  return rgbToHex(darken(bg, 0.96));
 };
 
 /**
@@ -451,14 +463,16 @@ function parseHex(value?: string): Rgb | null {
 const applyAccentDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
-  // accentDeep 兼作「文字档」：亮色主题压深（对白底）、暗色主题提亮（对暗卡），
-  // 并**去彩度**（见 mute 注释）—— 与中性灰蓝同族，不再突兀。
-  const deep = mute(isDark ? lighten(c, 0.35) : darken(c, 0.4), 0.45);
+  // 填充/高亮档 = 用户/预设给的标称主色**原样使用**（后台取色器选什么就是什么）。
+  const accent = c;
+  // accentDeep 兼作「文字 / 描边档」：链接、图标、以及**所有边框 / focus**。
+  // 亮色压深、暗色提亮，且只做极少量去彩度（mute 0.1）—— 品牌色要「鲜亮」。
+  const deep = mute(isDark ? lighten(c, 0.35) : darken(c, 0.4), 0.1);
   return {
-    accent: baseHex,
-    accentLight: isDark ? toRgba(darken(c, 0.35), 0.9) : toRgba(c, 0.1),
+    accent: rgbToHex(accent),
+    accentLight: toRgba(accent, isDark ? 0.16 : 0.14),
     accentDeep: rgbToHex(deep),
-    // 链接必须走文字档：accent 本体（装饰档）作文字普遍只有 3 点几比一
+    // 链接必须走文字档：accent 本体（填充档）作文字普遍只有 3 点几比一
     link: rgbToHex(deep),
   };
 };
@@ -466,9 +480,8 @@ const applyAccentDim = (baseHex: string, isDark: boolean) => {
 /**
  * 分类维度：category（图形）+ category-soft（徽标底）。
  *
- * ⚠️ **不再产出 categoryStrong**（2026-09-15）：分类色的**文字档直接复用 accent 的文字档**
- *（见 variantToBlock 的回退）。原因是全站出现三种近似但不相同的品牌蓝，在几乎全是灰蓝的
- * 页面里显得很乱（作者反馈「和其他组件相比很突兀」）—— 现在全站品牌文字只有**一个**颜色；
+ * ⚠️ **不产出 categoryStrong**：分类色的**文字档直接复用 accent 的文字档**
+ *（见 variantToBlock 的回退）—— 全站品牌文字只保留**一个**颜色；
  * 两类颜色的区分靠**底 / 描边 / 圆点 / 渐变**，而不是靠文字色。
  */
 const applyCategoryDim = (baseHex: string, isDark: boolean) => {
@@ -645,22 +658,18 @@ const FONT_FAMILY_BASE =
 /**
  * accent 填充式控件的交互档（hover / active）。
  *
- * 方向**不能写死**，必须让对比度变大：
- * - 深底 + 白字（如墨水蓝、天青蓝）→ hover 压深（原逻辑，朝黑）
- * - 浅底 + 深墨字（如青瓷蓝、薄荷青）→ hover **提亮**（朝白）
- *
- * 2026-09-15 实测教训：accent 降为亮色后仍按「亮色主题一律压深」，
- * 墨字对比度会从 4.63 降到 **3.51**（hover）/ **2.61**（active）—— 直接跌破 AA。
- * 现改为按 `readableOn()` 选出的前景色反推方向，两种情形都只会提高对比度。
+ * 方向按**填充面实际用的前景**反推，两种情形对比度都只会变大：
+ * - 前景比填充亮（白字）→ 压深（朝黑）
+ * - 前景比填充暗（同色系深字）→ 提亮（朝白）
  */
-const interactionLevels = (accentHex: string) => {
+const interactionLevels = (accentHex: string, isDark: boolean) => {
   const rgb =
     hexToRgb(accentHex) || (hexToRgb(DEFAULT_THEME_COLOR_VALUE) as Rgb);
-  const fg = readableOn(rgb);
-  const toward = fg === "#ffffff" ? BLACK : WHITE;
+  const fg = hexToRgb(fillTextOn(rgb, isDark)) as Rgb;
+  const toward = relativeLuminance(fg) > relativeLuminance(rgb) ? BLACK : WHITE;
   return {
-    hover: rgbToHex(mix(rgb, toward, 0.15)),
-    active: rgbToHex(mix(rgb, toward, 0.3)),
+    hover: rgbToHex(mix(rgb, toward, 0.12)),
+    active: rgbToHex(mix(rgb, toward, 0.24)),
   };
 };
 
@@ -670,13 +679,23 @@ const variantToBlock = (
   el: ElementPlusLevels,
   isDark: boolean,
 ): string => {
-  const inter = interactionLevels(v.accent);
+  const inter = interactionLevels(v.accent, isDark);
+  // 二级/幽灵按钮的**不透明品牌浅面**：跟主色派生（后台换色自动跟随）。
+  // ⚠️ 必须是**不透明**的，不能用 --color-accent-light（半透明叠在背景图暗区上时，
+  //    品牌深字会随之掉到读不清）。
+  const accentRgb = parseHex(v.accent) ?? WHITE;
+  const softSurface = rgbToHex(
+    isDark
+      ? mix(accentRgb, { r: 15, g: 23, b: 41 }, 0.84)
+      : mix(accentRgb, WHITE, 0.9),
+  );
   return `
 ${selector} {
   --color-accent: ${v.accent};
   --color-accent-light: ${v.accentLight};
   --color-accent-deep: ${v.accentDeep};
-  --color-accent-text: ${v.accentText || readableOn(parseHex(v.accent) ?? WHITE)};
+  --surface-brand-soft: ${softSurface};
+  --color-accent-text: ${v.accentText || fillTextOn(accentRgb, isDark)};
   --color-accent-hover: ${inter.hover};
   --color-accent-active: ${inter.active};
   --color-link: ${v.link};
@@ -722,7 +741,7 @@ ${selector} {
   --el-border-color: var(--border-color);
   --el-border-color-light: var(--border-light);
   --el-border-color-lighter: var(--border-light);
-  --el-border-color-hover: var(--color-accent);
+  --el-border-color-hover: var(--color-accent-deep);
   --el-mask-color: var(--bg-backdrop);
   --el-disabled-bg-color: var(--bg-hover);
   --el-disabled-text-color: var(--text-muted);
@@ -743,24 +762,25 @@ ${selector} {
  * 输入框与多行文本共用同一组控件令牌 → 与玻璃卡同源。详见 design-system.md §6.1。
  */
 const ELEMENT_PLUS_COMPONENTS = `
-/* 次要按钮：玻璃卡底色 + 站点描边；hover 转 accent（**文字档**，见下） */
+/* 次要按钮：**品牌浅底 + 品牌文字档**，与主按钮是同一个色族的深浅两档 */
 .el-button {
-  --el-button-bg-color: var(--control-bg);
-  --el-button-border-color: var(--control-border);
-  --el-button-text-color: var(--text-secondary);
-  --el-button-hover-bg-color: var(--bg-hover);
+  --el-button-bg-color: var(--surface-brand-soft);
+  --el-button-border-color: var(--color-accent-deep);
+  --el-button-text-color: var(--color-accent-deep);
+  --el-button-hover-bg-color: var(--color-accent);
   --el-button-hover-border-color: var(--color-accent);
-  --el-button-hover-text-color: var(--color-accent-deep);
-  --el-button-active-bg-color: var(--bg-hover);
-  --el-button-active-border-color: var(--color-accent);
-  --el-button-active-text-color: var(--color-accent-deep);
-  --el-button-disabled-bg-color: var(--control-bg);
-  --el-button-disabled-border-color: var(--control-border);
+  --el-button-hover-text-color: var(--color-accent-text);
+  --el-button-active-bg-color: var(--color-accent-hover);
+  --el-button-active-border-color: var(--color-accent-hover);
+  --el-button-active-text-color: var(--color-accent-text);
+  /* 禁用态：褪到中性——不能再带品牌色，否则与可用态只差文字色 */
+  --el-button-disabled-bg-color: var(--bg-hover);
+  --el-button-disabled-border-color: var(--border-light);
   --el-button-disabled-text-color: var(--text-muted);
 }
 
-/* 主按钮：accent 填充面 → 前景一律用 --color-accent-text
-   （原 EP 硬白 --el-color-white 在暗色下是白字压浅灰，实测仅 1.48:1） */
+/* 主按钮：品牌填充面 + --color-accent-text（见 fillTextOn）。
+   不要用 EP 的硬白 --el-color-white：它在暗色下会变成白字压亮青。 */
 .el-button--primary {
   --el-button-bg-color: var(--color-accent);
   --el-button-border-color: var(--color-accent);
@@ -776,10 +796,10 @@ const ELEMENT_PLUS_COMPONENTS = `
 /* plain 主按钮：EP 用「极浅底 + 主色字」，底色换成站点 accent 浅底、**文字走文字档** */
 .el-button--primary.is-plain {
   --el-button-bg-color: var(--color-accent-light);
-  --el-button-border-color: var(--color-accent);
+  --el-button-border-color: var(--color-accent-deep);
   --el-button-text-color: var(--color-accent-deep);
   --el-button-hover-bg-color: var(--color-accent);
-  --el-button-hover-border-color: var(--color-accent);
+  --el-button-hover-border-color: var(--color-accent-deep);
   --el-button-hover-text-color: var(--color-accent-text);
   --el-button-active-bg-color: var(--color-accent-active);
   --el-button-active-border-color: var(--color-accent-active);
@@ -788,58 +808,128 @@ const ELEMENT_PLUS_COMPONENTS = `
 
 .el-button--primary.is-disabled,
 .el-button--primary.is-disabled:hover {
-  --el-button-disabled-bg-color: var(--control-bg);
-  --el-button-disabled-border-color: var(--control-border);
+  --el-button-disabled-bg-color: var(--bg-hover);
+  --el-button-disabled-border-color: var(--border-light);
   --el-button-disabled-text-color: var(--text-muted);
 }
 
-/* 幽灵按钮（EP link 档）：透明底、行内低强调，hover 转 accent（文字档）+ --bg-hover */
+/* 暗色主按钮：**半透明品牌底 + 品牌描边 + 品牌文字档**，hover 才填实 + 发光。
+   暗色卡是半透明玻璃，实心亮青压在它上面像一块塑料；底色透出卡与背景图时才「悬浮」。
+   ⚠️ 只有暗色这样做，亮色是实心填充：亮色卡底会随背景图漂移，半透明填充上的白字
+   在最坏情况下会压在很浅的底上。
+   ⚠️ 必须带 html.dark 前缀：EP 把 --el-button-* 声明在 .el-button--primary 元素上，
+   只靠「后写者胜」压不住，要同时拿到更高特异性。
+   ⚠️ 这里不碰 --el-button-disabled-*，禁用态继续回中性（见上面的 .is-disabled 规则）。 */
+html.dark .el-button--primary {
+  --el-button-bg-color: var(--color-accent-light);
+  --el-button-border-color: var(--color-accent-deep);
+  --el-button-text-color: var(--color-accent-deep);
+  --el-button-hover-bg-color: var(--color-accent);
+  --el-button-hover-border-color: var(--color-accent);
+  --el-button-hover-text-color: var(--color-accent-text);
+  --el-button-active-bg-color: var(--color-accent-hover);
+  --el-button-active-border-color: var(--color-accent-hover);
+  --el-button-active-text-color: var(--color-accent-text);
+}
+
+/* 悬停才给「外发光」——静态时按钮不该自己发光抢注意力 */
+html.dark .el-button--primary:not(.is-disabled):hover {
+  box-shadow: 0 0 12px var(--color-accent-light);
+}
+
+/* 幽灵按钮（EP link 档）：透明底、行内低强调，hover 加品牌浅底 + 品牌文字档 */
 .el-button.is-link {
-  --el-button-text-color: var(--text-secondary);
+  --el-button-text-color: var(--color-accent-deep);
   --el-button-hover-text-color: var(--color-accent-deep);
 }
 .el-button.is-link:hover {
-  background: var(--bg-hover);
+  background: var(--color-accent-light);
+}
+
+/* ===== 分段控制器（EP el-radio-button）=====
+   EP 默认是「实心填充 + 硬白字」，相邻段之间还靠 -1px 外阴影画分隔线；一屏里
+   出现一排实心亮块，会比卡里的主操作还抢眼。这里改成经典分段控制器：
+   外层是玻璃胶囊（轨道），选中项是一枚**半透明**品牌色滑块。
+   ⚠️ 滑块用 --color-accent-light 而不是 --color-accent：填充档是留给主操作的。
+   ⚠️ 选择器一律带 .el-radio-group 前缀：EP 的 first/last-child 规则（0,3,0）比
+   单独的 .el-radio-button__inner（0,1,0）更具体，不叠前缀压不住它们的分隔线与方角。 */
+.el-radio-group {
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.el-radio-group .el-radio-button .el-radio-button__inner {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  /* EP 用 -1px 外阴影做相邻段的分隔线，分段落器靠轨道底色区分，不需要它 */
+  box-shadow: none;
+}
+
+.el-radio-group
+  .el-radio-button
+  .el-radio-button__original-radio:checked
+  + .el-radio-button__inner {
+  background: var(--color-accent-light);
+  color: var(--color-accent-deep);
+  box-shadow: none;
+}
+
+/* 悬停只提亮文字：hover 不等于已选中，提前填实会误导 */
+.el-radio-group .el-radio-button .el-radio-button__inner:hover {
+  color: var(--color-accent-deep);
 }
 
 /* ===== 其它「选中态填充」型 EP 组件 =====
-   EP 默认是 --el-color-primary 填充 + **硬白字/硬白勾**（.el-radio-button 的
-   --el-radio-button-checked-text-color: var(--el-color-white)、checkbox 的
-   --el-checkbox-checked-icon-color 同理）。accent 降为亮色后，硬白会重演
-   与主按钮同一类缺陷，所以这些组件的填充一律改成「accent 填充 + 自动前景」。
+   EP 默认用 --el-color-primary 填充 + **硬白字/硬白勾**（如 .el-checkbox 的
+   --el-checkbox-checked-icon-color）。硬色不跟主题 → 一律改指
+   accent 填充 + --color-accent-text。
    注：--el-color-primary 本身保持**文字档**（见 buildThemeColorCss），
    因为 EP 把 primary 更多地当文字色用（tag / checkbox 标签 / link / 选中项）。 */
-.el-radio-button {
-  --el-radio-button-checked-bg-color: var(--color-accent);
-  --el-radio-button-checked-border-color: var(--color-accent);
-  --el-radio-button-checked-text-color: var(--color-accent-text);
-}
-
 .el-checkbox {
   --el-checkbox-checked-bg-color: var(--color-accent);
   --el-checkbox-checked-input-border-color: var(--color-accent);
   --el-checkbox-checked-icon-color: var(--color-accent-text); /* 对勾 */
   --el-checkbox-checked-text-color: var(--color-accent-deep); /* 标签文字 */
-  --el-checkbox-input-border-color-hover: var(--color-accent);
+  --el-checkbox-input-border-color-hover: var(--color-accent-deep);
 }
 
 .el-switch {
   --el-switch-on-color: var(--color-accent);
 }
 
-/* 输入框 / 多行文本：底色 --bg-card、描边 --border-color、圆角 8px、focus 转 accent
-   —— 与 CommentInput.vue 的 tiptap 富文本框同源 */
+/* 输入框 / 多行文本：底色 --bg-card-solid、描边 --control-border（= 文字/描边档）、
+   圆角 8px、focus 加深 —— 与 CommentInput.vue 的 tiptap 富文本框同源。
+   ⚠️ 描边一律用 --color-accent-deep（**不能用填充档**：填充档为「真高亮」而生，
+   压在浅卡上只有 1.9:1，连非文本 3:1 都不到）。 */
 .el-input,
 .el-textarea {
   --el-input-text-color: var(--text-primary);
   --el-input-bg-color: var(--control-bg);
   --el-input-border-color: var(--control-border);
-  --el-input-hover-border-color: var(--color-accent);
-  --el-input-focus-border-color: var(--color-accent);
+  --el-input-hover-border-color: var(--color-accent-deep);
+  --el-input-focus-border-color: var(--color-accent-deep);
   --el-input-border-radius: var(--control-radius);
   --el-input-placeholder-color: var(--text-muted);
   --el-input-icon-color: var(--text-muted);
   --el-input-clear-hover-color: var(--text-secondary);
+}
+
+/* 聚焦态：默认描边已经是 accent-deep（--control-border），若 focus 仍只是 EP 的
+   1px 内边就与默认态完全同色、看不出「现在在哪个框里」。
+   改成「2px 实边 + 3px 半透明外环」——靠线宽与外环面积区分，不靠换色，
+   所以无论主题色怎么变都不会退化成同色。
+   ⚠️ 本规则不写 !important、也不抬高特异性：EP 的超限态是
+   .el-input.is-exceed .el-input__wrapper（0,3,0），要让它继续赢。 */
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--color-accent) inset, 0 0 0 3px var(--color-accent-light);
+}
+
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 2px var(--color-accent) inset, 0 0 0 3px var(--color-accent-light);
 }
 `;
 

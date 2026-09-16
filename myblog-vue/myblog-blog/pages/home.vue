@@ -177,7 +177,7 @@ const articles = computed(() => articlePage.value.list);
 const total = computed(() => articlePage.value.total);
 
 // 首页首篇重点卡（hero）：仅在首页第一页、无分类筛选、且文章不止一篇时启用；
-// 否则单篇文章时 hero 卡会占满整行、其余区域大面积留白（第五轮评估 P2-8）
+// 否则单篇文章时 hero 卡会占满整行、其余区域大面积留白
 const showHero = computed(
   () => currentPage.value === 1 && activeTypeId.value === "" && articles.value.length > 1,
 );
@@ -474,7 +474,7 @@ useWebsiteJsonLd();
 
   &:hover {
     color: var(--color-accent-deep);
-    border-color: var(--color-accent);
+    border-color: var(--color-accent-deep);
     background: var(--color-accent-light);
     transform: translateY(-1px);
   }

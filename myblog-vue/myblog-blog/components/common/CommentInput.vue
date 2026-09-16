@@ -196,13 +196,19 @@ defineExpose({
 
 .comment-input__box {
   position: relative;
-  border: 1px solid var(--border-color);
+  /* 与 EP 输入框同源走控件令牌（见 design-system.md §6.1）：
+     底用不透明档 --control-bg、描边用装饰档 --control-border ——
+     原先的 --bg-card + --border-color 与卡底同色，1px 浅灰边在玻璃卡上只有
+     1.2~2.0:1，用户定位不到输入区。 */
+  border: 1px solid var(--control-border);
   border-radius: 8px;
-  background: var(--bg-card);
-  transition: border-color 0.2s;
+  background: var(--control-bg);
+  transition: border-color 0.2s, box-shadow 0.2s;
 
+  /* 默认边已是 accent，focus 若只换色就与默认态一样 → 改加外环（与 el-input
+     的「加粗实边 + 外环」同一套语义）。 */
   &:focus-within {
-    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-light);
   }
 }
 
@@ -236,7 +242,7 @@ defineExpose({
    ProseMirror 靠这个 <br> 给空段落提供「行盒」；隐藏它之后空段落在排版上没有任何
    可见内容 → Chrome 找不到段内的可见插入点，会把插入点提升到 contenteditable 根层，
    于是第一个字符被插成根节点的裸文本节点，PM 按 DOM 重建后就多出一个空段落。
-   实测症状（2026-09-14）：① 计数器永远比实际字数多 1（输入 1 个字显示 2 / 1000）；
+   实测症状：① 计数器永远比实际字数多 1（输入 1 个字显示 2 / 1000）；
    ② Backspace 删完所有可见字符后仍残留 "\n"，再也删不掉；
    ③ 输入法合成中的原始拼音被当真实文本落进正文（显示成 "w我看"）。
    要压低空段落高度请改 .comment-input__body 的 min-height，别隐藏这个 <br>。 */
@@ -265,7 +271,7 @@ defineExpose({
 }
 
 .comment-input :deep(.comment-input__body img.ProseMirror-selectednode) {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-accent-deep);
 }
 
 .comment-input__tools {

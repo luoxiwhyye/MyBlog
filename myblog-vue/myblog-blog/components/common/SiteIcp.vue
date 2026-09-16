@@ -46,7 +46,7 @@ const siteIcp = computed(() => settingsStore.getSetting("site_icp"));
 }
 
 .site-icp:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-accent-deep);
   outline-offset: 2px;
   border-radius: 2px;
 }

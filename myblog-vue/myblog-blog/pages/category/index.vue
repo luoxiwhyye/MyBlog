@@ -109,7 +109,8 @@ usePageSeo({
 .category-card:hover {
   box-shadow: var(--shadow-elevated), var(--shadow-glow);
   transform: translateY(-2px);
-  border-color: var(--color-accent);
+  /* 描边走「文字/描边档」：填充档是为高亮而生，作描边压在浅卡上不足 3:1 */
+  border-color: var(--color-accent-deep);
 }
 
 .category-card h3 {
