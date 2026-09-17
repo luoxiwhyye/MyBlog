@@ -33,33 +33,43 @@ export const normalizeContentUrls = (content?: string) => {
 };
 
 /**
- * 由原图 URL 推导缩略图 WebP URL。
- * 注意：上传时若原图本身是 .webp，后端不会生成 _thumb 变体，
- * 因此调用方需配合 @error 回退到原图。
+ * 后端（sharp / webp-imageio）**会**为其生成 WebP 变体的原图扩展名。
+ *
+ * 不在此列的都不推导：
+ *   - `.svg` 等矢量图：后端不生成变体，推导出来必然 404（favicon 就是 svg）；
+ *   - `.webp` / `.avif`：本身就是目标格式，后端不重复转换。
  */
-export const getThumbWebpUrl = (url?: string) => {
-  if (!url) return "";
-  // 已是 webp，无法再生成缩略图
-  if (/\.webp($|\?)/i.test(url)) return url;
-  // 去掉扩展名（保留 query），追加 _thumb.webp
-  return url.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, "_thumb.webp$2");
-};
+const DERIVABLE_RASTER = /\.(jpe?g|png|gif|bmp|tiff?|heic|heif)(\?.*)?$/i;
+
+/** 把「最后一个扩展名」换成变体名；不可派生时原样返回 */
+const toVariantUrl = (url: string, variant: string) =>
+  DERIVABLE_RASTER.test(url)
+    ? url.replace(DERIVABLE_RASTER, `${variant}$2`)
+    : url;
 
 /**
- * 由原图 URL 推导主图 WebP URL（用于详情页大图）
+ * 由原图 URL 推导缩略图 WebP URL（不可派生的图原样返回）。
+ *
+ * ⚠️ 即使可派生，变体也可能不存在（sharp 未安装 / 变体文件被删）——
+ * **页面里不要直接绑这个函数**，用 `useSmartImage()`（推导 + `@error` 回退原图）。
  */
-export const getWebpUrl = (url?: string) => {
-  if (!url) return "";
-  if (/\.webp($|\?)/i.test(url)) return url;
-  return url.replace(/\.([a-zA-Z0-9]+)(\?.*)?$/, ".webp$2");
-};
+export const getThumbWebpUrl = (url?: string) =>
+  url ? toVariantUrl(url, "_thumb.webp") : "";
+
+/**
+ * 由原图 URL 推导主图 WebP URL（不可派生的图原样返回）。
+ *
+ * ⚠️ 同 {@link getThumbWebpUrl}：请配合 `useSmartImage()` 使用。
+ */
+export const getWebpUrl = (url?: string) =>
+  url ? toVariantUrl(url, ".webp") : "";
 
 /**
  * 响应式图片：基于后端的两种 WebP 变体（400px 缩略图 / 1200px 主图）生成 srcset。
  * 供 <img :src :srcset :sizes> 使用，让浏览器按容器宽度自动选图，避免固定载入大图。
  *
- * 注意：若原图本身是 .webp（后端不再生成 _thumb 变体），则 srcset 退化为单一来源，
- * 以免产生 404。sizes 给出窄屏优先缩略图、大屏优先主图的建议（按需微调）。
+ * 派生不出第二个尺寸时（原图本身是 .webp / .avif，或 svg 这类矢量图）退化为
+ * 单一来源，`srcset` 为空 —— 否则会在 srcset 里放一个必然 404 的候选。
  */
 export const buildSrcSet = (
   url?: string,
@@ -67,10 +77,9 @@ export const buildSrcSet = (
 ): { src: string; srcset: string; sizes: string } => {
   const raw = normalizeAssetUrl(url);
   if (!raw) return { src: "", srcset: "", sizes };
-  // 已是 webp：无法派生多尺寸，退化为单图
-  if (/\.webp($|\?)/i.test(raw)) return { src: raw, srcset: "", sizes };
   const thumb = getThumbWebpUrl(raw);
   const full = getWebpUrl(raw);
+  if (thumb === raw && full === raw) return { src: raw, srcset: "", sizes };
   return {
     src: full,
     srcset: `${thumb} 400w, ${full} 1200w`,

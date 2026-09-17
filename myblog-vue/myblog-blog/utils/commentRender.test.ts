@@ -27,6 +27,15 @@ describe("commentRender · 标记文本解析", () => {
     expect(html).not.toContain("[img:");
   });
 
+  it("本地上传的绝对地址渲染成相对路径（手机/局域网可访问）", () => {
+    const local = "http://localhost:3000/uploads/emoji/1.jpg";
+    const html = renderCommentContent(`[img:${local}]`);
+    expect(html).toContain(
+      '<img class="comment-markup-img" src="/uploads/emoji/1.jpg"',
+    );
+    expect(html).not.toContain("localhost:3000");
+  });
+
   it("@提及高亮，其余文本原样", () => {
     const html = renderCommentContent("@张三 你好");
     expect(html).toContain('<span class="mention">@张三</span>');

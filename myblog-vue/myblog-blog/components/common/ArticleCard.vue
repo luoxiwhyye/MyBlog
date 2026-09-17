@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import type { Article } from "~/types";
 import { formatDate, estimateReadTime } from "~/utils/format";
-import { buildSrcSet, getThumbWebpUrl, getWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { buildSrcSet } from "~/utils/image";
 import { markdownToPlain } from "~/utils/markdown";
 
 const props = withDefaults(
@@ -69,32 +69,20 @@ const props = withDefaults(
 const readTime = computed(() => estimateReadTime(props.article.content || props.article.summary || ""));
 
 // 封面：hero 重点卡用主图（1200px WebP）保证清晰度；grid 网格卡用缩略图（_thumb.webp 400px）
-// 减轻移动端流量；加载失败统一回退原图；
-// 开发环境将 localhost 前缀归一化为相对路径（手机/局域网可访问）
-const coverFailed = ref(false);
-const coverSrc = computed(() => {
-  const raw = normalizeAssetUrl(props.article.coverImage);
-  if (coverFailed.value || !raw) {
-    return raw;
-  }
-  return props.variant === "hero" ? getWebpUrl(raw) : getThumbWebpUrl(raw);
-});
+// 减轻移动端流量；变体缺失（sharp 未装 / 原图本身是 webp / 变体被删）时自动回退原图
+const {
+  src: coverSrc,
+  failed: coverFailed,
+  onError: handleCoverError,
+} = useSmartImage(
+  () => props.article.coverImage,
+  () => (props.variant === "hero" ? "full" : "thumb"),
+);
 
 // 响应式图片：hero 卡占首屏大头（LCP 目标）用视口宽；grid 卡按网格列数估算
 const coverSrcSet = computed(() => buildSrcSet(props.article.coverImage).srcset);
 const coverSizes = computed(() =>
   props.variant === "hero" ? "100vw" : "(max-width: 640px) 100vw, (max-width: 900px) 50vw, 33vw",
-);
-
-const handleCoverError = () => {
-  coverFailed.value = true;
-};
-
-watch(
-  () => props.article.coverImage,
-  () => {
-    coverFailed.value = false;
-  },
 );
 </script>
 

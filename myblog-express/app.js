@@ -172,12 +172,22 @@ app.get("/health", async (_req, res) => {
     mailStatus = "error";
   }
 
+  // WebP 变体生成器状态（sharp 缺失时只影响变体，前端会回退原图，从日志里看不出来）
+  let imageVariants = { status: "not_configured", reason: "" };
+  try {
+    const { getStatus } = require("./utils/sharpConverter");
+    imageVariants = getStatus();
+  } catch (err) {
+    imageVariants = { status: "error", reason: err.message || String(err) };
+  }
+
   const response = {
     ...base,
     database: { status: dbStatus },
     redis: { status: redisStatus },
     meilisearch: meili,
     mail: { status: mailStatus },
+    imageVariants,
   };
 
   if (!isProduction) {

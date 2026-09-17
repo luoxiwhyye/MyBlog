@@ -145,10 +145,11 @@
               <div class="related-cover">
                 <img
                   v-if="item.coverImage"
-                  :src="getWebpUrl(normalizeAssetUrl(item.coverImage))"
+                  :src="relatedCoverSrc(item)"
                   :alt="item.title"
                   loading="lazy"
                   decoding="async"
+                  @error="markRelatedCoverFailed(item.id)"
                 />
                 <div v-else class="related-cover-fallback">{{ relatedCoverLabel(item) }}</div>
               </div>
@@ -386,19 +387,12 @@ const { t } = useI18n();
 await settingsStore.ensureSettings();
 await bloggerStore.ensureProfile();
 
-// 详情页封面：优先 WebP 主图，失败回退原图；localhost 前缀归一化为相对路径
-const detailCoverFailed = ref(false);
-const detailCoverSrc = computed(() => {
-  const raw = normalizeAssetUrl(article.value?.coverImage);
-  if (detailCoverFailed.value || !raw) {
-    return raw;
-  }
-  return getWebpUrl(raw);
-});
-
-const handleDetailCoverError = () => {
-  detailCoverFailed.value = true;
-};
+// 详情页封面：优先 WebP 主图，失败回退原图
+const {
+  src: detailCoverSrc,
+  failed: detailCoverFailed,
+  onError: handleDetailCoverError,
+} = useSmartImage(() => article.value?.coverImage, "full");
 
 // 详情页封面是 LCP 目标：用响应式 srcset 按容器宽度选图 + 高优先级加载
 const detailCoverSrcSet = computed(() => buildSrcSet(article.value?.coverImage).srcset);
@@ -533,6 +527,26 @@ const relatedChip = (item: RelatedArticle): string =>
 /** 无封面时的占位文案：只取第一个共同标签（占位框窄，长文案会被裁切） */
 const relatedCoverLabel = (item: RelatedArticle): string =>
   item.sharedLabels?.[0] || item.type?.typeName || "文章";
+
+// 相关推荐封面：主图变体缺失时回退原图。
+// 这里是列表（一个个相关文章），所以用「失败 id 集合」代替 useSmartImage ——
+// 组合式只能在 setup 顶层调用，不能放进 v-for。
+const failedRelatedCovers = ref(new Set<number>());
+
+const relatedCoverSrc = (item: RelatedArticle): string => {
+  const raw = normalizeAssetUrl(item.coverImage);
+  if (!raw || failedRelatedCovers.value.has(item.id)) {
+    return raw;
+  }
+  return getWebpUrl(raw);
+};
+
+const markRelatedCoverFailed = (id: number) => {
+  // Set 就地 add 不会触发响应式，要换一个新的
+  const next = new Set(failedRelatedCovers.value);
+  next.add(id);
+  failedRelatedCovers.value = next;
+};
 
 // 上一篇 / 下一篇：按 id 排序取相邻（prev=小 id，next=大 id）
 const { data: adjacent } = await useAsyncData(

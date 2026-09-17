@@ -16,7 +16,7 @@
         <span class="emoji-tab__cover">
           <img
             v-if="showCoverImage(group)"
-            :src="group.cover"
+            :src="normalizeAssetUrl(group.cover)"
             alt=""
             @error="markCoverFailed(group.id)"
           />
@@ -44,7 +44,7 @@
         >
           <img
             v-if="isImage(item.content) && !failedEmojis.has(item.id)"
-            :src="item.content"
+            :src="normalizeAssetUrl(item.content)"
             alt="表情"
             loading="lazy"
             @error="markEmojiFailed(item.id)"
@@ -61,6 +61,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useEmoji, type EmojiGroupView } from "~/composables/useEmoji";
 import { isEmojiImage } from "~/utils/commentRender";
+import { normalizeAssetUrl } from "~/utils/image";
 
 const props = withDefaults(
   defineProps<{

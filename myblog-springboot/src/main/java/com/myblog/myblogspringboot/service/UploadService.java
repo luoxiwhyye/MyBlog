@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.imageio.IIOImage;
@@ -98,6 +100,26 @@ public class UploadService {
             log.warn("[upload] WebP 变体生成失败: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * WebP 变体生成器状态（供 /health 展示）。
+     *
+     * <p>本端的生成器是 {@code webp-imageio}（Express 侧是 sharp）：不可用时
+     * {@link #generateVariantsFor} 会**静默**跳过变体生成（只影响 `.webp` / `_thumb.webp`）
+     * —— 后端一切正常、前端却拿着推导出来的变体 URL 图裂。所以把它暴露成状态。
+     *
+     * <p>⚠️ 字段名与 Express `utils/sharpConverter.js` 的 `getStatus()` 对齐
+     * （健康检查里同键 {@code imageVariants}），否则「图裂」会在一端可见、另一端不可见。
+     */
+    public Map<String, Object> getVariantEncoderStatus() {
+        Map<String, Object> status = new LinkedHashMap<>();
+        boolean available = ImageIO.getImageWritersByMIMEType("image/webp").hasNext();
+        status.put("status", available ? "ok" : "disabled");
+        status.put("reason", available
+                ? ""
+                : "当前环境无 WebP 编码器（webp-imageio 未生效），不会生成 .webp / _thumb.webp（前端会回退原图）");
+        return status;
     }
 
     private String extensionOf(String filename) {

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.myblog.myblogspringboot.service.MailService;
 import com.myblog.myblogspringboot.service.MeilisearchService;
+import com.myblog.myblogspringboot.service.UploadService;
 
 /**
  * O-04: 增强健康检查 — 返回数据库/Redis/Meilisearch 连接状态和运行时间
@@ -37,6 +38,9 @@ public class HealthController {
 
     @Autowired(required = false)
     private MailService mailService;
+
+    @Autowired(required = false)
+    private UploadService uploadService;
 
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
@@ -90,6 +94,17 @@ public class HealthController {
         Map<String, Object> mail = new LinkedHashMap<>();
         mail.put("status", mailService != null && mailService.isAvailable() ? "ok" : "disabled");
         data.put("mail", mail);
+
+        // WebP 变体生成器状态（不可用时只影响变体，前端会回退原图，从日志里看不出来）
+        Map<String, Object> imageVariants;
+        if (uploadService != null) {
+            imageVariants = uploadService.getVariantEncoderStatus();
+        } else {
+            imageVariants = new LinkedHashMap<>();
+            imageVariants.put("status", "not_configured");
+            imageVariants.put("reason", "UploadService 未加载");
+        }
+        data.put("imageVariants", imageVariants);
 
         return ResponseEntity.ok(data);
     }

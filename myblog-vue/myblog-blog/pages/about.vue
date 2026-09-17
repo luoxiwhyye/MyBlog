@@ -5,7 +5,7 @@
     <!-- 个人品牌名片墙：头部横排 -->
     <div class="about-hero">
       <div class="avatar">
-        <img v-if="avatar" :src="avatar" :alt="authorName" loading="eager" />
+        <img v-if="avatar" :src="avatar" :alt="authorName" loading="eager" @error="onAvatarError" />
         <span v-else class="avatar-fallback">{{ (authorName || "B").slice(0, 1) }}</span>
       </div>
       <div class="hero-info">
@@ -85,7 +85,13 @@
           class="friend-chip"
           :title="link.name"
         >
-          <img v-if="link.avatar" :src="link.avatar" :alt="link.name" loading="lazy" class="friend-chip-avatar" />
+          <img
+            v-if="link.avatar"
+            :src="normalizeAssetUrl(link.avatar)"
+            :alt="link.name"
+            loading="lazy"
+            class="friend-chip-avatar"
+          />
           <span v-else class="friend-chip-fallback">{{ link.name.slice(0, 1).toUpperCase() }}</span>
           <span class="friend-chip-name">{{ link.name }}</span>
         </a>
@@ -95,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
+import { normalizeAssetUrl } from "~/utils/image";
 import { parseSocialLinks } from "~/utils/socialLinks";
 import { articleApi, categoryApi, tagApi, friendLinkApi } from "~/api";
 import type { FriendLink } from "~/types";
@@ -112,13 +118,10 @@ const siteDescription = computed(
 );
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
-const avatar = computed(() => {
-  const raw = normalizeAssetUrl(
-    bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "",
-  );
-  // 头像/Logo 使用缩略图
-  return raw ? getThumbWebpUrl(raw) : "";
-});
+// 头像用缩略图变体，缺失时由 useSmartImage 回退原图
+const { src: avatar, onError: onAvatarError } = useSmartImage(() =>
+  bloggerStore.avatar() || settingsStore.getSetting("site_logo"),
+);
 
 // 社交链接：settings 中的 `social_links`（JSON 数组 [{name,url,icon?}]，可空）
 const socialLinks = computed(() => parseSocialLinks(settingsStore.getSetting("social_links")));

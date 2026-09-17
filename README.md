@@ -258,7 +258,7 @@ npm run dev               # http://localhost:5173
 
 | 方法                  | 路径                                           | 说明                         | 认证     |
 | --------------------- | ---------------------------------------------- | ---------------------------- | -------- |
-| `GET`                 | `/health`                                      | 健康检查（DB/Redis/Meili）   | 否       |
+| `GET`                 | `/health`                                      | 健康检查（DB / Redis / Meili / 邮件 / 图片变体生成器）   | 否       |
 | `POST`                | `/blogger/login`                               | 博主登录                     | 否       |
 | `GET`                 | `/blogger/public-profile`                      | 博主公开信息                 | 否       |
 | `GET/POST`            | `/articles`                                    | 文章列表 / 创建              | 读写分离 |

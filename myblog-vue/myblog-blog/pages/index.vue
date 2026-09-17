@@ -2,7 +2,7 @@
   <div class="welcome-page">
     <div ref="parallaxRef" class="welcome-wrap">
       <div class="avatar-ring" aria-hidden="true">
-        <img v-if="avatar" :src="avatar" :alt="authorName" class="avatar" width="112" height="112" />
+        <img v-if="avatar" :src="avatar" :alt="authorName" class="avatar" width="112" height="112" @error="onAvatarError" />
         <span v-else class="avatar-fallback">{{ (authorName || "B").slice(0, 1) }}</span>
       </div>
 
@@ -27,7 +27,6 @@
 </template>
 
 <script setup lang="ts">
-import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { parseSocialLinks } from "~/utils/socialLinks";
 
 definePageMeta({
@@ -47,13 +46,13 @@ const siteDescription = computed(
 );
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
-const avatar = computed(() => {
-  const raw = normalizeAssetUrl(
+
+// 头像优先取博主头像，其次站点 Logo，最后兜底 favicon；
+// 用缩略图变体，缺失（sharp 未装 / 原图是 webp / 兜底的 svg）时自动回退原图
+const { src: avatar, onError: onAvatarError } = useSmartImage(
+  () =>
     bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "/favicon.svg",
-  );
-  // 头像/Logo 使用缩略图；favicon 无缩略图变体，保持原样
-  return raw.endsWith(".svg") ? raw : getThumbWebpUrl(raw);
-});
+);
 
 // 站点名若已包含作者名，则不再单独展示作者行，避免重复
 const showAuthor = computed(() => {

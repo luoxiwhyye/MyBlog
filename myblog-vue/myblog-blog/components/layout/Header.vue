@@ -3,7 +3,7 @@
     <div class="container">
       <div class="logo">
         <NuxtLink to="/">
-          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" width="40" height="40" />
+          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="logo-image" width="40" height="40" @error="onLogoError" />
           <span v-else class="logo-mark">MB</span>
           <span class="logo-text">{{ siteName }}</span>
         </NuxtLink>
@@ -67,8 +67,6 @@
 </template>
 
 <script setup lang="ts">
-import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
-
 const route = useRoute();
 const settingsStore = useSettingsStore();
 const drawerOpen = ref(false);
@@ -122,11 +120,11 @@ watch(
 );
 
 const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
-// Logo 使用缩略图（_thumb.webp，400px）；归一化 localhost 前缀，保证手机/局域网访问时 Logo 可加载
-const siteLogo = computed(() => {
-  const raw = normalizeAssetUrl(settingsStore.getSetting("site_logo"));
-  return raw ? getThumbWebpUrl(raw) : "";
-});
+// Logo 用缩略图（_thumb.webp，400px）；变体缺失（sharp 未装 / 原图本身是 webp）时
+// 由 useSmartImage 自动回退原图，不会图裂
+const { src: siteLogo, onError: onLogoError } = useSmartImage(() =>
+  settingsStore.getSetting("site_logo"),
+);
 </script>
 
 <style lang="scss" scoped>

@@ -10,7 +10,7 @@
       <!-- 博主信息卡：头像 + 简介 + 社交链接 + 关于入口 -->
       <section class="profile-card" v-reveal="80">
         <div class="profile-avatar">
-          <img v-if="profileAvatar" :src="profileAvatar" :alt="authorName" />
+          <img v-if="profileAvatar" :src="profileAvatar" :alt="authorName" @error="onAvatarError" />
           <span v-else class="avatar-fallback">{{ (authorName || 'B').slice(0, 1) }}</span>
         </div>
         <div class="profile-info">
@@ -100,7 +100,6 @@
 
 <script setup lang="ts">
 import { articleApi, categoryApi } from "~/api";
-import { getThumbWebpUrl, normalizeAssetUrl } from "~/utils/image";
 import { parseSocialLinks } from "~/utils/socialLinks";
 import type { Article, Category, PaginatedResponse } from "~/types";
 
@@ -193,12 +192,10 @@ const socialLinks = computed(() => parseSocialLinks(settingsStore.getSetting("so
 
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
-const profileAvatar = computed(() => {
-  const raw = normalizeAssetUrl(
-    bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "",
-  );
-  return raw ? getThumbWebpUrl(raw) : "";
-});
+// 头像用缩略图变体，缺失时由 useSmartImage 回退原图
+const { src: profileAvatar, onError: onAvatarError } = useSmartImage(() =>
+  bloggerStore.avatar() || settingsStore.getSetting("site_logo"),
+);
 
 const handlePageUpdate = (page: number, size: number) => {
   currentPage.value = page;

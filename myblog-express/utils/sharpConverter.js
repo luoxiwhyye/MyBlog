@@ -81,8 +81,29 @@ const getWebPUrl = (originalUrl, originalFilePath) => {
   return originalUrl;
 };
 
+/**
+ * WebP 变体生成器状态（供 /health 展示）。
+ *
+ * sharp 是可选依赖，缺失时会**静默**跳过变体生成（只影响 `.webp` / `_thumb.webp`）
+ * —— 后端一切正常、前端却拿着推导出来的变体 URL 图裂。所以把它暴露成状态。
+ *
+ * ⚠️ 字段与 Spring 的 `UploadService#getVariantEncoderStatus()` 对齐（同键名 imageVariants），
+ * 否则「图裂」这件事会在一端可见、另一端不可见。
+ */
+const getStatus = () => {
+  if (!sharp) {
+    return {
+      status: "disabled",
+      reason:
+        "未安装 sharp，不会生成 .webp / _thumb.webp（前端会回退原图）——" +
+        "注意 npm ci 不能加 --ignore-scripts，否则 sharp 装不上",
+    };
+  }
+  return { status: "ok", reason: "" };
+};
+
 module.exports = {
   convertToWebP,
   getWebPUrl,
-  isSharpAvailable: () => !!sharp,
+  getStatus,
 };

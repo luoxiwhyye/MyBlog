@@ -14,7 +14,14 @@
  *   评论 content 后端零转义、全项目无 DOMPurify，而评论区用 v-html。
  *   因此渲染时不「先拼 HTML 再过滤」，而是**标记白名单**：
  *   只有 `[img:http(s) URL]` 与 `@xxx` 会被转换，其余一律 HTML 转义。
+ *
+ * 图片地址：表情图片的 `content` 来自后端，是**绝对地址**（`http://localhost:3000/uploads/...`），
+ *   而手机 / 局域网访问时浏览器会把 localhost 解析到访客自己 → 必须归一化成相对路径
+ *   （由 Nuxt 的 `/uploads/**` 代理转发）。数据库里的标记保持绝对地址不变 ——
+ *   白名单校验同样要求 http(s) 绝对地址，只归一化渲染出来的 src。
  */
+
+import { normalizeAssetUrl } from "./image";
 
 /** 图片标记：仅匹配 http(s) 且 URL 内不含空白或 `]` */
 const IMG_MARKER = /\[img:(https?:\/\/[^\s\]]+)\]/gi;
@@ -61,7 +68,7 @@ export const renderCommentContent = (markup?: string | null): string => {
     const url = match[1];
     if (isSafeImageUrl(url)) {
       parts.push(
-        `<img class="comment-markup-img" src="${escapeHtml(url)}" alt="表情" loading="lazy" />`,
+        `<img class="comment-markup-img" src="${escapeHtml(normalizeAssetUrl(url))}" alt="表情" loading="lazy" />`,
       );
     } else {
       // 非法地址：退化为转义后的原样文本

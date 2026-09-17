@@ -22,7 +22,8 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 共用同一份数据库与�
 - 文章 / 分类 / 标签 / 友链 / 评论 / **留言板** CRUD
 - **相关推荐 / 上一篇下一篇**、**批量改状态**、**关键词搜索**（Meilisearch，降级 SQL LIKE）
 - **表情包管理与分组**、**仪表盘 / 未读红点**（`DashboardController`）、**前端错误日志聚合**（`/error-log`）
-- Redis 缓存（预热 / 命中统计 / 一键清空）、性能监控 `/metrics`、健康检查 `/health`、Actuator 指标端点
+- Redis 缓存（预热 / 命中统计 / 一键清空）、性能监控 `/metrics`、健康检查 `/health`（字段与 Express 逐项对齐，含
+  `meilisearch` / `mail` / `imageVariants` 的状态与原因）、Actuator 指标端点
 - 图片上传并自动生成 WebP 变体
 - **邮件通知 4 类**（无 SMTP 自动停用）：① 顶层评论 → 博主（创建即发）；② 回复 → 被回复者（**审核通过后**发一次）；③ 新留言 → 博主；④ 留言审核通过 → 留言者。②④ 的收件人需在提交时勾选「邮件通知我」（默认**不勾**，见 `comment.notify_email` / `message_board.notify_email`）
 
