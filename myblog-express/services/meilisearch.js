@@ -44,17 +44,107 @@ const getClient = () => {
 
 /**
  * 检查 Meilisearch 是否可用
+ *
+ * ⚠️ 不能用 `client.health()` 作唯一判据：Meili 的 `/health` 是**公开端点**
+ * （实测无密钥 / 错密钥都是 200），所以主密钥填错时它照样报 ok，
+ * 而所有索引操作都被 403 拒掉 → 搜索静默降级为 MySQL LIKE
+ * （「看起来正常但没走搜索引擎」）。此处补一次**需要鉴权**的探测：
+ * 取一次服务版本（`/version`，无密钥 401 / 错密钥 403 / 正确 200）。
  */
-const isAvailable = async () => {
+const probeAuthenticated = async (c) => {
+  try {
+    await c.getVersion();
+    return { status: "ok", reason: "" };
+  } catch (err) {
+    const code = httpStatusOf(err);
+    if (code === 401 || code === 403) {
+      return {
+        status: "unauthorized",
+        reason:
+          "MEILI_MASTER_KEY 不被接受（HTTP " +
+          code +
+          "）：与 docker-compose 里容器的 MEILI_MASTER_KEY 不一致",
+      };
+    }
+    return {
+      status: "unavailable",
+      reason: "鉴权探测失败: " + (err.message || err),
+    };
+  }
+};
+
+/** 从 Meilisearch 客户端异常里取 HTTP 状态码（取不到返回 0） */
+const httpStatusOf = (err) => {
+  const candidates = [
+    err?.response?.status,
+    err?.cause?.statusCode,
+    err?.cause?.code,
+    err?.statusCode,
+  ];
+  const hit = candidates.find((v) => typeof v === "number");
+  return hit || 0;
+};
+
+/**
+ * Meilisearch 可用性（供 /health 与搜索降级时告警使用）
+ *
+ * 三关依次判：能连上 → 密钥被接受 → 索引设置就绪。
+ * 状态取值（与 Spring `MeilisearchService#getStatus` 对齐）：
+ *   ok            —— 搜索真走引擎
+ *   unauthorized  —— 连得上但密钥被拒（搜索降级 LIKE）
+ *   unavailable   —— 连不上（搜索降级 LIKE）
+ *   error         —— 索引创建 / 设置未成功（搜索降级 LIKE）
+ *   not_configured—— meilisearch 依赖未安装
+ */
+const getStatus = async () => {
   const c = getClient();
-  if (!c) return false;
+  if (!c) {
+    return { status: "not_configured", reason: "meilisearch 依赖未安装" };
+  }
 
   try {
-    const health = await c.health();
-    return health.status === "available";
-  } catch {
-    return false;
+    await c.health();
+  } catch (err) {
+    return {
+      status: "unavailable",
+      reason: "连接失败: " + (err.message || err),
+    };
   }
+
+  const auth = await probeAuthenticated(c);
+  if (auth.status !== "ok") {
+    return auth;
+  }
+
+  const index = await getIndex();
+  if (!index) {
+    return { status: "error", reason: "索引创建 / 设置未成功" };
+  }
+
+  return { status: "ok", reason: "" };
+};
+
+/**
+ * 搜索降级时的告警（每个进程只打一次）
+ *
+ * 降级是静默的：接口照常返回结果，只是换了引擎。这里在降级出口说一句话，
+ * 并带上具体原因（密钥错 / 连不上 / 索引未就绪）。
+ */
+let degradeWarned = false;
+const warnDegraded = () => {
+  if (degradeWarned) {
+    return;
+  }
+  degradeWarned = true;
+  getStatus()
+    .then((s) => {
+      console.warn(
+        `[meilisearch] 搜索已降级为 MySQL LIKE（${s.status}）：${s.reason || "未探测出原因"}`,
+      );
+    })
+    .catch(() => {
+      console.warn("[meilisearch] 搜索已降级为 MySQL LIKE（状态探测失败）");
+    });
 };
 
 /** 索引设置是否已在本进程内补齐（避免每次查询都重复提交设置任务） */
@@ -158,7 +248,10 @@ const search = async (
 ) => {
   try {
     const index = await getIndex();
-    if (!index) return null;
+    if (!index) {
+      warnDegraded();
+      return null;
+    }
 
     const filter = ["status = published"];
 
@@ -188,12 +281,13 @@ const search = async (
       total: result.estimatedTotalHits ?? result.totalHits ?? 0,
     };
   } catch {
+    warnDegraded();
     return null;
   }
 };
 
 module.exports = {
-  isAvailable,
+  getStatus,
   getIndex,
   syncArticle,
   deleteArticle,

@@ -1,6 +1,7 @@
 const app = require("./app");
 const pool = require("./config/database");
 const { initBlogger } = require("./utils/initBlogger");
+const { checkUploadsDir } = require("./utils/uploadSelfCheck");
 const { assertSecret } = require("./config/jwt");
 const { connectRedis, closeRedis } = require("./config/redis");
 require("dotenv").config();
@@ -21,6 +22,14 @@ const startServer = async () => {
     await connectRedis();
 
     await initBlogger();
+
+    // uploads 目录自检：图片 404 最常见的成因就是「后端指向了另一份 uploads」，
+    // 而它不报任何错。自检只打印，失败也不阻断启动。
+    try {
+      await checkUploadsDir();
+    } catch (err) {
+      console.warn("[uploads] 目录自检失败（忽略）:", err.message);
+    }
 
     server = app.listen(PORT, () => {
       console.log(`✅ 服务器启动成功，端口: ${PORT}`);

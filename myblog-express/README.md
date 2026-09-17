@@ -23,7 +23,9 @@ MyBlog 的 Node.js 后端实现（与 `myblog-springboot` 共用同一份数据�
 - Redis 缓存（预热 / 命中统计 / 一键清空 / 写失效）、性能监控（`/metrics`）
 - 图片上传并自动生成 WebP 变体；Meilisearch 全文搜索
 - **邮件通知 4 类**（无 SMTP 自动停用）：① 顶层评论 → 博主（创建即发）；② 回复 → 被回复者（**审核通过后**发一次）；③ 新留言 → 博主；④ 留言审核通过 → 留言者。②④ 的收件人需在提交时勾选「邮件通知我」（默认**不勾**，见 `comment.notify_email` / `message_board.notify_email`）
-- 健康检查 `/health`（DB / Redis / Meili）
+- 健康检查 `/health`（DB / Redis / Meili）：Meili 块给 `status` 与 `reason`，`status` 为
+  `ok` / `unauthorized`（主密钥与容器不一致）/ `unavailable` / `error` / `not_configured`
+  —— 非 `ok` 时搜索降级为 SQL LIKE（降级时另打一行 warn，含原因）
 
 ## 快速开始
 
@@ -88,7 +90,8 @@ test/          # 集成测试
   `reply_to_id` 跨文章）、计数与使用情况、异常值。`STRICT=1` 时**仅当有 error** 才退出码 1
 - `verifyUploads.js` — **文件层**体检：6 类引用（设置图 / 友链头像 / 博主头像 / 表情图 /
   文章封面 / 正文图）× 5 个目录，查失联 + 多键共用同一图 + 孤儿文件。
-  `STRICT=1` 时**含孤儿也算问题**
+  `STRICT=1` 时**含孤儿也算问题**。上传根目录固定为 `myblog-express/uploads`
+  （不受工作目录影响）；另一端的 `UPLOAD_PATH` 必须指向同一份，否则本脚本会报大量失联
 
 **运维动作**
 

@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -67,23 +68,97 @@ public class MeilisearchService {
      * 根因就在这里）。
      */
     private final RestTemplate restTemplate = new RestTemplate(new JdkClientHttpRequestFactory());
-    private boolean available = false;
+    /** 可用状态：`ok` = 连接 + 主密钥 + 索引三关都过；取值与 Express `getStatus()` 对齐 */
+    private String status = "unavailable";
+    private String statusReason = "";
     private String baseUrl;
+    /** 搜索降级告警只打一次（降级是静默的，出口说一句话） */
+    private volatile boolean degradeWarned = false;
 
     @PostConstruct
     public void init() {
         baseUrl = "http://" + host + ":" + port;
+
+        // ① 能连上
         try {
-            ResponseEntity<Map> resp = restTemplate.getForEntity(baseUrl + "/health", Map.class);
-            if (resp.getStatusCode().is2xxSuccessful()) {
-                ensureIndex();
-                available = true;
-                log.info("Meilisearch connected ({}:{})", host, port);
-            }
+            restTemplate.getForEntity(baseUrl + "/health", Map.class);
         } catch (Exception e) {
-            log.warn("Meilisearch unavailable, search fallback to SQL LIKE: {}", e.getMessage());
-            available = false;
+            setStatus("unavailable", "连接失败: " + e.getMessage());
+            return;
         }
+
+        // ② 主密钥被接受。
+        // ⚠️ 不能用 /health 判：Meili 的 /health 是**公开端点**（实测无密钥 / 错密钥都
+        //    返回 200），所以密钥填错时它照样通过，而索引操作全被 403 拒掉
+        //    → 搜索静默降级为 SQL LIKE（「看起来正常但没走搜索引擎」）。
+        //    这里改探 /version（实测：无密钥 401 / 错密钥 403 / 正确 200）。
+        try {
+            restTemplate.exchange(baseUrl + "/version", HttpMethod.GET,
+                    new HttpEntity<>(authHeaders()), Map.class);
+        } catch (Exception e) {
+            int code = httpStatusOf(e);
+            if (code == 401 || code == 403) {
+                setStatus("unauthorized", "MEILI_MASTER_KEY 不被接受（HTTP " + code
+                        + "）：与 docker-compose 里容器的 MEILI_MASTER_KEY 不一致");
+            } else {
+                setStatus("unavailable", "鉴权探测失败: " + e.getMessage());
+            }
+            return;
+        }
+
+        // ③ 索引就绪（建索引 + 幂等补齐 filterable / searchable / sortable）
+        try {
+            ensureIndex();
+        } catch (Exception e) {
+            setStatus("error", "索引创建 / 设置未成功: " + e.getMessage());
+            return;
+        }
+
+        setStatus("ok", "");
+        log.info("Meilisearch connected ({}:{})", host, port);
+    }
+
+    private void setStatus(String newStatus, String reason) {
+        this.status = newStatus;
+        this.statusReason = reason == null ? "" : reason;
+        if (!isAvailable()) {
+            log.warn("Meilisearch 不可用（{}）：{}；搜索降级为 SQL LIKE", status, statusReason);
+        }
+    }
+
+    /** 从 Spring 的 HTTP 客户端异常里取状态码（取不到返回 0） */
+    private static int httpStatusOf(Exception e) {
+        if (e instanceof HttpStatusCodeException httpError) {
+            return httpError.getStatusCode().value();
+        }
+        return 0;
+    }
+
+    /**
+     * Meilisearch 状态（供 /health 展示）。
+     *
+     * <p>状态取值（与 Express `services/meilisearch.js` 的 `getStatus()` 对齐）：
+     * <ul>
+     *   <li>{@code ok} —— 搜索真走引擎</li>
+     *   <li>{@code unauthorized} —— 连得上但主密钥被拒（搜索降级 LIKE）</li>
+     *   <li>{@code unavailable} —— 连不上（搜索降级 LIKE）</li>
+     *   <li>{@code error} —— 索引创建 / 设置未成功（搜索降级 LIKE）</li>
+     * </ul>
+     */
+    public Map<String, Object> getStatus() {
+        Map<String, Object> statusMap = new LinkedHashMap<>();
+        statusMap.put("status", status);
+        statusMap.put("reason", statusReason);
+        return statusMap;
+    }
+
+    private void warnDegraded(String detail) {
+        if (degradeWarned) {
+            return;
+        }
+        degradeWarned = true;
+        log.warn("[meilisearch] 搜索已降级为 MySQL LIKE（{}）：{}", status,
+                statusReason.isEmpty() ? detail : statusReason);
     }
 
     /**
@@ -288,11 +363,11 @@ public class MeilisearchService {
         return headers;
     }
 
-    public boolean isAvailable() { return available; }
+    public boolean isAvailable() { return "ok".equals(status); }
 
     @SuppressWarnings("unchecked")
     public void syncArticle(Map<String, Object> document) {
-        if (!available) return;
+        if (!isAvailable()) return;
         try {
             restTemplate.postForEntity(baseUrl + "/indexes/" + INDEX_NAME + "/documents",
                     new HttpEntity<>(List.of(document), authHeaders()), Map.class);
@@ -302,7 +377,7 @@ public class MeilisearchService {
     }
 
     public void deleteArticle(Integer id) {
-        if (!available) return;
+        if (!isAvailable()) return;
         try {
             restTemplate.delete(baseUrl + "/indexes/" + INDEX_NAME + "/documents/" + id);
         } catch (Exception e) {
@@ -312,7 +387,11 @@ public class MeilisearchService {
 
     @SuppressWarnings("unchecked")
     public SearchHit search(String keyword, int page, int pageSize, Integer typeId) {
-        if (!available || keyword == null || keyword.isBlank()) return null;
+        if (keyword == null || keyword.isBlank()) return null;
+        if (!isAvailable()) {
+            warnDegraded("索引不可用");
+            return null;
+        }
         try {
             // ⚠️ 必须用 URI 对象而不是字符串：RestTemplate 的默认 uriTemplateHandler
             //    （EncodingMode.TEMPLATE_AND_VALUES）会把手写查询串里的 %20 / %3D
@@ -355,6 +434,7 @@ public class MeilisearchService {
             return new SearchHit(ids, Math.max(total, ids.size()));
         } catch (Exception e) {
             log.debug("Meilisearch search failed: {}", e.getMessage());
+            warnDegraded("查询失败: " + e.getMessage());
             return null;
         }
     }

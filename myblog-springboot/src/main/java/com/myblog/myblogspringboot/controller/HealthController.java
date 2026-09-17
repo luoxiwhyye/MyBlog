@@ -75,12 +75,14 @@ public class HealthController {
         }
         data.put("redis", redis);
 
-        // Meilisearch 状态
-        Map<String, Object> meili = new LinkedHashMap<>();
+        // Meilisearch 状态（带原因：密钥错 / 连不上都会显得「正常」但实际降级 LIKE）
+        Map<String, Object> meili;
         if (meilisearchService != null) {
-            meili.put("status", meilisearchService.isAvailable() ? "ok" : "unavailable");
+            meili = meilisearchService.getStatus();
         } else {
+            meili = new LinkedHashMap<>();
             meili.put("status", "not_configured");
+            meili.put("reason", "MeilisearchService 未加载");
         }
         data.put("meilisearch", meili);
 

@@ -46,10 +46,12 @@ const fetchPublishedArticles = async () => {
     process.exit(1);
   }
 
-  try {
-    await client.health();
-  } catch (e) {
-    console.error("✗ 连不上 Meilisearch，请确认容器已启动：", e.message);
+  // 连不上 / 主密钥不被接受都在这里暴露出来。
+  // ⚠️ 不要改用 client.health()：Meili 的 /health 是公开端点，密钥错也返回 200，
+  //    脚本会一路跑到“索引初始化失败”才报错，看不出真正原因。
+  const status = await meili.getStatus();
+  if (status.status !== "ok") {
+    console.error(`✗ Meilisearch 不可用（${status.status}）：${status.reason}`);
     process.exit(1);
   }
 

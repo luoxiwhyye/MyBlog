@@ -296,6 +296,7 @@ npm run dev               # http://localhost:5173
 | `.env` | `JWT_EXPIRES_IN=7d`（时长字符串） | `JWT_EXPIRES_IN=604800000`（毫秒） | **两端不能共用同一份 `.env`** |
 | 可观测 | 自研 `/metrics` + winston 日志 | 额外提供 Actuator + Micrometer（`/actuator/health`、`/actuator/prometheus`） | Spring 侧增量，非缺口 |
 | 缓存降级 | Redis 不可用时直查数据库 | Redis 不可用时降级为内存缓存 | 行为差异，不影响接口契约 |
+| 上传目录 | 固定在 `myblog-express/uploads`（不受工作目录影响） | `UPLOAD_PATH`（相对工作目录，默认 `uploads`） | 图片地址 `/uploads/xxx` 存在库里，因此**两端必须指向同一份目录**；本机同时跑两个后端时，把 Spring 的 `UPLOAD_PATH` 指向 `../myblog-express/uploads`（否则接口与迁移都不报错、只有前台图片 404；两端启动时都会打印解析后的根目录） |
 
 ---
 

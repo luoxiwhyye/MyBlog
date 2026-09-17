@@ -154,14 +154,13 @@ app.get("/health", async (_req, res) => {
     redisStatus = "error";
   }
 
-  // Meilisearch 状态
-  let meiliStatus = "not_configured";
+  // Meilisearch 状态（带原因：密钥错 / 连不上都会显得「正常」但实际降级 LIKE）
+  let meili = { status: "not_configured", reason: "" };
   try {
     const meilisearch = require("./services/meilisearch");
-    const available = await meilisearch.isAvailable();
-    meiliStatus = available ? "ok" : "unavailable";
-  } catch {
-    meiliStatus = "not_configured";
+    meili = await meilisearch.getStatus();
+  } catch (err) {
+    meili = { status: "error", reason: err.message || String(err) };
   }
 
   // 邮件通知状态（SMTP 未配置时 mailer.js 会静默降级，故在健康检查里显式暴露）
@@ -177,7 +176,7 @@ app.get("/health", async (_req, res) => {
     ...base,
     database: { status: dbStatus },
     redis: { status: redisStatus },
-    meilisearch: { status: meiliStatus },
+    meilisearch: meili,
     mail: { status: mailStatus },
   };
 
