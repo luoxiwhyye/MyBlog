@@ -146,8 +146,10 @@ services:
       BLOGGER_EMAIL: ${BLOGGER_EMAIL:-admin@example.com}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     volumes:
@@ -196,8 +198,10 @@ services:
   #     # 邮件通知（可选，未配置则自动停用）
   #     SMTP_HOST: ${SMTP_HOST:-}
   #     SMTP_PORT: ${SMTP_PORT:-465}
+  #     SMTP_SECURE: ${SMTP_SECURE:-}
   #     SMTP_USER: ${SMTP_USER:-}
   #     SMTP_PASS: ${SMTP_PASS:-}
+  #     SMTP_FROM: ${SMTP_FROM:-}
   #   ports:
   #     - "${BACKEND_PORT:-3000}:3000"
   #   volumes:

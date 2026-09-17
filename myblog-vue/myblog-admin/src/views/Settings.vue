@@ -300,7 +300,7 @@
                 {{ mailStatus?.port ?? '—' }}
               </el-descriptions-item>
               <el-descriptions-item label="加密">
-                {{ mailStatus ? (mailStatus.secure ? 'SSL' : '非 SSL') : '—' }}
+                {{ mailStatus ? encryptionLabel(mailStatus.encryption) : '—' }}
               </el-descriptions-item>
               <el-descriptions-item label="发信账号">
                 {{ mailStatus?.user || '未配置' }}
@@ -1133,11 +1133,23 @@ interface MailStatus {
   host: string
   port: number
   secure: boolean
+  /** 传输加密方式：ssl（465）/ starttls（587）/ none（不加密） */
+  encryption: 'ssl' | 'starttls' | 'none'
   user: string
   from: string
   /** 通知邮件的实际收件人（博主邮箱） */
   recipient: string
 }
+
+// 加密方式的展示文案（后端按 SMTP_SECURE / 端口推导，见 myblog-express services/mailer.js）
+const ENCRYPTION_LABELS: Record<string, string> = {
+  ssl: 'SSL',
+  starttls: 'STARTTLS（先明文握手再升级）',
+  none: '不加密（内网自建 SMTP）',
+}
+
+const encryptionLabel = (encryption: string) =>
+  ENCRYPTION_LABELS[encryption] ?? `未知（${encryption}）`
 
 const mailStatus = ref<MailStatus | null>(null)
 const mailLoading = ref(false)

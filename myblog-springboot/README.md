@@ -132,7 +132,7 @@ src/main/java/com/myblog/myblogspringboot/
 | `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY` | Meilisearch | — |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | Redis 缓存 | — |
 | `SITE_URL` / `SITE_NAME` | 站点信息（邮件通知用） | — |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | SMTP 邮件通知（可选） | — |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | SMTP 邮件通知（可选；`SMTP_PASS` 填**授权码**而非登录密码；`SMTP_SECURE` 留空则按端口推导 465→ssl、587→starttls） | — |
 
 监控端点：`/actuator/health`、`/actuator/metrics`、`/actuator/prometheus`。
 

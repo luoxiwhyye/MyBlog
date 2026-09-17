@@ -594,7 +594,10 @@ export const mail = {
       reason: string
       host: string
       port: number
+      /** 是否直连 SSL（= encryption === 'ssl'，保留给旧调用方） */
       secure: boolean
+      /** 传输加密方式：ssl（465）/ starttls（587）/ none（不加密） */
+      encryption: 'ssl' | 'starttls' | 'none'
       user: string
       from: string
       /** 通知邮件的实际收件人（博主邮箱） */

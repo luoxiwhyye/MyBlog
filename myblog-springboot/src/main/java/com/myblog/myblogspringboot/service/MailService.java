@@ -12,6 +12,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.myblog.myblogspringboot.config.MailEncryption;
+
 import jakarta.mail.internet.MimeMessage;
 
 /**
@@ -51,8 +53,8 @@ public class MailService {
     @Value("${spring.mail.from:}")
     private String from;
 
-    @Value("${spring.mail.properties.mail.smtp.ssl.enable:true}")
-    private boolean smtpSsl;
+    @Value("${app.mail.secure:}")
+    private String secureRaw;
 
     /**
      * SMTP 是否已配置且 sender 可用。
@@ -107,7 +109,11 @@ public class MailService {
         status.put("reason", reason);
         status.put("host", smtpHost == null ? "" : smtpHost);
         status.put("port", smtpPort);
-        status.put("secure", smtpSsl);
+        // 加密方式由 SMTP_SECURE / 端口推导，与 Express getMailerStatus() 同口径；
+        // 实际写入 JavaMail 属性的地方在 config/MailTransportCustomizer.java
+        MailEncryption encryption = MailEncryption.resolve(smtpPort, secureRaw);
+        status.put("secure", encryption.isSsl());
+        status.put("encryption", encryption.id());
         status.put("user", smtpUser == null ? "" : smtpUser);
         status.put("from", effectiveFrom());
         return status;

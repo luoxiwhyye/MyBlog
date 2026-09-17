@@ -15,6 +15,70 @@ const resolveFrom = () =>
   process.env.SMTP_USER ||
   "MyBlog <noreply@myblog.local>";
 
+/**
+ * SMTP 传输加密方式 —— 由 SMTP_SECURE 决定，未配置时按端口推导。
+ *
+ * 与 Spring 的 config/MailEncryption.java **逐条对齐**（同一份 .env 必须得出同一结论）：
+ *   - 显式取值：ssl（直连 SSL，通常 465）/ starttls（明文握手后升级，通常 587）/ none（不加密）
+ *   - 宽松别名：true/1 → ssl，tls → starttls，plain/false/0 → none
+ *   - 未配置或取值无法识别 → 按端口推导：465 → ssl，587 → starttls，其余 → none
+ */
+const ENCRYPTION_ALIASES = Object.freeze({
+  ssl: "ssl",
+  true: "ssl",
+  1: "ssl",
+  starttls: "starttls",
+  tls: "starttls",
+  none: "none",
+  plain: "none",
+  false: "none",
+  0: "none",
+});
+
+const resolveEncryption = (port) => {
+  const raw = String(process.env.SMTP_SECURE || "")
+    .trim()
+    .toLowerCase();
+  // 用 hasOwn 而不是直接取值：后者会把 `constructor` 之类原型链上的键当成合法取值
+  if (Object.hasOwn(ENCRYPTION_ALIASES, raw)) {
+    return ENCRYPTION_ALIASES[raw];
+  }
+  if (raw) {
+    console.warn(
+      `[mailer] SMTP_SECURE 取值无法识别（${raw}），已按端口 ${port} 推导（可选值：ssl / starttls / none）`,
+    );
+  }
+  if (port === 465) return "ssl";
+  if (port === 587) return "starttls";
+  return "none";
+};
+
+/**
+ * 加密方式 → nodemailer 选项（语义与 Spring 的 ssl / starttls 三项属性一致）
+ *
+ * ⚠️ starttls 用 requireTLS（而非让它机会性升级）：显式声明了 STARTTLS 却连到不支持的服务端时，
+ * 应当**报错**而不是静默退回明文 —— 否则账号密码会以明文发出。
+ * none 用 ignoreTLS，对齐 Spring 的 starttls.enable=false（两边都不尝试升级）。
+ */
+const encryptionToTransportOptions = (encryption) => {
+  if (encryption === "ssl") {
+    return { secure: true };
+  }
+  if (encryption === "starttls") {
+    return { secure: false, requireTLS: true };
+  }
+  return { secure: false, ignoreTLS: true };
+};
+
+/**
+ * 连接级超时（毫秒）—— 与 Spring 的 mail.smtp.connectiontimeout / timeout / writetimeout 同值
+ *
+ * ⚠️ nodemailer 的 connectionTimeout 默认 **120 秒**，且服务端不配合时（如把加密方式设成
+ * starttls 而对方只支持明文）不会快速报错 —— 实测会等 socketConnection 超时才放弃，
+ * 后台「发送测试邮件」按钮就会一直转圈。这里统一钉到 10 秒：宁可早报「连接失败」。
+ */
+const SMTP_TIMEOUT_MS = 10000;
+
 const initTransporter = () => {
   if (initAttempted) {
     return mailerAvailable;
@@ -40,15 +104,20 @@ const initTransporter = () => {
     // 延迟加载依赖，避免未安装时阻塞应用启动
     // eslint-disable-next-line global-require
     const nodemailer = require("nodemailer");
+    const encryption = resolveEncryption(port);
     transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465,
+      ...encryptionToTransportOptions(encryption),
       auth: { user, pass },
+      connectionTimeout: SMTP_TIMEOUT_MS,
+      greetingTimeout: SMTP_TIMEOUT_MS,
+      socketTimeout: SMTP_TIMEOUT_MS,
       tls: {
         rejectUnauthorized: false,
       },
     });
+    console.log(`[mailer] SMTP 加密方式：${encryption}（端口 ${port}）`);
     mailerAvailable = true;
   } catch (err) {
     console.warn("[mailer] nodemailer 加载失败，邮件通知已停用:", err.message);
@@ -73,12 +142,14 @@ const isMailerAvailable = () => {
 const getMailerStatus = () => {
   const available = isMailerAvailable();
   const port = Number(process.env.SMTP_PORT || 465);
+  const encryption = resolveEncryption(port);
   return {
     status: available ? "ok" : "disabled",
     reason: available ? "" : disabledReason,
     host: process.env.SMTP_HOST || "",
     port,
-    secure: port === 465,
+    secure: encryption === "ssl",
+    encryption,
     user: process.env.SMTP_USER || "",
     from: resolveFrom(),
   };

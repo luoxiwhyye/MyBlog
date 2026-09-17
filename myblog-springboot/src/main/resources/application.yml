@@ -67,6 +67,9 @@ spring:
 
   # ── 邮件通知（可选；未配置 SMTP 时 MailService 自动降级）──
   # SMTP_FROM 为可选发信人；缺省时回退到 SMTP_USER
+  # SMTP_SECURE（加密方式）不在这里映射成布尔：它要的是「显式取值 → 否，则按端口推导」
+  # 这种三态判断，占位符做不到。实际由 config/MailEncryption.java + MailTransportCustomizer.java
+  # 推导后写入 mail.smtp.ssl.enable / starttls.enable / starttls.required，与 Express 同口径。
   mail:
     host: ${SMTP_HOST:}
     port: ${SMTP_PORT:465}
@@ -77,10 +80,6 @@ spring:
       mail:
         smtp:
           auth: true
-          ssl:
-            enable: true
-          starttls:
-            enable: false
         mail.debug: false
 
 server:
@@ -116,6 +115,9 @@ app:
   # 站点信息（用于邮件通知中的链接与署名）
   site-url: ${SITE_URL:http://localhost:3001}
   site-name: ${SITE_NAME:MyBlog}
+  mail:
+    # SMTP 加密方式：ssl / starttls / none（可选；留空则按端口推导：465 → ssl，587 → starttls）
+    secure: ${SMTP_SECURE:}
   meilisearch:
     host: ${MEILI_HOST:127.0.0.1}
     port: ${MEILI_PORT:7700}
