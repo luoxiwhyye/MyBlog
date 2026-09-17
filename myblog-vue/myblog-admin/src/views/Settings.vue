@@ -308,6 +308,10 @@
               <el-descriptions-item label="发信人">
                 {{ mailStatus?.from || '未配置' }}
               </el-descriptions-item>
+              <!-- SITE_URL 是邮件里链接的前缀：未配置时链接不带域名，收件人点开是空页 -->
+              <el-descriptions-item label="站点地址">
+                {{ mailStatus?.siteUrl || '未配置（邮件里的链接不带域名，收件人点开是空页）' }}
+              </el-descriptions-item>
               <el-descriptions-item label="通知收件人">
                 {{ mailStatus?.recipient || '未设置（见「个人资料」的邮箱）' }}
               </el-descriptions-item>
@@ -349,7 +353,7 @@
               show-icon
               class="mail-tip"
               title="后端 .env 需要配置项"
-              description="SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS（可选 SMTP_FROM 指定发信人）。不配置时邮件通知会静默跳过，不影响评论与留言的发布。"
+              description="SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS（可选 SMTP_FROM 指定发信人）。不配置时邮件通知会静默跳过，不影响评论与留言的发布。SITE_URL / SITE_NAME 决定邮件里链接的域名与署名。"
             />
           </div>
         </el-tab-pane>
@@ -1148,6 +1152,8 @@ interface MailStatus {
   encryption: 'ssl' | 'starttls' | 'none'
   user: string
   from: string
+  /** 站点地址（邮件里链接的前缀）；空串 = 邮件里的链接不带域名，收件人点开是空页 */
+  siteUrl: string
   /** 通知邮件的实际收件人（博主邮箱） */
   recipient: string
   /** 收件人不可送达时的告警文案（占位地址 / 空）；空串 = 没问题 */

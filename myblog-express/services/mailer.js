@@ -9,11 +9,34 @@ let initAttempted = false;
 // 停用原因（供 /health 与后台「邮件通知」面板展示，避免「静默降级」）
 let disabledReason = "";
 
+// SITE_URL 缺失的告警只打一次（否则每来一条评论 / 留言都会刷一次屏）
+let siteUrlWarned = false;
+
 // 生效的发信人：SMTP_FROM → SMTP_USER → 内置默认（两端状态展示共用这一口径）
 const resolveFrom = () =>
   process.env.SMTP_FROM ||
   process.env.SMTP_USER ||
   "MyBlog <noreply@myblog.local>";
+
+/** 生效的站点地址（邮件里文章 / 留言板链接的前缀） */
+const resolveSiteUrl = () => process.env.SITE_URL || "";
+
+/**
+ * SITE_URL 未配置时告警。
+ *
+ * 邮件模板拼的是 `${SITE_URL}/article/<id>`：SITE_URL 为空会渲染成 `/article/4`
+ * 这种无域名的相对路径 —— 通知能收到，但「点击查看」点开是空页，而发信方不报任何错。
+ * 所以与「收件人不可送达」同样处理：在**发信出口**把它说出来（每个进程只打一次）。
+ */
+const warnIfSiteUrlMissing = () => {
+  if (siteUrlWarned || resolveSiteUrl()) {
+    return;
+  }
+  siteUrlWarned = true;
+  console.warn(
+    "[mailer] SITE_URL 未配置：邮件里的链接不会带域名（渲染成 /article/1），收信人点开是空页。请在后端 .env 里设置 SITE_URL=https://你的域名 后重启服务",
+  );
+};
 
 /**
  * 保留域名（RFC 2606 / RFC 6761）—— 这些域名下**任何地址都收不到信**：
@@ -196,6 +219,8 @@ const getMailerStatus = () => {
     encryption,
     user: process.env.SMTP_USER || "",
     from: resolveFrom(),
+    // 站点地址（邮件里的链接前缀）：空串 = 邮件里的链接不带域名，收件人点开是空页
+    siteUrl: resolveSiteUrl(),
   };
 };
 
@@ -216,6 +241,9 @@ const sendMail = async ({ to, subject, html }) => {
     );
     return { skipped: true, reason: undeliverable };
   }
+
+  // 站点地址没配 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
+  warnIfSiteUrlMissing();
 
   try {
     const info = await transporter.sendMail({

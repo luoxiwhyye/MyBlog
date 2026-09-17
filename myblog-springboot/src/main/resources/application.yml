@@ -114,8 +114,10 @@ app:
     email: ${BLOGGER_EMAIL:admin@example.com}
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3001}
   admin-origin: ${ADMIN_ORIGIN:http://localhost:5173}
-  # 站点信息（用于邮件通知中的链接与署名）
-  site-url: ${SITE_URL:http://localhost:3001}
+  # 站点信息（邮件通知里的链接与署名）
+  # ⚠️ site-url 未配置时取空串（与 Express 的 SITE_URL 同口径，不给 localhost 这类内置默认值，
+  #    否则本端会把 http://localhost:3001/article/1 发给收信人）；留空时 MailService 会在发信出口打 warn。
+  site-url: ${SITE_URL:}
   site-name: ${SITE_NAME:MyBlog}
   mail:
     # SMTP 加密方式：ssl / starttls / none（可选；留空则按端口推导：465 → ssl，587 → starttls）

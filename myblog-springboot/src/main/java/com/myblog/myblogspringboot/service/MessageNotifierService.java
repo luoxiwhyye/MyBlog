@@ -19,7 +19,7 @@ public class MessageNotifierService {
     private final MailService mailService;
     private final BloggerRepository bloggerRepository;
 
-    @Value("${app.site-url:http://localhost:3001}")
+    @Value("${app.site-url:}")
     private String siteUrl;
 
     @Value("${app.site-name:MyBlog}")

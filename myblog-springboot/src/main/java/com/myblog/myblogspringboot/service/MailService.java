@@ -67,6 +67,18 @@ public class MailService {
     @Value("${spring.mail.from:}")
     private String from;
 
+    /**
+     * 站点地址（邮件里文章 / 留言板链接的前缀）。
+     *
+     * <p>⚠️ 与 Express 一致：未配置时取空串（不是 localhost 之类内置默认值）——
+     * 否则本端会以为「配好了」，把 localhost 链接发出去，而 Express 报「未配置」。
+     */
+    @Value("${app.site-url:}")
+    private String siteUrl;
+
+    /** SITE_URL 缺失的告警只打一次（否则每来一条评论 / 留言都会刷一次屏） */
+    private volatile boolean siteUrlWarned = false;
+
     @Value("${app.mail.secure:}")
     private String secureRaw;
 
@@ -108,6 +120,28 @@ public class MailService {
         return StringUtils.hasText(smtpUser) ? smtpUser : DEFAULT_FROM;
     }
 
+    /** 生效的站点地址（邮件里链接的前缀）；未配置返回空串 */
+    public String effectiveSiteUrl() {
+        return siteUrl == null ? "" : siteUrl;
+    }
+
+    /**
+     * SITE_URL 未配置时告警。
+     *
+     * <p>邮件模板拼的是 {@code ${SITE_URL}/article/<id>}：SITE_URL 为空会渲染成
+     * {@code /article/4} 这种无域名的相对路径 —— 通知能收到，但「点击查看」点开是空页，
+     * 而发信方不报任何错。所以与「收件人不可送达」同样处理：在**发信出口**把它说出来
+     * （每个进程只打一次）。与 Express warnIfSiteUrlMissing() 同口径。
+     */
+    private void warnIfSiteUrlMissing() {
+        if (siteUrlWarned || !effectiveSiteUrl().isBlank()) {
+            return;
+        }
+        siteUrlWarned = true;
+        log.warn("[mailer] SITE_URL 未配置：邮件里的链接不会带域名（渲染成 /article/1），"
+                + "收信人点开是空页。请在后端 .env 里设置 SITE_URL=https://你的域名 后重启服务");
+    }
+
     /**
      * 邮件服务状态（供 /health 与后台「邮件通知」面板展示）。
      *
@@ -130,6 +164,8 @@ public class MailService {
         status.put("encryption", encryption.id());
         status.put("user", smtpUser == null ? "" : smtpUser);
         status.put("from", effectiveFrom());
+        // 站点地址（邮件里的链接前缀）：空串 = 邮件里的链接不带域名，收件人点开是空页
+        status.put("siteUrl", effectiveSiteUrl());
         return status;
     }
 
@@ -184,6 +220,9 @@ public class MailService {
             log.warn("[mailer] 已跳过发送：{}。请把收件人改成真实邮箱", undeliverable);
             return new SendResult(false, undeliverable);
         }
+
+        // 站点地址没配 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
+        warnIfSiteUrlMissing();
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
