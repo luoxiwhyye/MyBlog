@@ -109,7 +109,9 @@ app:
     username: ${BLOGGER_USERNAME:admin}
     password: ${BLOGGER_PASSWORD:admin123}
     nickname: ${BLOGGER_NICKNAME:博主}
-    email: ${BLOGGER_EMAIL:admin@blog.com}
+    # 占位地址（example.com 是保留域名，没有 MX 记录）：真实通知会退信，请改成你自己的邮箱。
+    # 与 Express 的 BLOGGER_EMAIL 默认值保持一致（原先本端写的是 admin@blog.com）。
+    email: ${BLOGGER_EMAIL:admin@example.com}
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3001}
   admin-origin: ${ADMIN_ORIGIN:http://localhost:5173}
   # 站点信息（用于邮件通知中的链接与署名）

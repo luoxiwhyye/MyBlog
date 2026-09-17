@@ -313,6 +313,17 @@
               </el-descriptions-item>
             </el-descriptions>
 
+            <!-- 收件人是占位地址（example.com 等保留域名无 MX 记录）→ SMTP 配好也会全部退信 -->
+            <el-alert
+              v-if="mailStatus?.recipientWarning"
+              type="error"
+              :closable="false"
+              show-icon
+              class="mail-recipient-warning"
+              title="通知收件人不可送达：真实通知会全部退信"
+              :description="`${mailStatus.recipientWarning}。请到「个人资料 → 邮箱」改成你自己的邮箱。`"
+            />
+
             <el-form label-width="90px" class="mail-test-form" @submit.prevent>
               <el-form-item label="收件人">
                 <el-input v-model="mailTestTo" placeholder="留空则发给上方的通知收件人" clearable />
@@ -1139,6 +1150,8 @@ interface MailStatus {
   from: string
   /** 通知邮件的实际收件人（博主邮箱） */
   recipient: string
+  /** 收件人不可送达时的告警文案（占位地址 / 空）；空串 = 没问题 */
+  recipientWarning: string
 }
 
 // 加密方式的展示文案（后端按 SMTP_SECURE / 端口推导，见 myblog-express services/mailer.js）
@@ -1538,6 +1551,10 @@ onMounted(() => {
 
 .mail-test-form {
   margin-bottom: 8px;
+}
+
+.mail-recipient-warning {
+  margin-bottom: 20px;
 }
 
 .mail-tip {

@@ -65,8 +65,12 @@ public class MailController {
      */
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> status() {
+        String recipient = recipientEmail();
         Map<String, Object> data = new LinkedHashMap<>(mailService.getStatus());
-        data.put("recipient", recipientEmail());
+        data.put("recipient", recipient);
+        // 收件人仍是占位地址（如初始化默认的 admin@example.com）时的告警文案：
+        // SMTP 配好也没用，通知会全部退信（域名无 MX 记录）。空串 = 没问题。
+        data.put("recipientWarning", MailService.undeliverableReason(recipient));
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
@@ -90,6 +94,12 @@ public class MailController {
         }
         if (!EMAIL_PATTERN.matcher(to).matches()) {
             throw new BusinessException(400, "邮箱格式不正确");
+        }
+        // 保留域名（example.com 等）永远收不到信，连测试都不必发 —— 发出去只会产生退信
+        String undeliverable = MailService.undeliverableReason(to);
+        if (!undeliverable.isEmpty()) {
+            throw new BusinessException(400, undeliverable
+                    + "：请换一个真实邮箱，或到「个人资料 → 邮箱」改成能收信的地址");
         }
 
         Map<String, Object> status = mailService.getStatus();

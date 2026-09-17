@@ -1,7 +1,9 @@
 package com.myblog.myblogspringboot.service;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,18 @@ public class MailService {
 
     /** 未配置发信人时的展示值（与 Express resolveFrom() 的默认值一致） */
     private static final String DEFAULT_FROM = "MyBlog <noreply@myblog.local>";
+
+    /**
+     * 保留域名（RFC 2606 / RFC 6761）—— 这些域名下**任何地址都收不到信**：
+     * 没有 MX 记录，寄过去会被服务商直接退信（“No MX Record Found”）。
+     *
+     * <p>Blogger 的初始化默认值 {@code admin@example.com} 就在其中。若真实通知继续寄给它，
+     * 每来一条评论 / 留言都会产生一封退信，还会连累发信账号被判定为发垃圾邮件。
+     * 与 Express services/mailer.js 的 RESERVED_RECIPIENT_DOMAINS 逐项对齐。
+     */
+    private static final Set<String> RESERVED_RECIPIENT_DOMAINS = Set.of(
+            "example.com", "example.net", "example.org", "example.test",
+            "invalid", "localhost", "test");
 
     @Autowired(required = false)
     private JavaMailSender mailSender;
@@ -120,6 +134,30 @@ public class MailService {
     }
 
     /**
+     * 收件人是否**必然**收不到信（空 / 非邮箱 / 保留域名）。收不到时返回原因，否则返回空串。
+     *
+     * <p>⚠️ 只判「必然失败」的情况：不查 DNS、不验 MX，只挡住占位地址造成的退信。
+     */
+    public static String undeliverableReason(String email) {
+        String address = email == null ? "" : email.trim();
+        if (address.isEmpty()) {
+            return "收件人为空";
+        }
+        int at = address.lastIndexOf('@');
+        if (at < 0) {
+            return "不是合法的邮箱地址";
+        }
+        String domain = address.substring(at + 1).toLowerCase(Locale.ROOT);
+        // 精确或子域都算：foo.example.com / bar.test 同样没有 MX 记录
+        boolean reserved = RESERVED_RECIPIENT_DOMAINS.stream()
+                .anyMatch(r -> domain.equals(r) || domain.endsWith("." + r));
+        if (reserved) {
+            return "收件人 " + address + " 的域名 " + domain + " 是保留域名（没有 MX 记录），永远收不到信";
+        }
+        return "";
+    }
+
+    /**
      * 发送 HTML 邮件。失败仅记录日志，不抛出异常。
      *
      * @return true = 已发送；false = 发送失败（调用方可忽略）
@@ -138,6 +176,13 @@ public class MailService {
         if (!isAvailable()) {
             log.warn("[mailer] SMTP 未配置，邮件通知已停用（to={}）", to);
             return new SendResult(false, "SMTP 未配置");
+        }
+
+        // 必然收不到信的收件人直接跳过：否则会退信（连带把发信账号拖进垃圾邮件的坑）
+        String undeliverable = undeliverableReason(to);
+        if (!undeliverable.isEmpty()) {
+            log.warn("[mailer] 已跳过发送：{}。请把收件人改成真实邮箱", undeliverable);
+            return new SendResult(false, undeliverable);
         }
 
         try {

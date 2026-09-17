@@ -602,6 +602,8 @@ export const mail = {
       from: string
       /** 通知邮件的实际收件人（博主邮箱） */
       recipient: string
+      /** 收件人不可送达时的告警文案（占位地址 / 空）；空串 = 没问题 */
+      recipientWarning: string
     }>
   > => {
     return request.get('/mail/status')

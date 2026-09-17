@@ -16,6 +16,50 @@ const resolveFrom = () =>
   "MyBlog <noreply@myblog.local>";
 
 /**
+ * 保留域名（RFC 2606 / RFC 6761）—— 这些域名下**任何地址都收不到信**：
+ * 没有 MX 记录，寄过去会被服务商直接退信（“No MX Record Found”）。
+ *
+ * Blogger 的初始化默认值 admin@example.com 就在其中。若真实通知继续寄给它，
+ * 每来一条评论 / 留言都会产生一封退信，还会连累发信账号被判定为发垃圾邮件。
+ * 与 Spring 的 MailService.RESERVED_RECIPIENT_DOMAINS 逐项对齐。
+ */
+const RESERVED_RECIPIENT_DOMAINS = Object.freeze([
+  "example.com",
+  "example.net",
+  "example.org",
+  "example.test",
+  "invalid",
+  "localhost",
+  "test",
+]);
+
+/**
+ * 收件人是否**必然**收不到信（空 / 非邮箱 / 保留域名）。收不到时返回原因，否则返回空串。
+ *
+ * ⚠️ 只判「必然失败」的情况：不查 DNS、不验 MX，只挡住占位地址造成的退信。
+ */
+const undeliverableReason = (email) => {
+  const address = String(email || "").trim();
+  if (!address) {
+    return "收件人为空";
+  }
+  const at = address.lastIndexOf("@");
+  if (at === -1) {
+    return "不是合法的邮箱地址";
+  }
+  const domain = address.slice(at + 1).toLowerCase();
+  // 精确或子域都算：foo.example.com / bar.test 同样没有 MX 记录
+  if (
+    RESERVED_RECIPIENT_DOMAINS.some(
+      (r) => domain === r || domain.endsWith(`.${r}`),
+    )
+  ) {
+    return `收件人 ${address} 的域名 ${domain} 是保留域名（没有 MX 记录），永远收不到信`;
+  }
+  return "";
+};
+
+/**
  * SMTP 传输加密方式 —— 由 SMTP_SECURE 决定，未配置时按端口推导。
  *
  * 与 Spring 的 config/MailEncryption.java **逐条对齐**（同一份 .env 必须得出同一结论）：
@@ -164,6 +208,15 @@ const sendMail = async ({ to, subject, html }) => {
     return { skipped: true };
   }
 
+  // 必然收不到信的收件人直接跳过：否则会退信（连带把发信账号拖进垃圾邮件的坑）
+  const undeliverable = undeliverableReason(to);
+  if (undeliverable) {
+    console.warn(
+      `[mailer] 已跳过发送：${undeliverable}。请把收件人改成真实邮箱`,
+    );
+    return { skipped: true, reason: undeliverable };
+  }
+
   try {
     const info = await transporter.sendMail({
       from: resolveFrom(),
@@ -179,4 +232,9 @@ const sendMail = async ({ to, subject, html }) => {
   }
 };
 
-module.exports = { sendMail, isMailerAvailable, getMailerStatus };
+module.exports = {
+  sendMail,
+  isMailerAvailable,
+  getMailerStatus,
+  undeliverableReason,
+};

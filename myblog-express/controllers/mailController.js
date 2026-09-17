@@ -9,7 +9,11 @@
 // ============================================
 
 const bloggerModel = require("../models/Blogger");
-const { sendMail, getMailerStatus } = require("../services/mailer");
+const {
+  sendMail,
+  getMailerStatus,
+  undeliverableReason,
+} = require("../services/mailer");
 const { success, error } = require("../utils/response");
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,9 +37,13 @@ const resolveRecipient = async () => {
  */
 const getStatus = async (req, res, next) => {
   try {
+    const recipient = await resolveRecipient();
     const data = {
       ...getMailerStatus(),
-      recipient: await resolveRecipient(),
+      recipient,
+      // 收件人仍是占位地址（如初始化默认的 admin@example.com）时的告警文案：
+      // SMTP 配好也没用，通知会全部退信（域名无 MX 记录）。空串 = 没问题。
+      recipientWarning: undeliverableReason(recipient),
     };
     success(res, data);
   } catch (err) {
@@ -62,6 +70,15 @@ const sendTestMail = async (req, res, next) => {
     }
     if (!EMAIL_PATTERN.test(to)) {
       return error(res, "邮箱格式不正确", 400);
+    }
+    // 保留域名（example.com 等）永远收不到信，连测试都不必发 —— 发出去只会产生退信
+    const undeliverable = undeliverableReason(to);
+    if (undeliverable) {
+      return error(
+        res,
+        `${undeliverable}：请换一个真实邮箱，或到「个人资料 → 邮箱」改成能收信的地址`,
+        400,
+      );
     }
 
     const status = getMailerStatus();
