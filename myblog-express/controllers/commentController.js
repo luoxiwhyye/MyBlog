@@ -6,6 +6,7 @@ const {
   getPaginationParams,
   getPaginationData,
 } = require("../utils/pagination");
+const { getClientIp } = require("../utils/clientIp");
 const { notifyBlogger, notifyReplied } = require("../services/commentNotifier");
 
 /**
@@ -116,6 +117,8 @@ const createComment = async (req, res, next) => {
       authorName,
       authorEmail,
       authorUrl: authorUrl || null,
+      // 客户端 IP：与限流、留言三处共用 utils/clientIp（口径由 TRUST_PROXY 决定）
+      authorIp: getClientIp(req),
       content,
       // 邮件订阅开关：只有访客显式勾选才为 true（未传 / 非 true 一律不接收）
       notifyEmail: notifyEmail === true || notifyEmail === "true",

@@ -63,10 +63,16 @@ public class UploadService {
 
     /**
      * 生成 WebP 变体（对标 Express utils/sharpConverter.js）：
-     *   - 主图 .webp：最长边 ≤ 1200px
-     *   - 缩略图 _thumb.webp：最长边 ≤ 400px
+     *   - 主图 .webp：**宽 ≤ 1200px**
+     *   - 缩略图 _thumb.webp：**宽 ≤ 400px**
      * 前端通过 /uploads/xxx_thumb.webp、/uploads/xxx.webp 按需取用，失败自动回退原图。
      * WebP 依赖不可用或转换失败时静默跳过（仅日志）。
+     *
+     * <p>⚠️ 尺寸口径是**按宽**而不是「最长边」，必须与 Express 的
+     * {@code sharp.resize(1200, null)} / {@code sharp.resize(400, null)} 一致：
+     * 前端的 {@code srcset} 声明就是 {@code 400w} / {@code 1200w}（宽度描述符），
+     * 按最长边缩放会让**竖图**产出比声明小一半的图；两者都不放大小图
+     * （对齐 sharp 的 {@code withoutEnlargement}）。
      *
      * <p>上传路径与 `regenerate-thumbs` 运维工具**共用这一个实现**：变体的尺寸与
      * 质量只有一处定义，否则回填出来的历史图会与新上传的图不一致。
@@ -92,8 +98,8 @@ public class UploadService {
             Path webp = dir.resolve(baseName + ".webp");
             Path thumb = dir.resolve(baseName + "_thumb.webp");
 
-            writeWebP(resize(source, 1200), webp, 0.80f);
-            writeWebP(resize(source, 400), thumb, 0.70f);
+            writeWebP(resizeToWidth(source, 1200), webp, 0.80f);
+            writeWebP(resizeToWidth(source, 400), thumb, 0.70f);
 
             return Files.exists(webp) && Files.exists(thumb);
         } catch (Exception e) {
@@ -127,22 +133,25 @@ public class UploadService {
         return dot >= 0 ? filename.substring(dot) : "";
     }
 
-    private BufferedImage resize(BufferedImage src, int maxEdge) {
+    /**
+     * 按「宽」缩放（高按比例），且**不放大小图** —— 与 Express 的
+     * {@code sharp.resize(width, null, { withoutEnlargement: true })} 同口径。
+     *
+     * <p>高用四舍五入取整（sharp 亦在此处取整），避免长竖图累计一像素偏差。
+     */
+    private BufferedImage resizeToWidth(BufferedImage src, int width) {
         int w = src.getWidth();
         int h = src.getHeight();
-        int longest = Math.max(w, h);
-        if (longest <= maxEdge) {
+        if (w <= width) {
             return src;
         }
-        double ratio = (double) maxEdge / longest;
-        int nw = Math.max(1, (int) (w * ratio));
-        int nh = Math.max(1, (int) (h * ratio));
+        int nh = Math.max(1, (int) Math.round((double) h * width / w));
 
-        BufferedImage out = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_RGB);
+        BufferedImage out = new BufferedImage(width, nh, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = out.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-        g.drawImage(src, 0, 0, nw, nh, null);
+        g.drawImage(src, 0, 0, width, nh, null);
         g.dispose();
         return out;
     }

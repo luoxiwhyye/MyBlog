@@ -39,8 +39,25 @@ public interface ArticleRepository extends JpaRepository<Article, Integer>, JpaS
            "GROUP BY t.id, t.type_name ORDER BY count DESC, t.id ASC", nativeQuery = true)
     java.util.List<Object[]> getTypeDistribution(@Param("scope") String scope);
 
+    /**
+     * 阅读量 +1。
+     *
+     * <p>⚠️ 用 native SQL 而不是 JPQL：需要把 {@code updated_at = updated_at} 这个
+     * **自赋值原样送到 MySQL**（它是阻止 {@code ON UPDATE CURRENT_TIMESTAMP} 触发的关键）。
+     * JPQL 的自赋值可能被 Hibernate 优化掉，SQL 与 Express 不再逐字对齐。
+     *
+     * <p>⚠️ {@code article.updated_at} 带 {@code ON UPDATE CURRENT_TIMESTAMP}，
+     * 只要其它列被改动就会自动跳到当下 —— 那样「最后更新时间」会被「阅读」改写，
+     * 不再等于「最后编辑时间」。MySQL 的规则是：显式给该列赋值（即使赋的是自身）
+     * 就不触发自动更新。与 Express {@code models/Article.js} 的 SQL 一致。
+     *
+     * <p>⚠️ 调用方**不得**再修改托管实体的 {@code viewCount}：那会让实体变脏，
+     * 提交时 Hibernate 再发一次 UPDATE，实体回调 {@code @PreUpdate} 会把
+     * {@code updatedAt} 设成当前时间，本方法的效果随即被抹掉。
+     */
     @Modifying
-    @Query("UPDATE Article a SET a.viewCount = a.viewCount + 1 WHERE a.id = :id")
+    @Query(value = "UPDATE article SET view_count = view_count + 1, updated_at = updated_at "
+            + "WHERE id = :id", nativeQuery = true)
     void incrementViewCount(@Param("id") Integer id);
 
     @Modifying

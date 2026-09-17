@@ -342,8 +342,12 @@ const getTrashArticlesCount = async () => {
 };
 
 const incrementViewCount = async (id) => {
+  // ⚠️ 必须显式再赋值一次 updated_at：该列带 ON UPDATE CURRENT_TIMESTAMP，
+  //    只要其它列被改动就会自动跳到当下 —— 那样「最后更新时间」会被「阅读」改写，
+  //    不再等于「最后编辑时间」。显式赋值（即使赋的是自身）会让自动更新不触发。
+  //    与 Spring 的 ArticleRepository.incrementViewCount 保持一致。
   const [result] = await pool.query(
-    "UPDATE article SET view_count = view_count + 1 WHERE id = ?",
+    "UPDATE article SET view_count = view_count + 1, updated_at = updated_at WHERE id = ?",
     [id],
   );
   return result.affectedRows > 0;

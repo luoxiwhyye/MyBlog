@@ -188,6 +188,7 @@ services:
   #     MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
   #     JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
   #     JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-604800000}
+  #     TRUST_PROXY: ${TRUST_PROXY:-1}
   #     PORT: 3000
   #     UPLOAD_PATH: uploads
   #     BLOGGER_USERNAME: ${BLOGGER_USERNAME:-admin}

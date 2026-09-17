@@ -5,6 +5,7 @@ const {
   getPaginationParams,
   getPaginationData,
 } = require("../utils/pagination");
+const { getClientIp } = require("../utils/clientIp");
 const {
   notifyBlogger,
   notifyApproved,
@@ -64,9 +65,8 @@ const createMessage = async (req, res, next) => {
       }
     }
 
-    // 记录 IP
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || "";
+    // 记录 IP：与评论、限流三处共用 utils/clientIp（口径由 TRUST_PROXY 决定）
+    const ip = getClientIp(req);
 
     const messageId = await messageModel.createMessage({
       authorName,

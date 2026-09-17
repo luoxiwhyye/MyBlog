@@ -19,9 +19,14 @@ public class ArticleDTO {
     private LocalDateTime deletedAt;
     private Integer typeId;
     private TypeInfo type;
-    private List<LabelInfo> labels;
-    /** 标签 id 列表（对齐 Express，admin 文章编辑页直接取该字段回填标签） */
+    /**
+     * 标签 id 列表（对齐 Express，admin 文章编辑页直接取该字段回填标签）。
+     *
+     * <p>⚠️ 与 {@link #labels} 的**声明顺序必须照抄 Express**（labelIds 在前）：
+     * 两端的键序要逐项一致，而键序就是这里的声明顺序。
+     */
     private List<Integer> labelIds;
+    private List<LabelInfo> labels;
 
     public static class TypeInfo {
         private Integer id;

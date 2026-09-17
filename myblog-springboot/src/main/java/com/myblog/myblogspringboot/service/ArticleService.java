@@ -283,9 +283,15 @@ public class ArticleService {
         }
 
         articleRepository.incrementViewCount(id);
-        article.setViewCount(article.getViewCount() + 1);
 
-        return toDTO(article);
+        // ⚠️ 不要写成 article.setViewCount(article.getViewCount() + 1)：那会把托管实体
+        //    改脏，事务提交时 Hibernate 再发一次 UPDATE，而实体的 @PreUpdate 会把
+        //    updatedAt 设成当前时间 —— 于是「阅读」又变成了「编辑」，把
+        //    incrementViewCount 里保住的 updated_at 抹掉。
+        //    改为只在返回的 DTO 上体现 +1。
+        ArticleDTO dto = toDTO(article);
+        dto.setViewCount(dto.getViewCount() == null ? 1 : dto.getViewCount() + 1);
+        return dto;
     }
 
     @Transactional

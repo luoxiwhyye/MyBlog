@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ValueSerializer;
 import tools.jackson.databind.module.SimpleModule;
@@ -46,6 +47,12 @@ import tools.jackson.databind.module.SimpleModule;
  * 定制入口是 {@link JsonMapperBuilderCustomizer}，而非 Jackson 2 的
  * {@code Jackson2ObjectMapperBuilderCustomizer}。
  *
+ * <p><b>同时负责键序</b>：Jackson 3 默认会按**字段名字母序**输出 POJO 属性，
+ * 于是同一接口在两端得到两种键序（Express 的 Object 按构造顺序，Spring 的 DTO 按字母序）。
+ * DTO 的字段声明顺序本就照着 Express 写，所以这里关掉字母序、改为声明顺序，
+ * 键序即与 Express 逐项一致。
+ * ⚠️ 返回 {@code Map} 的接口不受影响（Map 本身按插入序），**只有 DTO 接口**会暴露这个差异。
+ *
  * <p>本类只注册序列化器、不动反序列化：所有 {@code @RequestBody} 都是
  * {@code Map}、纯字符串 DTO 或请求对象，没有任何 {@code LocalDateTime} 入参，
  * 另配反序列化器属于无谓改动。
@@ -64,8 +71,11 @@ public class JacksonConfig {
             @Value("${app.time-zone:Asia/Shanghai}") String timeZone) {
         ZoneId zone = ZoneId.of(timeZone);
         log.info("时间字段输出口径：源时区 {} -> UTC 瞬时串（yyyy-MM-dd'T'HH:mm:ss.SSS'Z'）", zone);
-        return builder -> builder.addModule(new SimpleModule("myblog-time")
-                .addSerializer(LocalDateTime.class, new UtcInstantSerializer(zone)));
+        return builder -> builder
+                // 键序对齐 Express：按字段声明顺序，而不是字母序
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .addModule(new SimpleModule("myblog-time")
+                        .addSerializer(LocalDateTime.class, new UtcInstantSerializer(zone)));
     }
 
     /** 按源时区解释无时区墙钟值，再输出为带毫秒的 UTC 瞬时串。 */

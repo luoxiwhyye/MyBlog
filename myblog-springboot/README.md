@@ -129,6 +129,7 @@ src/main/java/com/myblog/myblogspringboot/
 | `JWT_EXPIRES_IN` | Token 有效期（**毫秒**） | `604800000`（7天） |
 | `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |
 | `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` | CORS 白名单 | — |
+| `TRUST_PROXY` | 反向代理信任层级（限流 / 评论入库 / 留言入库三处按它取客户端 IP；语义与 Express 同值：信任右起 N 跳、只认 `X-Forwarded-For`） | `1` |
 | `UPLOAD_PATH` | 上传文件目录（**必须与另一端的 uploads 指向同一份**；本机同时跑 Express 时填 `../myblog-express/uploads`） | `uploads` |
 | `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY` | Meilisearch | — |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | Redis 缓存 | — |

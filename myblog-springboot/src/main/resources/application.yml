@@ -114,6 +114,10 @@ app:
     email: ${BLOGGER_EMAIL:admin@example.com}
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:3001}
   admin-origin: ${ADMIN_ORIGIN:http://localhost:5173}
+  # 反向代理信任层级（限流 / 评论入库 / 留言入库三处按它取客户端 IP，见 config/ClientIpResolver.java）
+  # 经 nginx / Nuxt 一层反代默认 1；多层按实际层数调整；0 = 不信任任何转发头（直连部署）
+  # ⚠️ 与 Express 的 TRUST_PROXY 是同一个开关，两端应取同值
+  trust-proxy: ${TRUST_PROXY:1}
   # 站点信息（邮件通知里的链接与署名）
   # ⚠️ site-url 未配置时取空串（与 Express 的 SITE_URL 同口径，不给 localhost 这类内置默认值，
   #    否则本端会把 http://localhost:3001/article/1 发给收信人）；留空时 MailService 会在发信出口打 warn。

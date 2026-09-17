@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.myblog.myblogspringboot.config.ClientIpResolver;
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.CommentRequest;
 import com.myblog.myblogspringboot.dto.PageResponse;
@@ -31,9 +32,11 @@ import jakarta.validation.Valid;
 public class CommentController {
 
     private final CommentService commentService;
+    private final ClientIpResolver clientIpResolver;
 
-    public CommentController(CommentService commentService) {
+    public CommentController(CommentService commentService, ClientIpResolver clientIpResolver) {
         this.commentService = commentService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @GetMapping
@@ -56,7 +59,8 @@ public class CommentController {
             @Valid @RequestBody CommentRequest request,
             HttpServletRequest httpRequest) {
 
-        String authorIp = httpRequest.getRemoteAddr();
+        // 与限流、留言入库共用同一个取 IP 实现（口径由 TRUST_PROXY 决定）
+        String authorIp = clientIpResolver.resolve(httpRequest);
         Comment comment = commentService.createComment(request, authorIp);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(Map.of("id", comment.getId()), "评论发布成功", 201));

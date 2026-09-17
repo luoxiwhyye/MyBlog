@@ -43,7 +43,14 @@ public class RateLimitFilter implements Filter {
     private static final int WINDOW_15_MIN = 15 * MINUTE_MS;
     private static final int WINDOW_10_MIN = 10 * MINUTE_MS;
 
+    /** 与评论 / 留言入库共用同一个取 IP 实现（口径由 TRUST_PROXY 决定） */
+    private final ClientIpResolver clientIpResolver;
+
     private final Map<String, WindowCounter> counters = new ConcurrentHashMap<>();
+
+    public RateLimitFilter(ClientIpResolver clientIpResolver) {
+        this.clientIpResolver = clientIpResolver;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -53,7 +60,7 @@ public class RateLimitFilter implements Filter {
 
         String path = httpRequest.getRequestURI();
         String method = httpRequest.getMethod();
-        String clientIp = getClientIp(httpRequest);
+        String clientIp = clientIpResolver.resolve(httpRequest);
 
         // 仅对 /api/v1/* 路径进行限流
         if (!path.startsWith("/api/v1/")) {
@@ -119,18 +126,6 @@ public class RateLimitFilter implements Filter {
         }
         // 全局限流（所有 /api/v1/* 请求）
         return new RateLimitRule("global", 1200, WINDOW_15_MIN, "请求过于频繁，请稍后再试", false);
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isBlank()) {
-            return xRealIp.trim();
-        }
-        return request.getRemoteAddr();
     }
 
     // ── 内部类 ──

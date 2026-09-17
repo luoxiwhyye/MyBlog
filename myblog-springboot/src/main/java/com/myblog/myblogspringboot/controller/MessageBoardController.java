@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.myblog.myblogspringboot.config.ClientIpResolver;
 import com.myblog.myblogspringboot.dto.ApiResponse;
 import com.myblog.myblogspringboot.dto.MessageBoardRequest;
 import com.myblog.myblogspringboot.dto.PageResponse;
@@ -31,9 +32,12 @@ import jakarta.validation.Valid;
 public class MessageBoardController {
 
     private final MessageBoardService messageBoardService;
+    private final ClientIpResolver clientIpResolver;
 
-    public MessageBoardController(MessageBoardService messageBoardService) {
+    public MessageBoardController(MessageBoardService messageBoardService,
+                                  ClientIpResolver clientIpResolver) {
         this.messageBoardService = messageBoardService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @GetMapping
@@ -53,7 +57,8 @@ public class MessageBoardController {
             @Valid @RequestBody MessageBoardRequest request,
             HttpServletRequest httpRequest) {
 
-        String authorIp = httpRequest.getRemoteAddr();
+        // 与限流、评论入库共用同一个取 IP 实现（口径由 TRUST_PROXY 决定）
+        String authorIp = clientIpResolver.resolve(httpRequest);
         MessageBoard message = messageBoardService.createMessage(request, authorIp);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(Map.of("id", message.getId()), "留言发布成功，审核通过后展示", 201));
