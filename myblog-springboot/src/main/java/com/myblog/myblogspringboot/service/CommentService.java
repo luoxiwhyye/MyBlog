@@ -255,10 +255,6 @@ public class CommentService {
         return updated.getLikeCount();
     }
 
-    private Map<String, Object> toMap(Comment c) {
-        return toMap(c, false);
-    }
-
     /**
      * @param includeNotifyEmail 仅管理端为 true：「接收通知」是访客的订阅偏好，
      *                           公开列表没必要一并发出（与 Express 的 getComments 一致）。

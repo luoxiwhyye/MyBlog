@@ -1,15 +1,5 @@
 package com.myblog.myblogspringboot.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.env.EnvironmentPostProcessor;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +7,14 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.EnvironmentPostProcessor;
+import org.springframework.boot.SpringApplication;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
 
 /**
  * 让 Spring Boot 在启动时自动加载项目根目录的 .env 文件。
@@ -28,7 +26,10 @@ import java.util.Properties;
  *
  * 这样 `application.yml` 中的 ${DB_PASSWORD:} 就能读到了。
  *
- * 注册方式：META-INF/spring.factories
+ * 注册方式：{@code META-INF/spring.factories} 里的
+ * {@code org.springframework.boot.EnvironmentPostProcessor} —— Boot 4 已把该 SPI 从
+ * {@code org.springframework.boot.env} 移到 {@code org.springframework.boot}，
+ * **键名与 import 必须成对改**：只换一半本类会静默不被注册（不报错，只是 .env 不加载）。
  */
 public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 

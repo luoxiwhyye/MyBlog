@@ -87,10 +87,6 @@ public class VerifyUploadsTool implements OpsTool {
             String originalName,
             List<String> variantNames) {}
 
-    private Path uploadsRoot() {
-        return Paths.get(uploadBasePath).toAbsolutePath().normalize();
-    }
-
     /** 从正文里抽出引用的图片 URL（HTML 与 Markdown 两种写法都覆盖），同一张图只保留一次 */
     private static List<String> parseContentImageUrls(String content) {
         if (content == null || content.isEmpty()) {

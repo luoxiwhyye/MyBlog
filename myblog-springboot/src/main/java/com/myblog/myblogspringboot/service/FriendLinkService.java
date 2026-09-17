@@ -98,8 +98,8 @@ public class FriendLinkService {
         map.put("email", link.getEmail());
         map.put("status", Boolean.TRUE.equals(link.getStatus()));
         map.put("isSticky", Boolean.TRUE.equals(link.getIsSticky()));
-        int clickCount = link.getClickCount() == null ? 0 : link.getClickCount();
-        map.put("clickCount", clickCount);
+        Integer clickCount = link.getClickCount();
+        map.put("clickCount", clickCount == null ? 0 : clickCount);
         // ⚠️ 这两个字段必须放 LocalDateTime 本体、不能 .toString()：时间字段的 JSON
         //    口径由 config/JacksonConfig.java 统一成 UTC 瞬时串（...000Z）。
         //    LocalDateTime.toString() 会给出无时区字面量（2026-09-02T20:07:36），

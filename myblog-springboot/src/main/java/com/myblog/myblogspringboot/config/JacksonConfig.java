@@ -60,7 +60,7 @@ public class JacksonConfig {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     @Bean
-    JsonMapperBuilderCustomizer myblogTimeJsonMapperBuilderCustomizer(
+    public JsonMapperBuilderCustomizer myblogTimeJsonMapperBuilderCustomizer(
             @Value("${app.time-zone:Asia/Shanghai}") String timeZone) {
         ZoneId zone = ZoneId.of(timeZone);
         log.info("时间字段输出口径：源时区 {} -> UTC 瞬时串（yyyy-MM-dd'T'HH:mm:ss.SSS'Z'）", zone);
