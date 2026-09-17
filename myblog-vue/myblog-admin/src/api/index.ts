@@ -585,6 +585,29 @@ export const metrics = {
   },
 }
 
+// 邮件通知（管理员）：查看 SMTP 配置状态 / 真实发一封测试邮件
+export const mail = {
+  getStatus: (): Promise<
+    ApiResponse<{
+      /** ok = SMTP 可用；disabled = 未配置（reason 说明缺哪一项） */
+      status: 'ok' | 'disabled'
+      reason: string
+      host: string
+      port: number
+      secure: boolean
+      user: string
+      from: string
+      /** 通知邮件的实际收件人（博主邮箱） */
+      recipient: string
+    }>
+  > => {
+    return request.get('/mail/status')
+  },
+  sendTest: (data?: { to?: string }): Promise<ApiResponse<{ to: string }>> => {
+    return request.post('/mail/test', data ?? {})
+  },
+}
+
 // 前端错误监控日志（管理员查看/清空）
 export const errorLog = {
   getList: (params?: {

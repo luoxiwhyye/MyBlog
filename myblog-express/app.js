@@ -22,6 +22,7 @@ const metricsRoutes = require("./routes/metricsRoutes");
 const emojiRoutes = require("./routes/emojiRoutes");
 const emojiGroupRoutes = require("./routes/emojiGroupRoutes");
 const errorLogRoutes = require("./routes/errorLogRoutes");
+const mailRoutes = require("./routes/mailRoutes");
 
 // 导入中间件
 const errorHandler = require("./middleware/errorHandler");
@@ -163,11 +164,21 @@ app.get("/health", async (_req, res) => {
     meiliStatus = "not_configured";
   }
 
+  // 邮件通知状态（SMTP 未配置时 mailer.js 会静默降级，故在健康检查里显式暴露）
+  let mailStatus = "not_configured";
+  try {
+    const { getMailerStatus } = require("./services/mailer");
+    mailStatus = getMailerStatus().status;
+  } catch {
+    mailStatus = "error";
+  }
+
   const response = {
     ...base,
     database: { status: dbStatus },
     redis: { status: redisStatus },
     meilisearch: { status: meiliStatus },
+    mail: { status: mailStatus },
   };
 
   if (!isProduction) {
@@ -196,6 +207,7 @@ app.use(`${apiPrefix}/metrics`, metricsRoutes);
 app.use(`${apiPrefix}/emoji`, emojiRoutes);
 app.use(`${apiPrefix}/emoji-groups`, emojiGroupRoutes);
 app.use(`${apiPrefix}/error-log`, errorLogRoutes);
+app.use(`${apiPrefix}/mail`, mailRoutes);
 
 // 404 处理
 app.use((req, res) => {

@@ -66,11 +66,13 @@ spring:
       cache-null-values: false
 
   # ── 邮件通知（可选；未配置 SMTP 时 MailService 自动降级）──
+  # SMTP_FROM 为可选发信人；缺省时回退到 SMTP_USER
   mail:
     host: ${SMTP_HOST:}
     port: ${SMTP_PORT:465}
     username: ${SMTP_USER:}
     password: ${SMTP_PASS:}
+    from: ${SMTP_FROM:}
     properties:
       mail:
         smtp:

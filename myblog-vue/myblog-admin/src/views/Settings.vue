@@ -268,9 +268,83 @@
             <el-empty v-else description="暂无自定义配置，点击“添加配置”新增一个 Key-Value 配置项。" />
           </div>
         </el-tab-pane>
+
+        <!-- 邮件通知：发信配置写在后端 .env（不在数据库），这里只做状态展示与测试发信 -->
+        <el-tab-pane label="邮件通知" name="mail">
+          <div class="mail-config">
+            <el-alert
+              :type="mailStatus?.status === 'ok' ? 'success' : 'warning'"
+              :closable="false"
+              show-icon
+              :title="
+                mailStatus?.status === 'ok'
+                  ? 'SMTP 已配置：评论 / 回复 / 留言的邮件通知会正常发出'
+                  : `邮件通知未生效（${mailStatus?.reason || '未获取到状态'}）`
+              "
+              :description="
+                mailStatus?.status === 'ok'
+                  ? '发信配置来自后端 .env，修改后需要重启后端才会生效。'
+                  : '发信配置来自后端 .env（不在数据库里），需在服务器上填写 SMTP_* 并重启后端；下方可发一封测试邮件验证。'
+              "
+            />
+
+            <div class="mail-toolbar">
+              <el-button :icon="Refresh" :loading="mailLoading" @click="fetchMailStatus">刷新状态</el-button>
+            </div>
+
+            <el-descriptions :column="2" border class="mail-desc">
+              <el-descriptions-item label="SMTP 主机">
+                {{ mailStatus?.host || '未配置' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="端口">
+                {{ mailStatus?.port ?? '—' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="加密">
+                {{ mailStatus ? (mailStatus.secure ? 'SSL' : '非 SSL') : '—' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="发信账号">
+                {{ mailStatus?.user || '未配置' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="发信人">
+                {{ mailStatus?.from || '未配置' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="通知收件人">
+                {{ mailStatus?.recipient || '未设置（见「个人资料」的邮箱）' }}
+              </el-descriptions-item>
+            </el-descriptions>
+
+            <el-form label-width="90px" class="mail-test-form" @submit.prevent>
+              <el-form-item label="收件人">
+                <el-input v-model="mailTestTo" placeholder="留空则发给上方的通知收件人" clearable />
+                <div class="field-desc">
+                  仅用于测试发信，不会写入任何配置；收到邮件说明 SMTP 可用、通知链路已就绪。
+                </div>
+              </el-form-item>
+              <el-form-item>
+                <el-button
+                  type="primary"
+                  :icon="Promotion"
+                  :loading="mailTesting"
+                  @click="sendTestMail"
+                >
+                  发送测试邮件
+                </el-button>
+              </el-form-item>
+            </el-form>
+
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+              class="mail-tip"
+              title="后端 .env 需要配置项"
+              description="SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS（可选 SMTP_FROM 指定发信人）。不配置时邮件通知会静默跳过，不影响评论与留言的发布。"
+            />
+          </div>
+        </el-tab-pane>
       </el-tabs>
 
-      <div class="actions">
+      <div class="actions" v-if="activeTab !== 'mail'">
         <el-button
           type="primary"
           :loading="saving"
@@ -350,8 +424,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Download, Upload, UploadFilled, Check, Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
-import { setting, upload } from '@/api'
+import { Download, Upload, UploadFilled, Check, Plus, Edit, Delete, Refresh, Promotion } from '@element-plus/icons-vue'
+import { setting, upload, mail } from '@/api'
 import { cropImage, cropPresets, type CropScene } from '@/utils/imageCropper'
 
 interface FieldConfig {
@@ -1051,6 +1125,55 @@ const resetForm = () => {
   ElMessage.info('已恢复为已保存的配置')
 }
 
+// ===== 邮件通知：SMTP 配置状态与测试发信 =====
+// 发信配置来自后端 .env（不在数据库），故这里只做状态展示 + 真实发一封信验证
+interface MailStatus {
+  status: 'ok' | 'disabled'
+  reason: string
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  from: string
+  /** 通知邮件的实际收件人（博主邮箱） */
+  recipient: string
+}
+
+const mailStatus = ref<MailStatus | null>(null)
+const mailLoading = ref(false)
+const mailTesting = ref(false)
+const mailTestTo = ref('')
+
+const fetchMailStatus = async () => {
+  mailLoading.value = true
+  try {
+    const response = await mail.getStatus()
+    if (response.code === 200) {
+      mailStatus.value = response.data
+      // 默认收件人 = 通知真实收件人；用户改过则保留用户输入
+      if (!mailTestTo.value) mailTestTo.value = response.data.recipient || ''
+    }
+  } catch {
+    // 响应拦截器已提示
+  } finally {
+    mailLoading.value = false
+  }
+}
+
+const sendTestMail = async () => {
+  mailTesting.value = true
+  try {
+    const response = await mail.sendTest({ to: mailTestTo.value.trim() })
+    if (response.code === 200) {
+      ElMessage.success(response.message || '测试邮件已发送')
+    }
+  } catch {
+    // 响应拦截器已提示（未配置 / 格式错 / 发送失败都会带上原因）
+  } finally {
+    mailTesting.value = false
+  }
+}
+
 // 导出 JSON
 const exportJson = () => {
   const payload: Record<string, { value: string; type: string; description: string }> = {}
@@ -1118,6 +1241,7 @@ const handleImportFile = async (file: any) => {
 
 onMounted(() => {
   fetchSettings()
+  fetchMailStatus()
 })
 </script>
 
@@ -1378,5 +1502,33 @@ onMounted(() => {
 
 .custom-table {
   width: 100%;
+}
+
+/* 邮件通知：状态说明 + 只读配置表 + 测试发信 */
+.mail-config {
+  padding: 8px 0;
+  max-width: 720px;
+}
+
+.mail-toolbar {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.mail-desc {
+  margin-bottom: 20px;
+
+  :deep(.el-descriptions__label) {
+    color: var(--text-secondary);
+  }
+}
+
+.mail-test-form {
+  margin-bottom: 8px;
+}
+
+.mail-tip {
+  margin-top: 8px;
 }
 </style>

@@ -97,6 +97,8 @@ public class SecurityConfig {
                 // 需要管理员权限
                 .requestMatchers("/api/v1/dashboard/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/cache/**").hasRole("ADMIN")
+                // 邮件通知配置状态与测试发信（管理员）
+                .requestMatchers("/api/v1/mail/**").hasRole("ADMIN")
                 // 错误日志查看 / 清空、性能指标（管理员）
                 .requestMatchers(HttpMethod.GET, "/api/v1/error-log").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/error-log").hasRole("ADMIN")

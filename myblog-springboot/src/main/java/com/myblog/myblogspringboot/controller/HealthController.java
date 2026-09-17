@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.myblog.myblogspringboot.service.MailService;
 import com.myblog.myblogspringboot.service.MeilisearchService;
 
 /**
@@ -33,6 +34,9 @@ public class HealthController {
 
     @Autowired(required = false)
     private RedisConnectionFactory redisConnectionFactory;
+
+    @Autowired(required = false)
+    private MailService mailService;
 
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
@@ -79,6 +83,11 @@ public class HealthController {
             meili.put("status", "not_configured");
         }
         data.put("meilisearch", meili);
+
+        // 邮件通知状态（SMTP 未配置时 MailService 会静默降级，故在健康检查里显式暴露）
+        Map<String, Object> mail = new LinkedHashMap<>();
+        mail.put("status", mailService != null && mailService.isAvailable() ? "ok" : "disabled");
+        data.put("mail", mail);
 
         return ResponseEntity.ok(data);
     }

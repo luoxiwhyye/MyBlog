@@ -10,6 +10,12 @@ describe("API 健康检查", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
   });
+
+  it("GET /health 暴露邮件通知状态", async () => {
+    const res = await api.get("/health");
+    // SMTP 是否配置取决于 .env；契约上只有「可用 / 已停用」两态
+    expect(["ok", "disabled"]).toContain(res.body.mail.status);
+  });
 });
 
 describe("公开接口", () => {
