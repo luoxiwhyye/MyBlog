@@ -1,5 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from "vue";
-import { buildCanonicalUrl, normalizeUrl, truncateText } from "~/utils/seo";
+import { buildCanonicalUrl, truncateText } from "~/utils/seo";
+import { toSiteAbsoluteUrl } from "~/utils/image";
 
 interface PageSeoOptions {
   title?: MaybeRefOrGetter<string | undefined>;
@@ -40,8 +41,9 @@ export const usePageSeo = (options: PageSeoOptions = {}) => {
   const description = computed(() =>
     truncateText(toValue(options.description) || defaultDescription.value, 160),
   );
+  // og:image / twitter:image：绝对地址，且必须是**站点域名**（理由见 toSiteAbsoluteUrl）
   const image = computed(() =>
-    normalizeUrl(
+    toSiteAbsoluteUrl(
       toValue(options.image) ||
         settingsStore.getSetting("site_logo") ||
         settingsStore.getSetting("site_favicon") ||

@@ -1,5 +1,4 @@
-import { normalizeUrl } from "~/utils/seo";
-import { normalizeAssetUrl } from "~/utils/image";
+import { normalizeAssetUrl, toSiteAbsoluteUrl } from "~/utils/image";
 import {
   resolveThemeColor,
   buildThemeColorCss,
@@ -88,22 +87,20 @@ export const useLayoutSeo = () => {
       "一个专注于技术内容、笔记与生活记录的个人博客。",
   );
   const siteAuthor = computed(() => bloggerStore.nickname());
+  // SEO 字段要绝对地址，且必须是**站点域名**（上传资源由本站的 /uploads/** 代理，
+  // 不能用后端域名）—— 见 toSiteAbsoluteUrl 的注释
   const siteLogo = computed(() =>
-    normalizeUrl(
-      normalizeAssetUrl(
-        settingsStore.getSetting("site_logo") ||
-          settingsStore.getSetting("site_favicon") ||
-          "/favicon.svg",
-      ),
+    toSiteAbsoluteUrl(
+      settingsStore.getSetting("site_logo") ||
+        settingsStore.getSetting("site_favicon") ||
+        "/favicon.svg",
       runtimeConfig.public.siteUrl,
     ),
   );
   const siteFavicon = computed(
     () =>
-      normalizeUrl(
-        normalizeAssetUrl(
-          settingsStore.getSetting("site_favicon") || "/favicon.svg",
-        ),
+      toSiteAbsoluteUrl(
+        settingsStore.getSetting("site_favicon") || "/favicon.svg",
         runtimeConfig.public.siteUrl,
       ) || "/favicon.svg",
   );

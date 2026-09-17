@@ -143,6 +143,7 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-1}
       SITE_URL: ${SITE_URL:-http://localhost:3001}
       SITE_NAME: ${SITE_NAME:-MyBlog}
+      APP_BASE_URL: ${APP_BASE_URL:-}
       # 占位地址：真实通知会退信，请改成自己的邮箱；库已有博主时需到后台「个人资料」改
       BLOGGER_EMAIL: ${BLOGGER_EMAIL:-admin@example.com}
       SMTP_HOST: ${SMTP_HOST:-}

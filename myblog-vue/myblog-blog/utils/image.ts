@@ -32,6 +32,30 @@ export const normalizeContentUrls = (content?: string) => {
   );
 };
 
+/** 上传资源路径（`nuxt.config.ts` 的 routeRules 把它代理到后端）；保留查询串、丢掉锚点 */
+const UPLOADS_PATH = /\/uploads\/[^\s#]*/;
+
+/**
+ * 转成「站点域名下的绝对地址」，供 SEO 元数据使用（`og:image` / `twitter:image` / JSON-LD）。
+ *
+ * ⚠️ 不能直接用 `new URL(图片地址, siteUrl)`：库里的图片地址是**后端拼的绝对地址**
+ * （`APP_BASE_URL` + `/uploads/...`），值已是绝对时 `siteUrl` 完全不生效 ——
+ * 分享卡片与结构化数据就会指到后端源（那是另一个域名，且未必对外可达）。
+ * 而 `/uploads/**` 由前台站点自己代理，所以这类地址一律**取路径再拼 siteUrl**。
+ *
+ * 其他地址（外链 / 站点内相对路径 / favicon）保持原语义：先归一化 localhost 前缀，再按 siteUrl 解析。
+ */
+export const toSiteAbsoluteUrl = (url?: string, siteUrl?: string) => {
+  if (!url) return "";
+  const base = siteUrl || "/";
+  const uploadsPath = url.match(UPLOADS_PATH)?.[0];
+  try {
+    return new URL(uploadsPath || normalizeAssetUrl(url), base).toString();
+  } catch {
+    return url;
+  }
+};
+
 /**
  * 后端（sharp / webp-imageio）**会**为其生成 WebP 变体的原图扩展名。
  *

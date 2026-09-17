@@ -1,5 +1,8 @@
 export const stripHtml = (value = "") => {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 export const truncateText = (value = "", maxLength = 160) => {
@@ -9,18 +12,6 @@ export const truncateText = (value = "", maxLength = 160) => {
   }
 
   return `${text.slice(0, maxLength - 1).trim()}…`;
-};
-
-export const normalizeUrl = (value = "", base?: string) => {
-  if (!value) {
-    return "";
-  }
-
-  try {
-    return new URL(value, base).toString();
-  } catch {
-    return value;
-  }
 };
 
 export const buildCanonicalUrl = (siteUrl: string, fullPath = "/") => {

@@ -4,6 +4,7 @@ import {
   getThumbWebpUrl,
   getWebpUrl,
   normalizeAssetUrl,
+  toSiteAbsoluteUrl,
 } from "./image";
 
 describe("image 工具", () => {
@@ -78,6 +79,44 @@ describe("image 工具", () => {
 
     it("空值返回空 src 与空 srcset", () => {
       expect(buildSrcSet()).toEqual({ src: "", srcset: "", sizes: "100vw" });
+    });
+  });
+
+  describe("toSiteAbsoluteUrl", () => {
+    const SITE = "https://blog.example.com";
+
+    it("上传资源一律取站点域名，忽略后端源", () => {
+      // 库里存的是后端拼的绝对地址；直接 new URL(值, siteUrl) 会保留后端域名
+      expect(
+        toSiteAbsoluteUrl("http://localhost:3000/uploads/a.jpg", SITE),
+      ).toBe("https://blog.example.com/uploads/a.jpg");
+      expect(
+        toSiteAbsoluteUrl("https://api.example.com/uploads/a.jpg", SITE),
+      ).toBe("https://blog.example.com/uploads/a.jpg");
+      expect(toSiteAbsoluteUrl("/uploads/a.jpg", SITE)).toBe(
+        "https://blog.example.com/uploads/a.jpg",
+      );
+    });
+
+    it("保留查询串，切掉上传路径之后的其它部分", () => {
+      expect(toSiteAbsoluteUrl("/uploads/article/cover/a.jpg?v=2", SITE)).toBe(
+        "https://blog.example.com/uploads/article/cover/a.jpg?v=2",
+      );
+    });
+
+    it("非上传地址按 siteUrl 解析（相对路径）或原样保留（外链）", () => {
+      expect(toSiteAbsoluteUrl("/favicon.svg", SITE)).toBe(
+        "https://blog.example.com/favicon.svg",
+      );
+      expect(toSiteAbsoluteUrl("https://cdn.example.com/a.png", SITE)).toBe(
+        "https://cdn.example.com/a.png",
+      );
+    });
+
+    it("空值与非法值有兜底", () => {
+      expect(toSiteAbsoluteUrl("", SITE)).toBe("");
+      expect(toSiteAbsoluteUrl(undefined, SITE)).toBe("");
+      expect(toSiteAbsoluteUrl("/uploads/a.jpg")).toBe("/uploads/a.jpg");
     });
   });
 });

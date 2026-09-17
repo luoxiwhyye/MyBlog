@@ -6,6 +6,7 @@
  * - 首页: WebSite + SearchAction
  */
 import type { Article } from "~/types";
+import { toSiteAbsoluteUrl } from "~/utils/image";
 
 /**
  * 获取站点公共信息（用于 JSON-LD 的 publisher / author 等）
@@ -27,17 +28,15 @@ const useSiteMeta = () => {
       "一个专注于技术内容、笔记与生活记录的个人博客。",
   );
   const author = computed(() => bloggerStore.nickname());
-  const siteLogo = computed(() => {
-    const raw =
+  // JSON-LD 里的图片同样要指向**站点域名**（理由见 toSiteAbsoluteUrl）
+  const siteLogo = computed(() =>
+    toSiteAbsoluteUrl(
       settingsStore.getSetting("site_logo") ||
-      settingsStore.getSetting("site_favicon") ||
-      "/favicon.svg";
-    try {
-      return new URL(raw, siteUrl.value).toString();
-    } catch {
-      return raw;
-    }
-  });
+        settingsStore.getSetting("site_favicon") ||
+        "/favicon.svg",
+      siteUrl.value,
+    ),
+  );
 
   return { siteUrl, siteName, siteDescription, author, siteLogo };
 };
@@ -60,13 +59,7 @@ export const useArticleJsonLd = (article: Ref<Article | null>) => {
       description:
         a.summary || a.content?.replace(/<[^>]*>/g, "").slice(0, 200) || "",
       image: a.coverImage
-        ? (() => {
-            try {
-              return new URL(a.coverImage, siteUrl.value).toString();
-            } catch {
-              return a.coverImage;
-            }
-          })()
+        ? toSiteAbsoluteUrl(a.coverImage, siteUrl.value)
         : undefined,
       datePublished: a.createdAt,
       dateModified: a.updatedAt || a.createdAt,
