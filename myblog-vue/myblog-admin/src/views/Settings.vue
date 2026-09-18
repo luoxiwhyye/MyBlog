@@ -173,7 +173,7 @@
           <!-- 主题色分组：按维度独立设置 + 一键应用预设 -->
           <div v-if="group.key === 'theme'" class="theme-color-section">
             <div class="theme-toolbar">
-              <span class="theme-toolbar-label">快速应用整套预设：</span>
+              <span class="theme-toolbar-label">快速套用预设起始色：</span>
               <el-select
                 v-model="activeThemePreset"
                 placeholder="选择预设"
@@ -208,8 +208,23 @@
                       :predefine="dim.predefine"
                       size="large"
                     />
-                    <span class="color-hex">
-                      {{ formData[themeColorKey(dim.key, mode.mode)] ? formData[themeColorKey(dim.key, mode.mode)] : '默认' }}
+                    <span
+                      class="color-hex"
+                      :class="{ 'is-default': !formData[themeColorKey(dim.key, mode.mode)] }"
+                    >
+                      {{
+                        formData[themeColorKey(dim.key, mode.mode)] ||
+                        `默认 ${themeDefaultColor(dim.key, mode.mode)}`
+                      }}
+                    </span>
+                    <!-- 分类色同时当边框 / 圆点用，需守非文本 3:1；这里实时给出与卡底的对比度 -->
+                    <span
+                      v-if="categoryContrast(dim.key, mode.mode) !== null"
+                      class="contrast-hint"
+                      :class="{ 'is-low': categoryContrastLow(dim.key, mode.mode) }"
+                      :title="`与前台玻璃卡合成底的对比度（非文本需 ≥ ${NON_TEXT_MIN_RATIO}:1）；压在背景图深色区时会更低`"
+                    >
+                      对比度 {{ categoryContrastText(dim.key, mode.mode) }}
                     </span>
                     <el-button
                       v-if="formData[themeColorKey(dim.key, mode.mode)]"
@@ -500,22 +515,29 @@ interface GroupConfig {
 
 // ===== 主题色维度配置 =====
 // 主题色拆成 5 个独立维度，每维可分别设置「亮色」「暗色」两套主色，互不影响。
-// 颜色均走 CSS 变量，未设置（留空）时前台回退到各自默认预设（当前设计）。
+// 颜色均走 CSS 变量，未设置（留空）时前台回退到默认预设（晴空青）。
 // 设置键规则：site_theme_{dim}_{light|dark}
+//
+// ⚠️ 输入语义是「**选什么就是什么**」：accent / category / fav 本体、gradient 的起始色、
+//    deco 的光晕主色，前台都取输入原值；各维度里其余变量（文字/描边档、徽标底、
+//    渐变结束色与文字色 …）由前台按同色系派生，**后台不提供单独设置入口**。
+//
+// `predefine` 一律取 5 套预设在同一维度的**亮色**值（同一份数据，改预设时同步改这里）——
+// 这样每个色块都是设计过的值；category 有 ≥3:1 的非文本约束，尤其不要放粉彩色。
 const COLOR_DIMENSIONS = [
   {
     key: 'accent',
     label: '强调色',
     description:
       '链接、主按钮、当前选中、面包屑高亮、统计数字等交互强调场景。前台会自动派生文字/描边档（链接、图标、边框、focus 都用它）；填充面上的文字：亮色配白字、暗色配同色系深字。',
-    predefine: ['#00bcd4', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
+    predefine: ['#008fbe', '#0d9488', '#2563eb', '#7c3aed', '#d97706'],
   },
   {
     key: 'category',
     label: '分类装饰色',
     description:
-      '分类/标签徽标底、页头页脚青光渐变、边框与高亮描边、时间线圆点等【装饰】场景 —— 取一个偏亮、轻快的颜色即可。注：前台所有品牌【文字】色统一由强调色派生（不再单独取色），所以这里只影响图形。',
-    predefine: ['#0093a5', '#0d9488', '#2563eb', '#8b5cf6', '#d97706'],
+      '分类/标签徽标底、页头页脚渐变、边框与高亮描边、时间线圆点等【装饰】场景。前台所有品牌【文字】色统一由强调色派生（这里只影响图形）。⚠️ 它同时当边框 / 圆点用，需与卡底保持 ≥3:1 —— 不要太亮，下方会实时给出对比度。',
+    predefine: ['#147fa8', '#0d9488', '#2563eb', '#8b5cf6', '#b45309'],
   },
   {
     key: 'fav',
@@ -526,14 +548,16 @@ const COLOR_DIMENSIONS = [
   {
     key: 'gradient',
     label: '品牌渐变',
-    description: '标题竖条、最新/热文徽标、热门排名徽标等品牌渐变（取渐变起始色）。',
-    predefine: ['#75e1f1', '#5eead4', '#93c5fd', '#c4b5fd', '#fbbf24'],
+    description:
+      '标题竖条、最新/热文徽标、热门排名徽标等品牌渐变。**输入就是渐变起始色**（原样使用，不再提亮）；结束色与渐变上的文字色由前台按同色系派生。',
+    predefine: ['#61c9e5', '#5eead4', '#93c5fd', '#c4b5fd', '#fbbf24'],
   },
   {
     key: 'deco',
     label: '装饰光效',
-    description: '装饰光晕、卡片光效阴影、文字光效等氛围装饰（取光效主色）。',
-    predefine: ['#8fe0e8', '#2dd4bf', '#60a5fa', '#a78bfa', '#fbbf24'],
+    description:
+      '装饰光晕、卡片光效阴影、文字光效等氛围装饰。**输入就是光晕主色**（原样使用，只加透明度）；同色系第二档光晕由前台派生。',
+    predefine: ['#61c9e5', '#2dd4bf', '#60a5fa', '#c4b5fd', '#fbbf24'],
   },
 ]
 
@@ -547,20 +571,28 @@ const COLOR_MODES = [
 const themeColorKey = (dim: string, mode: string) => `site_theme_${dim}_${mode}`
 
 // 一键应用预设：每套预设映射到 5 个维度的亮/暗起始色
+//
+// ⚠️ 本表与前台 `utils/themeColor.ts` 的 `THEME_COLOR_PRESETS` 是**两份手写数据**，
+//    两者之间没有任何代码级引用（前台的 value 是 accent 亮色 hex，这里的 value 是 slug）。
+//    同步由前台单测 `utils/tools/themePresetSync.test.ts` 守住 ——
+//    改这里（名称 / 任一色值）后跑一次 `npm run test`，红了就是漏改另一边。
+// ⚠️ 「恢复默认」= 把该维度的设置键清空（前台回退到预设里手写的最终值）。
+//    套用预设只能让起点变成「同一个基色」，派生的全部变量不会逐字段等于默认 ——
+//    所以要回到默认外观，用各维度自己的「恢复默认」，不要靠套用预设。
 const THEME_COLOR_PRESET_MAP = [
   {
-    name: '青空蓝（当前/默认）',
+    name: '晴空青（当前/默认）',
     value: 'slate',
     colors: {
-      site_theme_accent_light: '#00bcd4',
+      site_theme_accent_light: '#008fbe',
       site_theme_accent_dark: '#22d3ee',
-      site_theme_category_light: '#0093a5',
+      site_theme_category_light: '#147fa8',
       site_theme_category_dark: '#22d3ee',
       site_theme_fav_light: '#f59e0b',
       site_theme_fav_dark: '#fbbf24',
-      site_theme_gradient_light: '#75e1f1',
+      site_theme_gradient_light: '#61c9e5',
       site_theme_gradient_dark: '#34d0c2',
-      site_theme_deco_light: '#8fe0e8',
+      site_theme_deco_light: '#61c9e5',
       site_theme_deco_dark: '#5a8cdc',
     },
   },
@@ -577,7 +609,7 @@ const THEME_COLOR_PRESET_MAP = [
       site_theme_gradient_light: '#5eead4',
       site_theme_gradient_dark: '#2dd4bf',
       site_theme_deco_light: '#2dd4bf',
-      site_theme_deco_dark: '#5eead4',
+      site_theme_deco_dark: '#2dd4bf',
     },
   },
   {
@@ -608,7 +640,7 @@ const THEME_COLOR_PRESET_MAP = [
       site_theme_fav_dark: '#fbbf24',
       site_theme_gradient_light: '#c4b5fd',
       site_theme_gradient_dark: '#8b5cf6',
-      site_theme_deco_light: '#a78bfa',
+      site_theme_deco_light: '#c4b5fd',
       site_theme_deco_dark: '#a78bfa',
     },
   },
@@ -786,13 +818,74 @@ const uploadRefs = ref<Record<string, any>>({})
 const activeThemePreset = ref('')
 
 // 一键应用整套预设：把 5 个维度 × 亮/暗色值填到 formData
+// ⚠️ 它只是把**起始色**填好，派生的其余变量不会逐字段等于默认 —— 回到默认外观
+//    请用各维度自己的「恢复默认」（清空设置键 → 前台回退预设里手写的最终值）。
 const applyThemePreset = (presetValue: string) => {
   const preset = THEME_COLOR_PRESET_MAP.find((p) => p.value === presetValue)
   if (!preset) return
   Object.keys(preset.colors).forEach((key) => {
     formData[key] = preset.colors[key as keyof typeof preset.colors] ?? ''
   })
-  ElMessage.success(`已应用「${preset.name}」预设，请点击「保存所有配置」生效`)
+  ElMessage.success(`已填入「${preset.name}」的起始色，请点击「保存所有配置」生效`)
+}
+
+// ===== 主题色：默认值显示 + 非文本对比度提示 =====
+
+// 未配置（设置键为空）时前台实际会用到的颜色 —— 直接取预设表里「晴空青」那一行，
+// 与「快速应用整套预设」共用同一份数据，不再单独维护一份默认值表。
+const THEME_DEFAULT_COLORS = (THEME_COLOR_PRESET_MAP[0]?.colors ?? {}) as Record<string, string>
+
+/** 某维度某模式未配置时前台会用的颜色 */
+const themeDefaultColor = (dim: string, mode: string): string =>
+  THEME_DEFAULT_COLORS[themeColorKey(dim, mode)] ?? ''
+
+/**
+ * 前台玻璃卡的等效底色 = 卡底叠在背景图**均值区域**上的合成色（实测）：
+ *   亮 rgba(244,251,255,0.7) × site_bg_light 均值 rgb(159,199,229) → rgb(218,236,247)
+ *   暗 rgba(22,33,62,0.65)  × site_bg_dark  均值 rgb(56,69,93)   → rgb(34,46,73)
+ * 压在背景图深色区时会更低，所以下面的对比度是「估算」而不是保证。
+ * 口径与数值同 `design-system.md` §1.4。
+ */
+const GLASS_CARD_BASE: Record<'light' | 'dark', [number, number, number]> = {
+  light: [218, 236, 247],
+  dark: [34, 46, 73],
+}
+
+/** 非文本图形（边框 / 圆点 / focus 描边）的下限 */
+const NON_TEXT_MIN_RATIO = 3
+
+const srgbLuminance = ([r, g, b]: [number, number, number]): number => {
+  const channel = (v: number) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+
+/**
+ * 该维度该模式**当前生效的颜色**（未配置则用默认值）对卡底的对比度。
+ * 只对 category 返回数值 —— 其他维度不当边框 / 圆点用，没有这个约束。
+ */
+const categoryContrast = (dim: string, mode: string): number | null => {
+  if (dim !== 'category') return null
+  const raw = String(formData[themeColorKey(dim, mode)] || themeDefaultColor(dim, mode)).trim()
+  const m = /^#([0-9a-f]{6})$/i.exec(raw)
+  if (!m) return null
+  const n = parseInt(m[1] ?? '', 16)
+  const rgb: [number, number, number] = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const base: [number, number, number] = mode === 'dark' ? GLASS_CARD_BASE.dark : GLASS_CARD_BASE.light
+  const [a, b] = [srgbLuminance(rgb), srgbLuminance(base)]
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
+const categoryContrastText = (dim: string, mode: string): string => {
+  const ratio = categoryContrast(dim, mode)
+  return ratio === null ? '' : `${ratio.toFixed(2)}:1`
+}
+
+const categoryContrastLow = (dim: string, mode: string): boolean => {
+  const ratio = categoryContrast(dim, mode)
+  return ratio !== null && ratio < NON_TEXT_MIN_RATIO
 }
 
 const allFields = computed(() => {
@@ -1435,6 +1528,22 @@ onMounted(() => {
     font-family: var(--font-family-mono, monospace);
     font-size: 13px;
     color: var(--text-secondary);
+
+    /* 未配置：显式给出前台会用的默认色，作者才知道「默认」到底是什么色 */
+    &.is-default {
+      color: var(--text-muted);
+    }
+  }
+
+  /* 非文本对比度提示：默认中性色，低于 3:1 时转警示色 */
+  .contrast-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+
+    &.is-low {
+      color: var(--el-color-warning);
+      font-weight: 600;
+    }
   }
 }
 

@@ -273,8 +273,11 @@ const AMBER_DARK: ThemeColorVariant = {
 };
 
 // 预设主题色：当前博客设计（晴空青 Slate）作为默认预设，其余贴合动漫极简风格
-// ⚠️ 预设的 value 是「accent 亮色值」：后台一键应用预设、以及 THEME_COLOR_PRESET_MAP
-//（admin Settings.vue）的键都靠它对应，改名/改值必须两处同步。
+// ⚠️ 本表与后台 `myblog-admin/src/views/Settings.vue` 的 `THEME_COLOR_PRESET_MAP`
+//    是**两份数据**（两者之间没有任何代码级引用：本表的 value 是 accent 亮色 hex，
+//    后台的 value 是 slug），改名/改值/调 predefine 必须两处同步。
+//    → 同步由 `utils/tools/themePresetSync.test.ts` 守住（它读后台文件逐字段对拍），
+//      改完跑 `npm run test` 即可发现漏改。
 export const THEME_COLOR_PRESETS: ThemeColorPreset[] = [
   {
     key: "slate",
@@ -421,11 +424,16 @@ const deepTextOn = (bg: Rgb, target = 4.6): string => {
  *   accent   强调/链接（--color-accent* / --color-link / --el-color-primary*）
  *   category 分类徽标（--color-category*）
  *   fav      收藏/星标（--color-fav*）
- *   gradient 品牌渐变（--gradient-brand* / --hot-rank-*）
- *   deco     装饰光效（--deco-* / --shadow-glow / --text-glow）
+ *   gradient 品牌渐变（--gradient-brand* / --hot-rank-*）：输入 = **渐变起始色**
+ *   deco     装饰光效（--deco-* / --shadow-glow / --text-glow）：输入 = **光晕主色**
  * 每个维度可分别设置亮色(light)与暗色(dark)主色；未设置（空/非法）则回退到
  * 默认预设对应维度的对应模式。这样「功能性组件」可改用独立中性色（不随主题
  * 联动），各维度、各模式互不牵连。
+ *
+ * ⚠️ 输入语义：**选什么就是什么**（不再对输入做提亮）——accent / category / fav
+ * 本体、gradient 的起始色、deco 的光晕主色，都取输入原值。各维度里
+ * 其余变量（accentDeep / categorySoft / 渐变结束色与文字色 / decoB 透明度 …）
+ * 由下面的 apply*Dim 派生，**后台不提供单独设置入口**。
  */
 export type ThemeColorDimKey =
   | "accent"
@@ -507,7 +515,10 @@ const applyFavDim = (baseHex: string, isDark: boolean) => {
 const applyGradientDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
-  const first = rgbToHex(lighten(c, isDark ? 0.05 : 0.3));
+  // 输入即最终色：后台取色器选的就是**渐变起始色**本身，不再额外提亮。
+  // （结束色与渐变上的文字色仍由这里派生 —— 一个 hex 编不出两档不同色相的渐变，
+  //   所以「与预设逐字段相同」只对下面这两项之外的可设变量成立。）
+  const first = rgbToHex(c);
   const last = rgbToHex(lighten(c, 0.6));
   // 渐变上的文字也去彩度（同一理由，见 mute 注释）
   const text = rgbToHex(
@@ -526,14 +537,16 @@ const applyGradientDim = (baseHex: string, isDark: boolean) => {
 const applyDecoDim = (baseHex: string, isDark: boolean) => {
   const c = parseHex(baseHex);
   if (!c) return null;
+  // 输入即最终色：光晕主色就是它本身（只加透明度）。
+  // deco-b 是「同色系第二档」（低透明度）、shadow-glow / text-glow 是它的具体应用形态。
   return {
-    decoA: toRgba(lighten(c, 0.2), isDark ? 0.22 : 0.16),
+    decoA: toRgba(c, isDark ? 0.22 : 0.16),
     decoB: toRgba(c, isDark ? 0.18 : 0.14),
     shadowGlow: isDark
       ? `0 0 0 1px ${toRgba(c, 0.25)}, 0 8px 30px ${toRgba(darken(c, 0.5), 0.55)}`
       : `0 0 0 1px rgba(255, 255, 255, 0.5), 0 8px 30px ${toRgba(c, 0.25)}`,
     textGlow: isDark
-      ? `0 2px 14px ${toRgba(lighten(c, 0.2), 0.42)}`
+      ? `0 2px 14px ${toRgba(c, 0.42)}`
       : "0 2px 12px rgba(255, 255, 255, 0.45)",
   };
 };

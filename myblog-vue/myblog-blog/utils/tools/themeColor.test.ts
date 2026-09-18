@@ -59,8 +59,24 @@ describe("themeColor 工具", () => {
     const resolved = resolveThemeColor({ gradient: { light: "#fbbf24" } });
     expect(resolved.light.accent).toBe("#008fbe");
     expect(resolved.light.gradientBrand).toContain("linear-gradient(135deg,");
-    expect(resolved.light.gradientBrand).not.toContain("#75e1f1");
     expect(resolved.light.hotRankGradient).toContain("linear-gradient(135deg,");
+  });
+
+  it("gradient / deco 的输入即最终色（不再额外提亮）", () => {
+    // 渐变：选的就是渐变起始色本身
+    const light = resolveThemeColor({ gradient: { light: "#fbbf24" } });
+    expect(light.light.gradientBrand).toContain(
+      "linear-gradient(135deg, #fbbf24,",
+    );
+    const dark = resolveThemeColor({ gradient: { dark: "#34d0c2" } });
+    expect(dark.dark.gradientBrand).toContain(
+      "linear-gradient(135deg, #34d0c2,",
+    );
+
+    // 光晕：选的就是光晕主色本身（只加透明度）
+    const deco = resolveThemeColor({ deco: { light: "#2dd4bf" } });
+    expect(deco.light.decoA).toBe("rgba(45, 212, 191, 0.16)");
+    expect(deco.light.decoB).toBe("rgba(45, 212, 191, 0.14)");
   });
 
   it("computeElementPlusLevels 生成含 primary 的层级", () => {
