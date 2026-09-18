@@ -21,7 +21,9 @@ MyBlog 的 Java 后端实现（与 `myblog-express` 共用同一份数据库与�
 
 - 文章 / 分类 / 标签 / 友链 / 评论 / **留言板** CRUD
 - **相关推荐 / 上一篇下一篇**、**批量改状态**、**关键词搜索**（Meilisearch，降级 SQL LIKE）
+- **评论批量改状态**（`PUT /comments/batch/status`，审核级联不变式）与**按文章下线评论区**（`article.comment_enabled`）
 - **表情包管理与分组**、**仪表盘 / 未读红点**（`DashboardController`）、**前端错误日志聚合**（`/error-log`）
+- **邮件配置状态查询与测试发信**（`GET /mail/status`、`POST /mail/test`，仅管理员）
 - Redis 缓存（预热 / 命中统计 / 一键清空）、性能监控 `/metrics`、健康检查 `/health`（字段与 Express 逐项对齐，含
   `meilisearch` / `mail` / `imageVariants` 的状态与原因）、Actuator 指标端点
 - 图片上传并自动生成 WebP 变体
@@ -45,8 +47,10 @@ export JWT_SECRET=your-secret-key-change-in-production
 ```
 
 ```bash
-# 初始化数据库
-mysql -u root -p myblog < ../myblog-express/myblog-1.1.sql
+# 初始化数据库（本项目内也有一份同源的 myblog-1.1.sql，两处内容一致）
+mysql -u root -p myblog < myblog-1.1.sql
+# 或使用 Express 项目中的那份：
+# mysql -u root -p myblog < ../myblog-express/myblog-1.1.sql
 ```
 
 ### 2. 运行
@@ -141,7 +145,7 @@ src/main/java/com/myblog/myblogspringboot/
 
 > ⚠️ `JWT_EXPIRES_IN` 与 Express 格式不同：Express 是时长字符串（`7d`），本端是毫秒数（`604800000`）——**两端不能共用同一份 `.env`**，否则本端启动报 `Failed to convert value of type 'java.lang.String' to required type 'long'`。
 
-> **提示**：运维脚本（清缓存 / 数据体检 / 文件体检 / 回填索引等）仅在 `myblog-express/scripts/` 下提供；它们直连同一份 MySQL / Redis，可在该目录下直接执行。
+> **提示**：清缓存 / 历史迁移类脚本在 `myblog-express/scripts/` 下；数据体检、文件体检、回填索引、补缩略图这 4 项本端已有等价工具（见上文「运维工具」）——也可仍到 `myblog-express/` 下执行，它们直连同一份 MySQL / Redis / Meilisearch。
 
 其余说明见项目根目录 [README.md](../README.md)。
 

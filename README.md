@@ -63,20 +63,23 @@ graph TB
 
 ### 博客前台
 - **路由/渲染**：`/` 欢迎落地页（SSR）、`/home` 主站（ISR 60s）、归档/分类/标签 ISR、关于页 SWR、工具箱纯客户端渲染
-- **文章体验**：上一篇/下一篇 + 相关推荐、目录导航、阅读进度、正文图片**灯箱预览**、**字号/行距调节**、代码块一键复制 + 行号 + 高亮
-- **页面**：首页（公告栏 + 博主信息卡 + 3/2/1 列网格）、文章、分类、标签、归档（搜索/筛选/排序）、关于（个人品牌墙）、友链 `/friends`、留言板、工具箱、404
+- **文章体验**：上一篇/下一篇 + 相关推荐、目录导航、阅读进度、正文图片**灯箱预览**、**字号/行距调节**、代码块一键复制 + 行号 + 高亮、**评论区可按文章单独下线**
+- **页面**：首页（公告栏 + 博主信息卡 + 3/2/1 列网格）、文章、分类、标签、归档（搜索/筛选/排序）、关于（个人品牌墙）、友链 `/friends`、留言板、工具箱、404；站内页**统一页头**（`PageHeader`）、页脚两行分层（含后台入口）
 - **检索**：全站命令面板（`Ctrl/Cmd + K` 唤起，走 Meilisearch 全文检索，不可用时降级为模糊匹配）
 - **工具箱**：编解码/格式化/哈希加密/文本处理/颜色工具/开发辅助，含历史快照、收藏、防抖、复制反馈
-- **视觉**：主题色体系（后台可切换、按维度/亮暗独立）、暗色模式、滚动入场动画（`v-reveal`）、页面/布局 fade+blur 过渡、移动端 Mobile-First 适配
-- **性能/体验**：响应式图片 + LCP 优化、骨架屏、全局错误边界、PWA、SEO（titleTemplate/OG/Twitter/canonical/JSON-LD）、robots + sitemap + RSS
+- **视觉**：主题色体系（后台可切换、按维度/亮暗独立，品牌色拆「装饰 / 文字」两级）、暗色模式、滚动入场动画（`v-reveal`）、页面/布局 fade+blur 过渡、移动端 Mobile-First 适配、**标签云按权重分级**
+- **交互**：社交链接支持**点击跳转或点击复制**（按链接类型）
+- **性能/体验**：响应式图片 + LCP 优化、图片 URL/回退统一到 `useSmartImage`、背景图按视口绘制、骨架屏、全局错误边界、PWA、SEO（titleTemplate/OG/Twitter/canonical/JSON-LD）、robots + sitemap + RSS
 
 ### 管理后台
-- 文章（富文本/Markdown 实时预览、草稿/发布、封面）、分类、标签、友链、评论、留言板、表情包管理
-- 仪表盘（核心数据、ECharts 趋势图、阅读排行、运维监控）；系统设置（分组表单、自定义 Key-Value、主题色管理）
+- 文章（富文本/Markdown 实时预览、草稿/发布、封面）、分类、标签、友链、评论、留言板、表情包（含分组）管理
+- **图片上传裁剪**：封面 / 头像 / 表情 / 背景图 / 正文图，内置常用比例 + **自定义比例**（全站单一裁剪实例）
+- **评论批量管理**：列表选中后批量设为已审核 / 待审核 / 移入回收站（回收站仍逐条操作，审核带级联不变式）
+- 仪表盘（核心数据、ECharts 趋势图、阅读排行、运维监控）；系统设置（分组表单、自定义 Key-Value、主题色管理、**邮件通知面板**：状态查看 + 测试发信）
 - **错误监控**（前端聚合错误日志查看/清空）；缓存运维（命中率/清空/预热）；未读红点轮询；博主资料/密码
 
 ### 后端（双实现对齐）
-REST API（`/api/v1`，统一 `{ code, message, data }`）、JWT + 角色、四层限流、Redis 缓存（预热/统计/失效）、Meilisearch 全文搜索（不可用降级）、图片 WebP/缩略图、邮件通知（无 SMTP 自动停用）、**前端错误上报落库**、指标监控
+REST API（`/api/v1`，统一 `{ code, message, data }`）、JWT + 角色、四层限流、Redis 缓存（预热/统计/失效）、Meilisearch 全文搜索（可用性探测 + 不可用降级）、图片 WebP/缩略图、`uploads` 目录启动自检、客户端 IP 统一解析、**前端错误上报落库**、指标监控；邮件通知（无 SMTP 自动停用）支持**配置状态查询与测试发信**，评论 / 留言可**订阅通知**（默认不接收）
 
 ### 可观测与运维
 - **前端错误监控**：前端捕获 → `POST /error-log` 上报 → 后端落库 → 后台回溯（前端节流 + 后端限流防刷）
@@ -105,13 +108,15 @@ myblog-express/                  # 后端 — Express (Node.js)
 myblog-springboot/               # 后端 — Spring Boot (Java)
 ├── Dockerfile                   # 多阶段 Maven 构建
 ├── pom.xml
+├── myblog-1.1.sql               # 数据库初始化脚本（与 express 那份同源）
 └── src/main/
     ├── java/com/myblog/myblogspringboot/
-    │   ├── config/              # Security / CORS / 限流 / 缓存统计 / 初始化
-    │   ├── controller/          # REST API（含 cache / emoji / message-board）
+    │   ├── config/              # Security / CORS / 限流 / 缓存统计 / 时间与时区 / 上传自检 / 初始化
+    │   ├── controller/          # REST API（含 cache / emoji / mail / message-board）
     │   ├── dto/ / entity/ / exception/ / repository/
     │   ├── security/            # JWT Token 认证
-    │   └── service/             # 业务逻辑（含 Mail / 评论通知 / 缓存统计）
+    │   ├── service/             # 业务逻辑（含 Mail / 评论通知 / 缓存统计）
+    │   └── tool/                # 运维工具（tool profile：audit / verify-uploads / sync-meili / regenerate-thumbs）
     └── resources/application.yml
 
 myblog-vue/
@@ -270,6 +275,7 @@ npm run dev               # http://localhost:5173
 | `GET`                 | `/search`                                      | 全文搜索（Meili，降级 LIKE） | 否       |
 | `GET/POST`            | `/comments`                                    | 评论列表 / 发布              | 否       |
 | `PUT/DELETE`          | `/comments/:id/...`                            | 审核 / 删除 / 点赞 / 恢复    | 混合     |
+| `PUT`                 | `/comments/batch/status`                       | 评论批量改状态（级联不变式） | admin    |
 | `GET/POST`            | `/message-board`                               | 留言板                       | 读公开   |
 | `GET/POST/PUT/DELETE` | `/emoji`                                       | 表情包 CRUD                  | admin    |
 | `GET/POST/PUT/DELETE` | `/emoji-groups`                                | 表情包分组 CRUD              | admin    |
@@ -281,6 +287,8 @@ npm run dev               # http://localhost:5173
 | `GET`                 | `/dashboard/stats` `/dashboard/charts`         | 仪表盘 / 图表 / 未读红点     | admin    |
 | `GET/POST`            | `/cache/stats` `/cache/clear` `/cache/preheat` | 缓存运维（命中率/清空/预热） | admin    |
 | `GET`                 | `/metrics`                                     | 性能监控（响应时间/错误率）  | admin    |
+| `GET`                 | `/mail/status`                                 | 邮件通知配置状态与收件人     | admin    |
+| `POST`                | `/mail/test`                                   | 用当前配置发送测试邮件       | admin    |
 | `POST`                | `/error-log`                                   | 前端错误上报（公开）         | 否（限流） |
 | `GET/DELETE`          | `/error-log`                                   | 错误日志列表 / 清空          | admin    |
 
@@ -304,10 +312,10 @@ npm run dev               # http://localhost:5173
 
 | 表                  | 说明                                     |
 | ------------------- | ---------------------------------------- |
-| `article`           | 文章（软删除）                           |
+| `article`           | 文章（软删除；`content_format` 富文本/Markdown；`comment_enabled` 是否开放评论区） |
 | `article_label`     | 文章-标签关联                            |
 | `blogger`           | 博主                                     |
-| `comment`           | 评论（访客：昵称/邮箱/网址）             |
+| `comment`           | 评论（访客：昵称/邮箱/网址；`notify_email` 订阅回复通知、`reply_to_id` 回复定位） |
 | `message_board`     | 留言板                                   |
 | `emoji`             | 博主自定义表情包                         |
 | `emoji_group`       | 表情包分组（名称 / 标识 / 排序）         |
@@ -381,6 +389,7 @@ cd myblog-vue/myblog-admin && npm run build   # → dist/
 
 | 日期       | 版本 | 说明                                                                                                                                                                                                                                                                         |
 | ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-19 | v2.8 | **邮件闭环与内容治理**：邮件通知配置状态查询 + 测试发信（双端 `/mail/status` / `/mail/test`）与加密方式可配（`SMTP_SECURE`）；评论与留言**订阅邮件通知**（默认不接收）；评论**批量改状态**（级联不变式）与单篇文章**评论区下线**；后台**图片上传裁剪**（封面/头像/表情/背景图/正文图 + 自定义比例）；Meilisearch 鉴权探测与 `uploads` 目录启动自检；客户端 IP 统一解析、时间字段 UTC 口径统一；前台站内页页头统一 / 页脚两行分层 / 标签云分级 / 品牌色「装饰·文字」两级（晴空青）、背景图按视口绘制、图片推导收敛到 `useSmartImage` |
 | 2026-09-14 | v2.7 | **双端对齐与体验修补**：Spring Boot 修复按文档启不来与文章列表/详情 500，补齐相关推荐、上下篇、批量改状态、错误日志、性能指标等缺失接口并统一缓存头与限流口径；相关文章改为按共同标签展示；修复评论输入框首字符被插到 contenteditable 根层引发的计数器与输入法异常；全站搜索命令面板（Meilisearch）；表情包分组体系重做；文章内容格式（富文本/Markdown）双端落地；站点功能开关与全站维护页；标签/分类禁止重名；后台下拉检索与 Markdown 编辑区等高；数据层体检与上传文件体检脚本 |
 | 2026-09-06 | v2.6 | **双端对齐与可观测**：Spring Boot 同步表情管理 + 后台未读红点（补齐双端能力）；文章正文图片灯箱预览；前端错误监控上报接入（自建轻量聚合：前端捕获→`/error-log` 落库→后台回溯，前后端双限流） |
 | 2026-08-31 | v2.5 | **内容消费与体验增强**：前台移动端 Mobile-First 深度重构；文章阅读体验（字号/行距 + 代码块复制行号）；上一篇/下一篇 + 相关推荐；关于页重构为个人品牌墙；全局骨架屏与错误边界；数据自动备份 + 校验和 + 一键恢复闭环；留言板；博主自定义表情包；主题色体系；归档页搜索/筛选/排序；图片响应式与 LCP 优化；滚动入场动画 |

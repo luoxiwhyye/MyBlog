@@ -19,7 +19,9 @@ MyBlog 的 Node.js 后端实现（与 `myblog-springboot` 共用同一份数据�
 ## 功能概览
 
 - 文章 / 分类 / 标签 / 友链 / 评论 / **留言板** CRUD（含审核、点赞、软删除）
-- **表情包管理**、**前端错误日志聚合**（`POST /error-log` 公开接收 → `client_error_log` 落库 → admin 查看/清空）
+- **评论批量改状态**（`PUT /comments/batch/status`，审核级联不变式）与**按文章下线评论区**（`article.comment_enabled`）
+- **表情包管理（含分组）**、**前端错误日志聚合**（`POST /error-log` 公开接收 → `client_error_log` 落库 → admin 查看/清空）
+- **邮件配置状态查询与测试发信**（`GET /mail/status`、`POST /mail/test`，仅管理员）
 - Redis 缓存（预热 / 命中统计 / 一键清空 / 写失效）、性能监控（`/metrics`）
 - 图片上传并自动生成 WebP 变体；Meilisearch 全文搜索
 - **邮件通知 4 类**（无 SMTP 自动停用）：① 顶层评论 → 博主（创建即发）；② 回复 → 被回复者（**审核通过后**发一次）；③ 新留言 → 博主；④ 留言审核通过 → 留言者。②④ 的收件人需在提交时勾选「邮件通知我」（默认**不勾**，见 `comment.notify_email` / `message_board.notify_email`）
@@ -64,8 +66,8 @@ npm test               # vitest + supertest 集成测试
 
 ```
 config/        # 数据库、JWT、上传、日志、Redis 配置
-controllers/   # 控制器（article/blogger/comment/friendLink/messageBoard/emoji/errorLog/...）
-middleware/    # 认证、角色、限流、缓存、校验、错误处理、性能监控
+controllers/   # 控制器（article/blogger/comment/friendLink/messageBoard/emoji/emojiGroup/errorLog/mail/...）
+middleware/    # 认证、角色、限流、缓存、校验、请求体格式、错误处理、性能监控
 models/        # 数据模型（Article/Blogger/Comment/FriendLink/MessageBoard/Emoji/ClientErrorLog/...）
 routes/        # 路由（含 cache/metrics/emoji/error-log 运维接口）
 scripts/       # 运维 / 迁移脚本（clearCache、verifyUploads、syncMeili、regenerateThumbs、...）
@@ -144,7 +146,9 @@ DRY_RUN=1 node scripts/clearCache.js --all    # 只预览、不删除
 | `/dashboard` | 仪表盘 / 未读红点 |
 | `/cache` | 缓存预热 / 统计 / 清空 |
 | `/metrics` | 性能监控 |
+| `/mail` | 邮件通知配置状态 / 测试发信（admin） |
 | `/emoji` | 表情包管理 |
+| `/emoji-groups` | 表情包分组管理 |
 | `/error-log` | 前端错误上报 / 查看 / 清空 |
 
 ## 环境变量
@@ -153,12 +157,17 @@ DRY_RUN=1 node scripts/clearCache.js --all    # 只预览、不删除
 | --- | --- | --- |
 | `NODE_ENV` | 运行模式 | `development` |
 | `PORT` | 服务端口 | `3000` |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — || `DB_TIME_ZONE` | 时间字段读时区（**固定偏移** `+08:00`/`Z`，必须与 MySQL 会话 `time_zone` 一致，详见根 README「时间字段与时区」） | `+08:00` || `DB_POOL_MAX` | 连接池上限（可选） | `50` |
+| `LOG_LEVEL` | winston 日志级别（不填按环境推导） | — |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | 数据库连接 | — |
+| `DB_TIME_ZONE` | 时间字段读时区（**固定偏移** `+08:00`/`Z`，必须与 MySQL 会话 `time_zone` 一致，详见根 README「时间字段与时区」） | `+08:00` |
+| `DB_POOL_MAX` | 连接池上限（可选） | `50` |
 | **`JWT_SECRET`** | JWT 密钥（生产必改） | — |
 | `JWT_EXPIRES_IN` | Token 有效期 | `7d` |
 | `BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` | 默认博主 | — |
 | `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` | CORS 白名单 | — |
 | `TRUST_PROXY` | 反向代理信任层级（限流按真实 IP） | `1` |
+| `APP_BASE_URL` | 上传资源的对外基地址（拼入库的绝对地址 `<本项>/uploads/...`；不填回退 `http://localhost:<PORT>`） | — |
+| `CACHE_PREHEAT` | 启动时预热缓存（设为 `false` 关闭） | `true` |
 | `REDIS_URL` / `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | Redis（可选，不配则降级） | — |
 | `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY` | Meilisearch（可选，不配则降级） | — |
 | `SITE_URL` / `SITE_NAME` | 站点信息（邮件通知用） | — |

@@ -4,11 +4,12 @@
 
 ## 功能特性
 
-- 🏠 页面：`/` 欢迎落地页（SSR）、`/home` 主站（ISR 60s）、文章详情、分类、标签、归档、关于、`/friends` 友链页、留言板、404；全站搜索由命令面板（`Ctrl/Cmd + K`）承载，不设独立搜索页
+- 🏠 页面：`/` 欢迎落地页（SSR）、`/home` 主站（ISR 60s）、文章详情、分类、标签、归档、关于、`/friends` 友链页、留言板、404；全站搜索由命令面板（`Ctrl/Cmd + K`）承载，不设独立搜索页；站内页**统一页头**（`PageHeader`）、页脚两行分层（含后台入口）
 - 🧰 编程工具箱：编解码 / 格式化 / 哈希加密 / 文本处理 / 颜色工具 / 开发辅助，支持历史快照、收藏、复制反馈
-- 📖 文章体验：评论区（回复/@提及）、代码高亮 + 行号 + 一键复制、目录导航、阅读进度、**正文图片灯箱预览**（点击放大/缩放/切换/关闭）、**字号/行距调节**、上一篇/下一篇 + 相关推荐
-- 🎨 视觉与动效：主题色体系（后台可切换、按维度/亮暗独立）、暗色模式、滚动入场动画（`v-reveal`）、页面/布局 fade+blur 过渡、移动端 Mobile-First 适配
-- 📊 渲染与性能：`/home`、归档/分类/标签 ISR、关于页 SWR、工具页纯客户端渲染；响应式图片 + LCP 优化；骨架屏；全局错误边界
+- 📖 文章体验：评论区（回复/@提及，**后台可按文章单独下线**）、代码高亮 + 行号 + 一键复制、目录导航、阅读进度、**正文图片灯箱预览**（点击放大/缩放/切换/关闭）、**字号/行距调节**、上一篇/下一篇 + 相关推荐
+- 🎨 视觉与动效：主题色体系（后台可切换、按维度/亮暗独立，品牌色拆「装饰 / 文字」两级）、暗色模式、滚动入场动画（`v-reveal`）、页面/布局 fade+blur 过渡、移动端 Mobile-First 适配、**标签云按权重分级**
+- 🔗 交互：社交链接支持**点击跳转或点击复制**（按链接类型，复制有提示反馈）
+- 📊 渲染与性能：`/home`、归档/分类/标签 ISR、关于页 SWR、工具页纯客户端渲染；响应式图片 + LCP 优化（图片 URL 推导与失败回退统一到 `useSmartImage`）；背景图按视口绘制；骨架屏；全局错误边界
 - 🔎 SEO / 可发现性：titleTemplate、description、Open Graph、Twitter Card、canonical、JSON-LD；内置 `robots.txt` / `sitemap.xml` / **`rss.xml`**
 - 📱 PWA：可安装（manifest）+ Workbox 缓存（API NetworkFirst、图片 CacheFirst、字体 StaleWhileRevalidate）
 - 🔁 通过 Nuxt server route 代理后端 Express / Spring Boot API，并代理 `/uploads/**` 图片
@@ -79,9 +80,9 @@ npm run test         # vitest 单元测试
 
 ```text
 api/                  # API 封装（复用原接口契约）
-assets/css/           # 设计 Token（variables/mixins/functions）+ 全局样式
-components/           # 通用组件（ArticleCard/SkeletonCard/BlogComment/EmptyState/...）与布局组件
-composables/          # SEO、TOC、主题色、表情、工具等复用逻辑
+assets/css/           # 设计 Token（variables/mixins/functions）+ 全局样式（含 _page-backdrop 背景层）
+components/           # 通用组件（PageHeader/SkeletonCard/ArticleCard/BlogComment/FeatureDisabled/...）与布局组件
+composables/          # SEO、TOC、主题色、表情、图片（useSmartImage）、工具等复用逻辑
 config/tools.ts       # 工具箱元数据
 layouts/              # Nuxt 布局（含 landing 落地布局）
 locales/              # i18n 词条（zh / en）
@@ -104,7 +105,7 @@ utils/                # markdown、图片 URL 归一化、seo、gravatar、theme
   - **文本处理**：正则测试、字符统计、大小写转换
   - **颜色工具**：颜色转换 / 选择器
   - **开发辅助**：JWT 解析、二维码生成、密码生成器、Cron 表达式解析、JSON Diff
-- 体验增强：快捷键 （Ctrl/Cmd+K）、历史快照、收藏与记忆、输入防抖、1MB 输入限制、一键复制反馈、示例、清空、交换、结果导出
+- 体验增强：快捷键（`Ctrl/Cmd + K` 唤起命令面板切换工具，`Ctrl/Cmd + Enter` 运行，`Ctrl/Cmd + Shift + E` 导出）、历史快照、收藏与记忆、输入防抖、1MB 输入限制、一键复制反馈、示例、清空、交换、结果导出
 
 ## API 集成
 
