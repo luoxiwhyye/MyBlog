@@ -142,6 +142,8 @@ export const comment = {
     pageSize?: number
     articleId?: number
     status?: string
+    /** 层级筛选：all 全部 / top 仅父评论 / reply 仅回复 */
+    level?: 'all' | 'top' | 'reply'
   }): Promise<
     ApiResponse<
       PaginatedResponse<{
@@ -155,7 +157,13 @@ export const comment = {
         likeCount: number
         status: 'pending' | 'approved' | 'deleted'
         createdAt: string
-        replies: any[]
+        /** 访客是否勾选「有人回复我时，邮件通知我」 */
+        notifyEmail: boolean
+        /**
+         * 父评论状态（父评论为 null）；管理端接口才返回。
+         * 非 approved 表示这条回复的父评论没通过审核，审核本条会被后端拒绝。
+         */
+        parentStatus: 'pending' | 'approved' | 'deleted' | null
       }>
     >
   > => {
@@ -185,6 +193,13 @@ export const comment = {
     data: { status: 'pending' | 'approved' | 'deleted' },
   ): Promise<ApiResponse> => {
     return request.put(`/comments/${id}/status`, data)
+  },
+  /** 批量改状态：传入顶层评论会连带其后代，affected 为实际纳入范围的行数 */
+  batchUpdateStatus: (data: {
+    ids: number[]
+    status: 'pending' | 'approved' | 'deleted'
+  }): Promise<ApiResponse<{ affected: number; requested: number }>> => {
+    return request.put('/comments/batch/status', data)
   },
   like: (id: number): Promise<ApiResponse<{ likeCount: number }>> => {
     return request.post(`/comments/${id}/like`)

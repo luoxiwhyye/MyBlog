@@ -31,6 +31,13 @@
               <el-option label="已删除" value="deleted" />
             </el-select>
           </el-form-item>
+          <el-form-item label="层级">
+            <el-select v-model="filters.level" style="width: 140px">
+              <el-option label="全部" value="all" />
+              <el-option label="仅父评论" value="top" />
+              <el-option label="仅回复" value="reply" />
+            </el-select>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="handleSearch">搜索</el-button>
             <el-button @click="handleReset">重置</el-button>
@@ -38,15 +45,56 @@
         </el-form>
       </div>
 
+      <!-- 批量操作条：列表视图选中后显示。回收站视图不做批量，仍逐条操作。
+           评论在列表里是平铺的（接口不返回 replies），看不出哪些是子回复，
+           所以这里写明「子回复会一并处理」——服务端按顶层连带后代。 -->
+      <div v-if="!inTrash && selectedRows.length" class="batch-bar">
+        <span class="batch-count">已选 <strong>{{ selectedRows.length }}</strong> 条</span>
+        <el-button size="small" type="success" plain :loading="batchLoading" @click="batchApprove">
+          批量设为已审核
+        </el-button>
+        <el-button size="small" type="warning" plain :loading="batchLoading" @click="batchPending">
+          批量设为待审核
+        </el-button>
+        <el-button size="small" type="primary" plain :loading="batchLoading" @click="batchDelete">
+          批量移入回收站
+        </el-button>
+      </div>
+
       <!-- 评论列表 -->
       <el-table
+        ref="tableRef"
         :data="commentList"
         v-loading="loading"
         style="width: 100%"
         row-key="id"
         :tree-props="{ children: 'replies', hasChildren: 'hasChildren' }"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column v-if="!inTrash" type="selection" width="48" />
         <el-table-column label="ID" prop="id" width="80" />
+        <!-- 层级：列表是平铺的，必须显式标出父 / 子，否则看不出回复关系；
+             父评论未通过审核时给出警示（这条回复在前台不可见，审核它会被后端拒绝）。 -->
+        <el-table-column label="层级" width="150">
+          <template #default="scope">
+            <el-tag v-if="!scope.row.parentId" type="primary" size="small" effect="plain">
+              父评论
+            </el-tag>
+            <template v-else>
+              <el-tag type="info" size="small" effect="plain">
+                回复 #{{ scope.row.parentId }}
+              </el-tag>
+              <el-tag
+                v-if="!inTrash && scope.row.parentStatus && scope.row.parentStatus !== 'approved'"
+                type="danger"
+                size="small"
+                class="parent-warning"
+              >
+                父未通过
+              </el-tag>
+            </template>
+          </template>
+        </el-table-column>
         <el-table-column label="作者" prop="authorName" width="120" />
         <el-table-column label="邮箱" prop="authorEmail" width="180" show-overflow-tooltip />
         <el-table-column label="网站" width="160">
@@ -170,9 +218,35 @@ const commentList = ref<any[]>([])
 const viewMode = ref<'list' | 'trash'>('list')
 const inTrash = ref(false)
 
+// 批量选择（仅列表视图；回收站仍逐条操作）
+const tableRef = ref()
+const selectedRows = ref<any[]>([])
+const batchLoading = ref(false)
+
+const handleSelectionChange = (rows: any[]) => {
+  selectedRows.value = rows
+}
+
+const clearSelection = () => {
+  selectedRows.value = []
+  tableRef.value?.clearSelection?.()
+}
+
+/**
+ * 操作失败时的兑底提示。
+ *
+ * 响应拦截器（utils/request.ts）已经按后端 message 弹过一次 toast —— 包括审核守卫
+ * 这类带具体原因的 400（如「父评论 #14 未通过审核……」）。这里只在「拦截器没弹过」
+ * （无 response，如网络错误）时兑底，避免一次失败出现两条提示。
+ */
+const showActionError = (error: unknown, fallback: string) => {
+  if (!(error as any)?.response) ElMessage.error(fallback)
+}
+
 const filters = reactive({
   articleId: '',
-  status: 'all'
+  status: 'all',
+  level: 'all'
 })
 
 const pagination = reactive({
@@ -196,6 +270,10 @@ const fetchComments = async () => {
       params.status = 'deleted'
     } else if (filters.status && filters.status !== 'all') {
       params.status = filters.status
+    }
+    // 层级筛选：父评论 / 回复（all 不传，交给后端默认）
+    if (filters.level && filters.level !== 'all') {
+      params.level = filters.level
     }
     const response = await comment.getList(params)
     if (response.code === 200) {
@@ -276,6 +354,7 @@ const formatTime = (time?: string) => {
 // 搜索
 const handleSearch = () => {
   pagination.page = 1
+  clearSelection()
   fetchComments()
 }
 
@@ -283,12 +362,14 @@ const handleSearch = () => {
 const handleReset = () => {
   filters.articleId = ''
   filters.status = 'all'
+  filters.level = 'all'
   handleSearch()
 }
 
 const handleViewModeChange = (mode: 'list' | 'trash') => {
   inTrash.value = mode === 'trash'
   pagination.page = 1
+  clearSelection()
   fetchComments()
 }
 
@@ -303,7 +384,7 @@ const updateStatus = async (id: number, status: 'pending' | 'approved' | 'delete
       ElMessage.error(response.message || '操作失败')
     }
   } catch (error) {
-    ElMessage.error('操作失败')
+    showActionError(error, '操作失败')
   }
 }
 
@@ -324,7 +405,7 @@ const deleteComment = async (id: number) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      showActionError(error, '删除失败')
     }
   }
 }
@@ -339,7 +420,7 @@ const restoreComment = async (id: number) => {
       ElMessage.error(response.message || '恢复失败')
     }
   } catch (error) {
-    ElMessage.error('恢复失败')
+    showActionError(error, '恢复失败')
   }
 }
 
@@ -360,10 +441,45 @@ const hardDeleteComment = async (id: number) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('彻底删除失败')
+      showActionError(error, '彻底删除失败')
     }
   }
 }
+
+// 批量改状态：服务端按顶层连带后代，故 affected 会大于勾选数
+const runBatchStatus = async (status: 'pending' | 'approved' | 'deleted', verb: string) => {
+  const ids = selectedRows.value.map((r) => r.id)
+  if (!ids.length) return
+  try {
+    await ElMessageBox.confirm(
+      `确定将选中的 ${ids.length} 条评论${verb}吗？属于它们的子回复会一并处理。`,
+      `批量${verb}`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: status === 'deleted' ? 'warning' : 'info',
+      },
+    )
+  } catch {
+    return
+  }
+
+  batchLoading.value = true
+  try {
+    const response = await comment.batchUpdateStatus({ ids, status })
+    ElMessage.success(response.message || `已更新 ${ids.length} 条评论`)
+    clearSelection()
+    fetchComments()
+  } catch (error) {
+    showActionError(error, `批量${verb}失败`)
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+const batchApprove = () => runBatchStatus('approved', '设为已审核')
+const batchPending = () => runBatchStatus('pending', '设为待审核')
+const batchDelete = () => runBatchStatus('deleted', '移入回收站')
 
 // 查看文章
 const viewArticle = (articleId: number) => {
@@ -401,6 +517,28 @@ onMounted(() => {
 
 .filter-bar {
   margin-bottom: 20px;
+}
+
+/* 批量操作条（与文章管理的 .batch-bar 同一套观感） */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+}
+
+.batch-count {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* 「父未通过」警示标签跟在「回复 #N」之后，同格换行 */
+.parent-warning {
+  margin-left: 4px;
 }
 
 .pagination {

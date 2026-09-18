@@ -39,6 +39,17 @@ const validateBatchStatus = [
     .withMessage("status 必须是 draft 或 published"),
 ];
 
+// 验证批量更新评论状态
+// ⚠️ 文案需与 Spring 的 CommentService.batchUpdateStatus 逐字一致：
+//    「状态值无效」也用于单条端点 PUT /:id/status，两端统一到同一句
+const validateBatchCommentStatus = [
+  body("ids").isArray({ min: 1 }).withMessage("ids 必须是非空数组"),
+  body("ids.*").isInt({ min: 1 }).withMessage("评论 ID 必须是正整数"),
+  body("status")
+    .isIn(["pending", "approved", "deleted"])
+    .withMessage("状态值无效"),
+];
+
 // URL 格式校验正则
 const urlPattern =
   /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/;
@@ -114,5 +125,6 @@ module.exports = {
   validateComment,
   validateMessage,
   validateBatchStatus,
+  validateBatchCommentStatus,
   handleValidationErrors,
 };

@@ -1,5 +1,6 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.myblog.myblogspringboot.config.ClientIpResolver;
 import com.myblog.myblogspringboot.dto.ApiResponse;
+import com.myblog.myblogspringboot.dto.BatchCommentStatusRequest;
 import com.myblog.myblogspringboot.dto.CommentRequest;
 import com.myblog.myblogspringboot.dto.PageResponse;
 import com.myblog.myblogspringboot.entity.Comment;
+import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.security.UserPrincipal;
 import com.myblog.myblogspringboot.service.CommentService;
 
@@ -46,11 +49,12 @@ public class CommentController {
             @RequestParam(required = false) Integer articleId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "false") boolean topLevelOnly) {
+            @RequestParam(defaultValue = "false") boolean topLevelOnly,
+            @RequestParam(required = false) String level) {
 
         boolean isAdmin = isAdminUser();
         PageResponse<Map<String, Object>> result = commentService.getComments(
-                page, pageSize, articleId, status, sortBy, topLevelOnly, isAdmin);
+                page, pageSize, articleId, status, sortBy, topLevelOnly, isAdmin, level);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -92,8 +96,42 @@ public class CommentController {
     public ResponseEntity<ApiResponse<Void>> updateCommentStatus(@PathVariable Integer id,
                                                                   @RequestBody Map<String, String> body) {
         String status = body.get("status");
-        commentService.updateCommentStatus(id, status);
-        return ResponseEntity.ok(ApiResponse.success(null, "评论状态已更新"));
+        CommentService.ApplyResult result = commentService.applyCommentStatus(id, status);
+
+        if (!result.found()) {
+            throw new BusinessException(404, "评论不存在");
+        }
+        // 审核守卫：父评论未通过时拒绝写入，避免出现「子回复已审核、父评论没通过」
+        if (result.blocker() != null) {
+            throw new BusinessException(400, CommentService.approveBlockerMessage(result.blocker()));
+        }
+
+        // 文案与 Express 的 updateCommentStatus 逐字一致
+        return ResponseEntity.ok(ApiResponse.success(null, "评论状态更新成功"));
+    }
+
+    /**
+     * 批量更新评论状态（需管理员）。
+     * 路径置于 /{id}/status 之前，与 Express 路由顺序保持一致（/:id 会把 batch 当 id）。
+     *
+     * <p>对象语义与单条删除 / 恢复一致：传入顶层评论即连带其后代。
+     */
+    @PutMapping("/batch/status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> batchUpdateCommentStatus(
+            @RequestBody BatchCommentStatusRequest body) {
+        CommentService.BatchResult result =
+                commentService.batchUpdateStatus(body.getIds(), body.getStatus());
+
+        // 用 LinkedHashMap 而非 Map.of：Map.of 的迭代顺序不确定，会与 Express 的键序不一致
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("affected", result.affected());
+        data.put("requested", result.requested());
+
+        String message = result.affected() > result.requested()
+                ? "已更新 " + result.affected() + " 条评论（含 "
+                        + (result.affected() - result.requested()) + " 条子回复）"
+                : "已更新 " + result.affected() + " 条评论";
+        return ResponseEntity.ok(ApiResponse.success(data, message));
     }
 
     @PostMapping("/{id}/like")

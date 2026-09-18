@@ -18,6 +18,10 @@ const getComments = async (req, res, next) => {
     const filters = {};
     const sortBy = req.query.sortBy === "hottest" ? "hottest" : "latest";
     const topLevelOnly = req.query.topLevelOnly === "true";
+    // 层级筛选（管理端）：all 全部 / top 仅父评论 / reply 仅回复；取不到或非法值一律当 all
+    const level = ["top", "reply"].includes(req.query.level)
+      ? req.query.level
+      : "all";
     const isAdmin = req.user && req.user.role === "admin";
 
     if (req.query.articleId) {
@@ -40,10 +44,11 @@ const getComments = async (req, res, next) => {
       limit,
       filters,
       isAdmin,
-      { topLevelOnly, sortBy },
+      { topLevelOnly, sortBy, level },
     );
     const total = await commentModel.getCommentsCount(filters, isAdmin, {
       topLevelOnly,
+      level,
     });
 
     // 文章详情页按顶级评论分页时，批量加载该页所有顶级评论的一层回复（评论为两级结构）
@@ -308,27 +313,76 @@ const updateCommentStatus = async (req, res, next) => {
       return error(res, "状态值无效", 400);
     }
 
-    const comment = await commentModel.getCommentById(id);
-    if (!comment) {
+    const result = await commentModel.applyCommentStatus(id, status);
+    if (!result.found) {
       return error(res, "评论不存在", 404);
     }
-
-    const updated = await commentModel.updateCommentStatus(id, status);
-    if (!updated) {
-      return error(res, "状态更新失败", 500);
+    // 审核守卫：父评论未通过时拒绝写入，避免出现「子回复已审核、父评论没通过」
+    if (result.blocker) {
+      return error(
+        res,
+        commentModel.approveBlockerMessage(result.blocker),
+        400,
+      );
     }
 
     // 回复通知延后到「审核通过」时发送（fire-and-forget）：
     // 只在状态真正发生「非 approved → approved」变化时发一次，重复审核不重复发信。
     if (
       status === "approved" &&
-      comment.status !== "approved" &&
-      comment.parent_id
+      result.previous.status !== "approved" &&
+      result.previous.parent_id
     ) {
       notifyCommentReplied(id);
     }
 
     success(res, null, "评论状态更新成功");
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * 批量更新评论状态（审核）
+ *
+ * 对象语义与单条删除 / 恢复一致：传入顶层评论即连带其后代。
+ */
+const batchUpdateCommentStatus = async (req, res, next) => {
+  try {
+    const { ids, status } = req.body;
+
+    const rootIds = [
+      ...new Set(
+        (Array.isArray(ids) ? ids : [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0),
+      ),
+    ];
+    if (!rootIds.length) {
+      return error(res, "ids 必须是非空数组", 400);
+    }
+
+    const { affected, requested, newlyApprovedReplyIds, blocked } =
+      await commentModel.batchUpdateCommentsStatus(rootIds, status);
+    // 命中审核守卫：整批拒绝，不做部分写入
+    if (blocked) {
+      return error(res, commentModel.approveBlockerMessage(blocked), 400);
+    }
+    if (affected === 0) {
+      return error(res, "评论不存在", 404);
+    }
+
+    // 回复通知延后到「审核通过」时发送（fire-and-forget）：与单条端点同口径，
+    // 按条判定「由非 approved 变为 approved 且是回复」，重复审核不重复发信。
+    newlyApprovedReplyIds.forEach((id) => notifyCommentReplied(id));
+
+    success(
+      res,
+      { affected, requested },
+      affected > requested
+        ? `已更新 ${affected} 条评论（含 ${affected - requested} 条子回复）`
+        : `已更新 ${affected} 条评论`,
+    );
   } catch (err) {
     next(err);
   }
@@ -365,5 +419,6 @@ module.exports = {
   restoreComment,
   hardDeleteComment,
   updateCommentStatus,
+  batchUpdateCommentStatus,
   likeComment,
 };

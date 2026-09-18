@@ -8,6 +8,7 @@ const {
   validatePagination,
   validateIntId,
   validateComment,
+  validateBatchCommentStatus,
   handleValidationErrors,
 } = require("../middleware/validator");
 
@@ -27,6 +28,17 @@ router.post(
   validateComment,
   handleValidationErrors,
   commentController.createComment,
+);
+
+// 批量更新评论状态（需认证 + 管理员权限）
+// 置于 /:id/status 之前，避免被参数路由捕获（/:id 会把 batch 当 id → 400）
+router.put(
+  "/batch/status",
+  validateBatchCommentStatus,
+  handleValidationErrors,
+  auth,
+  requireRole("admin"),
+  commentController.batchUpdateCommentStatus,
 );
 
 // 删除评论（需认证）
