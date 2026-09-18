@@ -9,7 +9,7 @@ let initAttempted = false;
 // 停用原因（供 /health 与后台「邮件通知」面板展示，避免「静默降级」）
 let disabledReason = "";
 
-// SITE_URL 缺失的告警只打一次（否则每来一条评论 / 留言都会刷一次屏）
+// SITE_URL 不可用的告警只打一次（否则每来一条评论 / 留言都会刷一次屏）
 let siteUrlWarned = false;
 
 // 生效的发信人：SMTP_FROM → SMTP_USER → 内置默认（两端状态展示共用这一口径）
@@ -20,23 +20,6 @@ const resolveFrom = () =>
 
 /** 生效的站点地址（邮件里文章 / 留言板链接的前缀） */
 const resolveSiteUrl = () => process.env.SITE_URL || "";
-
-/**
- * SITE_URL 未配置时告警。
- *
- * 邮件模板拼的是 `${SITE_URL}/article/<id>`：SITE_URL 为空会渲染成 `/article/4`
- * 这种无域名的相对路径 —— 通知能收到，但「点击查看」点开是空页，而发信方不报任何错。
- * 所以与「收件人不可送达」同样处理：在**发信出口**把它说出来（每个进程只打一次）。
- */
-const warnIfSiteUrlMissing = () => {
-  if (siteUrlWarned || resolveSiteUrl()) {
-    return;
-  }
-  siteUrlWarned = true;
-  console.warn(
-    "[mailer] SITE_URL 未配置：邮件里的链接不会带域名（渲染成 /article/1），收信人点开是空页。请在后端 .env 里设置 SITE_URL=https://你的域名 后重启服务",
-  );
-};
 
 /**
  * 保留域名（RFC 2606 / RFC 6761）—— 这些域名下**任何地址都收不到信**：
@@ -80,6 +63,112 @@ const undeliverableReason = (email) => {
     return `收件人 ${address} 的域名 ${domain} 是保留域名（没有 MX 记录），永远收不到信`;
   }
   return "";
+};
+
+/** 环回 / 未指定地址（「本机」）—— 与 Spring 的 MailService.LOOPBACK_HOSTS 逐项一致 */
+const LOOPBACK_HOSTS = Object.freeze(["localhost", "::1", "0.0.0.0", "::"]);
+
+/**
+ * 内网 / 链路本地 IPv4（`10.*` / `172.16-31.*` / `192.168.*` / `169.254.*`）。
+ *
+ * ⚠️ 只认点分十进制**字面量**（四段数字），否则 `10.example.com` 这类域名会被误判成内网。
+ * IPv6 的 ULA（`fc00::/7`）与「域名解析到内网」都不判 —— 本函数不查 DNS。
+ */
+const isPrivateHost = (host) => {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!match) {
+    return false;
+  }
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+  if (first === 10) return true;
+  if (first === 192 && second === 168) return true;
+  if (first === 172 && second >= 16 && second <= 31) return true;
+  return first === 169 && second === 254;
+};
+
+/**
+ * 站点地址是否**必然**打不开（空 / 非 http(s) / 本机 / 内网 / 保留域名）。不可用时返回原因，否则返回空串。
+ *
+ * 邮件模板拼的是 `${SITE_URL}/article/<id>`，而这个链接是给**收信人**点的：
+ * `http://localhost:3001/article/11` 在发信方看着一切正常，但收信人的「本机」不是部署博客的那台机器 ——
+ * 点开要么打不开，要么被邮箱的链接安全跳转直接拦下（QQ 邮箱返回 `Invalid url`）。
+ * 更麻烦的是发信方不报任何错、后台面板也照常显示，所以只能靠这一层把它说出来。
+ *
+ * ⚠️ 与 Spring 的 MailService.undeliverableSiteUrlReason **逐项对齐**（判定顺序与文案都要一致）。
+ */
+const undeliverableSiteUrlReason = (url) => {
+  const value = String(url || "").trim();
+  if (!value) {
+    return "未配置站点地址：邮件里的链接不带域名（渲染成 /article/1），收件人点开是空页";
+  }
+
+  // 先按字面量要求 `http(s)://`，不把这一步交给 URL 解析：
+  // `blog.example.com` / `localhost:3001` 在 JS 里会被解析出「scheme」，
+  // 而 Java 的 URI 会把它们当成 opaque URI（host 为 null）—— 两种解析给出的原因不同，
+  // 先在这里统一拦下，两端才能得出逐字相同的一句文案。
+  const malformed = `站点地址 ${value} 不是合法的站点地址（需要带协议与主机名，如 https://blog.example.com）`;
+  if (!/^https?:\/\//i.test(value)) {
+    return malformed;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return malformed;
+  }
+
+  // ⚠️ URL 对 IPv6 返回的是带方括号的 hostname（[::1]），先剥掉再比对
+  const rawHost = parsed.hostname.toLowerCase();
+  const host =
+    rawHost.startsWith("[") && rawHost.endsWith("]")
+      ? rawHost.slice(1, -1)
+      : rawHost;
+
+  if (!host) {
+    return malformed;
+  }
+
+  if (
+    host.endsWith(".localhost") ||
+    host.startsWith("127.") ||
+    LOOPBACK_HOSTS.includes(host)
+  ) {
+    return `站点地址 ${value} 指向本机（${host}）：收信人的「本机」不是部署博客的那台机器，点开必然打不开`;
+  }
+
+  if (isPrivateHost(host)) {
+    return `站点地址 ${value} 是内网地址（${host}）：只有同一内网能访问，收信人在公网点开打不开`;
+  }
+
+  if (
+    RESERVED_RECIPIENT_DOMAINS.some((r) => host === r || host.endsWith(`.${r}`))
+  ) {
+    return `站点地址 ${value} 用的是保留域名（${host}）：公网访问不到，收件人点开打不开`;
+  }
+
+  return "";
+};
+
+/**
+ * 发信出口的站点地址检查：不可用时打一行 warn（每个进程只打一次）
+ *
+ * 与「收件人不可送达」同样处理 —— 这类问题不报错、不影响发信，但邮件里的链接是坏的，
+ * 必须在这里说出来，而不是等收件人点开发现打不开。
+ */
+const warnIfSiteUrlUnusable = () => {
+  if (siteUrlWarned) {
+    return;
+  }
+  const reason = undeliverableSiteUrlReason(resolveSiteUrl());
+  if (!reason) {
+    return;
+  }
+  siteUrlWarned = true;
+  console.warn(
+    `[mailer] ${reason}。请在后端 .env 里把 SITE_URL 设成收信人能访问到的公网地址（如 https://你的域名）后重启服务`,
+  );
 };
 
 /**
@@ -221,6 +310,8 @@ const getMailerStatus = () => {
     from: resolveFrom(),
     // 站点地址（邮件里的链接前缀）：空串 = 邮件里的链接不带域名，收件人点开是空页
     siteUrl: resolveSiteUrl(),
+    // 站点地址不可用时的告警文案（空 / 本机 / 内网 / 保留域名 / 非法 URL）；空串 = 没问题
+    siteUrlWarning: undeliverableSiteUrlReason(resolveSiteUrl()),
   };
 };
 
@@ -242,8 +333,8 @@ const sendMail = async ({ to, subject, html }) => {
     return { skipped: true, reason: undeliverable };
   }
 
-  // 站点地址没配 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
-  warnIfSiteUrlMissing();
+  // 站点地址不可用 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
+  warnIfSiteUrlUnusable();
 
   try {
     const info = await transporter.sendMail({
@@ -265,4 +356,5 @@ module.exports = {
   isMailerAvailable,
   getMailerStatus,
   undeliverableReason,
+  undeliverableSiteUrlReason,
 };

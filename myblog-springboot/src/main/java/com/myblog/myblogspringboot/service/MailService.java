@@ -1,9 +1,12 @@
 package com.myblog.myblogspringboot.service;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +52,12 @@ public class MailService {
             "example.com", "example.net", "example.org", "example.test",
             "invalid", "localhost", "test");
 
+    /** 环回 / 未指定地址（「本机」）—— 与 Express services/mailer.js 的 LOOPBACK_HOSTS 逐项一致 */
+    private static final Set<String> LOOPBACK_HOSTS = Set.of("localhost", "::1", "0.0.0.0", "::");
+
+    /** 点分十进制 IPv4 字面量（四段数字）—— 只认字面量，否则 10.example.com 会被误判成内网 */
+    private static final Pattern IPV4_LITERAL = Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$");
+
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
@@ -76,7 +85,7 @@ public class MailService {
     @Value("${app.site-url:}")
     private String siteUrl;
 
-    /** SITE_URL 缺失的告警只打一次（否则每来一条评论 / 留言都会刷一次屏） */
+    /** SITE_URL 不可用的告警只打一次（否则每来一条评论 / 留言都会刷一次屏） */
     private volatile boolean siteUrlWarned = false;
 
     @Value("${app.mail.secure:}")
@@ -126,20 +135,111 @@ public class MailService {
     }
 
     /**
-     * SITE_URL 未配置时告警。
+     * 内网 / 链路本地 IPv4（{@code 10.*} / {@code 172.16-31.*} / {@code 192.168.*} / {@code 169.254.*}）。
      *
-     * <p>邮件模板拼的是 {@code ${SITE_URL}/article/<id>}：SITE_URL 为空会渲染成
-     * {@code /article/4} 这种无域名的相对路径 —— 通知能收到，但「点击查看」点开是空页，
-     * 而发信方不报任何错。所以与「收件人不可送达」同样处理：在**发信出口**把它说出来
-     * （每个进程只打一次）。与 Express warnIfSiteUrlMissing() 同口径。
+     * <p>IPv6 的 ULA（{@code fc00::/7}）与「域名解析到内网」都不判 —— 本方法不查 DNS。
      */
-    private void warnIfSiteUrlMissing() {
-        if (siteUrlWarned || !effectiveSiteUrl().isBlank()) {
+    private static boolean isPrivateHost(String host) {
+        Matcher matcher = IPV4_LITERAL.matcher(host);
+        if (!matcher.matches()) {
+            return false;
+        }
+        int first = Integer.parseInt(matcher.group(1));
+        int second = Integer.parseInt(matcher.group(2));
+        if (first == 10) {
+            return true;
+        }
+        if (first == 192 && second == 168) {
+            return true;
+        }
+        if (first == 172 && second >= 16 && second <= 31) {
+            return true;
+        }
+        return first == 169 && second == 254;
+    }
+
+    /**
+     * 站点地址是否**必然**打不开（空 / 非 http(s) / 本机 / 内网 / 保留域名）。不可用时返回原因，否则返回空串。
+     *
+     * <p>邮件模板拼的是 {@code ${SITE_URL}/article/<id>}，而这个链接是给**收信人**点的：
+     * {@code http://localhost:3001/article/11} 在发信方看着一切正常，但收信人的「本机」不是部署博客的那台机器
+     * —— 点开要么打不开，要么被邮箱的链接安全跳转直接拦下（QQ 邮箱返回 {@code Invalid url}）。
+     * 更麻烦的是发信方不报任何错、后台面板也照常显示，所以只能靠这一层把它说出来。
+     *
+     * <p>⚠️ 与 Express services/mailer.js 的 undeliverableSiteUrlReason **逐项对齐**
+     * （判定顺序与文案都要一致）。
+     */
+    public static String undeliverableSiteUrlReason(String url) {
+        String value = url == null ? "" : url.trim();
+        if (value.isEmpty()) {
+            return "未配置站点地址：邮件里的链接不带域名（渲染成 /article/1），收件人点开是空页";
+        }
+
+        // 先按字面量要求 http(s)://，不把这一步交给 URI 解析：
+        // `blog.example.com` / `localhost:3001` 在 Java 的 URI 里是 opaque URI（host 为 null），
+        // 而 JS 的 new URL() 会把它们解析出「scheme」—— 先在这里统一拦下，两端才能得出逐字相同的一句文案。
+        String malformed = "站点地址 " + value
+                + " 不是合法的站点地址（需要带协议与主机名，如 https://blog.example.com）";
+        String lowerValue = value.toLowerCase(Locale.ROOT);
+        if (!lowerValue.startsWith("http://") && !lowerValue.startsWith("https://")) {
+            return malformed;
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(value);
+        } catch (IllegalArgumentException e) {
+            return malformed;
+        }
+
+        String rawHost = uri.getHost();
+        if (rawHost == null || rawHost.isBlank()) {
+            return malformed;
+        }
+        // ⚠️ Java 的 URI.getHost() 对 IPv6 返回的是带方括号的 [::1]，先剥掉再比对
+        String hostValue = rawHost.startsWith("[") && rawHost.endsWith("]")
+                ? rawHost.substring(1, rawHost.length() - 1)
+                : rawHost;
+        // 只赋值一次：下面的 stream 要引用它（lambda 捕获的必须是 final / 事实上 final）
+        final String host = hostValue.toLowerCase(Locale.ROOT);
+
+        if (host.endsWith(".localhost") || host.startsWith("127.") || LOOPBACK_HOSTS.contains(host)) {
+            return "站点地址 " + value + " 指向本机（" + host
+                    + "）：收信人的「本机」不是部署博客的那台机器，点开必然打不开";
+        }
+
+        if (isPrivateHost(host)) {
+            return "站点地址 " + value + " 是内网地址（" + host
+                    + "）：只有同一内网能访问，收信人在公网点开打不开";
+        }
+
+        boolean reserved = RESERVED_RECIPIENT_DOMAINS.stream()
+                .anyMatch(r -> host.equals(r) || host.endsWith("." + r));
+        if (reserved) {
+            return "站点地址 " + value + " 用的是保留域名（" + host
+                    + "）：公网访问不到，收件人点开打不开";
+        }
+
+        return "";
+    }
+
+    /**
+     * 发信出口的站点地址检查：不可用时打一行 warn（每个进程只打一次）
+     *
+     * <p>与「收件人不可送达」同样处理 —— 这类问题不报错、不影响发信，但邮件里的链接是坏的，
+     * 必须在这里说出来，而不是等收件人点开发现打不开。与 Express warnIfSiteUrlUnusable() 同口径。
+     */
+    private void warnIfSiteUrlUnusable() {
+        if (siteUrlWarned) {
+            return;
+        }
+        String reason = undeliverableSiteUrlReason(effectiveSiteUrl());
+        if (reason.isEmpty()) {
             return;
         }
         siteUrlWarned = true;
-        log.warn("[mailer] SITE_URL 未配置：邮件里的链接不会带域名（渲染成 /article/1），"
-                + "收信人点开是空页。请在后端 .env 里设置 SITE_URL=https://你的域名 后重启服务");
+        log.warn("[mailer] {}。请在后端 .env 里把 SITE_URL 设成收信人能访问到的公网地址"
+                + "（如 https://你的域名）后重启服务", reason);
     }
 
     /**
@@ -166,6 +266,8 @@ public class MailService {
         status.put("from", effectiveFrom());
         // 站点地址（邮件里的链接前缀）：空串 = 邮件里的链接不带域名，收件人点开是空页
         status.put("siteUrl", effectiveSiteUrl());
+        // 站点地址不可用时的告警文案（空 / 本机 / 内网 / 保留域名 / 非法 URL）；空串 = 没问题
+        status.put("siteUrlWarning", undeliverableSiteUrlReason(effectiveSiteUrl()));
         return status;
     }
 
@@ -221,8 +323,8 @@ public class MailService {
             return new SendResult(false, undeliverable);
         }
 
-        // 站点地址没配 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
-        warnIfSiteUrlMissing();
+        // 站点地址不可用 → 邮件里的链接不可点，同样不能让它在出口悄悄过去
+        warnIfSiteUrlUnusable();
 
         try {
             MimeMessage message = mailSender.createMimeMessage();

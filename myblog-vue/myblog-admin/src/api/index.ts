@@ -602,6 +602,8 @@ export const mail = {
       from: string
       /** 站点地址（邮件里链接的前缀）；空串 = 邮件里的链接不带域名，收件人点开是空页 */
       siteUrl: string
+      /** 站点地址不可用时的告警文案（空 / 本机 / 内网 / 保留域名 / 非法 URL）；空串 = 没问题 */
+      siteUrlWarning: string
       /** 通知邮件的实际收件人（博主邮箱） */
       recipient: string
       /** 收件人不可送达时的告警文案（占位地址 / 空）；空串 = 没问题 */
