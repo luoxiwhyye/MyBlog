@@ -24,10 +24,19 @@ data:
   REDIS_PORT: "6379"
   MEILI_HOST: "meilisearch"
   MEILI_PORT: "7700"
-  FRONTEND_ORIGIN: "https://your-domain.com"
-  ADMIN_ORIGIN: "https://your-domain.com"
-  NUXT_SITE_URL: "https://your-domain.com"
+  # 两个入口域名（见文件末尾 Ingress）；CORS 白名单必须与页面实际 origin 逐字一致
+  FRONTEND_ORIGIN: "https://blog.your-domain.com"
+  ADMIN_ORIGIN: "https://admin.your-domain.com"
+  NUXT_SITE_URL: "https://blog.your-domain.com"
+  # 博客容器服务端访问 API 用，保持 Service 名不要改成公网域名
   NUXT_API_BASE: "http://backend:3000/api/v1"
+  # 邮件里链接的前缀，必须是收信人能打开的地址
+  SITE_URL: "https://blog.your-domain.com"
+  SITE_NAME: "MyBlog"
+  # 拼入库的图片绝对地址前缀；不填会写死 http://localhost:3000，后台图片会全部裂掉
+  APP_BASE_URL: "https://blog.your-domain.com"
+  # 经 Ingress 一跳反代
+  TRUST_PROXY: "1"
 ---
 # ── Secret: 敏感配置 ──
 apiVersion: v1
@@ -201,6 +210,13 @@ spec:
       targetPort: 80
 ---
 # ── Ingress (需安装 ingress-nginx controller) ──
+# 两个入口域名：
+#   blog.your-domain.com  → 博客前台（Nuxt）；/api 与 /uploads 也走它转发
+#   admin.your-domain.com → 管理后台（Vue SPA）
+#
+# ⚠️ 管理后台必须挂在「域名根」上，不能用 your-domain.com/admin 这种子路径：
+#    它的构建未设置 Vite base，资源路径是 /assets/...，客户端路由前缀是 /admin/...
+#    挂在子路径会表现为页面空白、静态资源 404（base 是构建期写死的，配 Ingress 改不回来）。
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -208,16 +224,18 @@ metadata:
   namespace: myblog
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
     nginx.ingress.kubernetes.io/gzip-types: "application/json text/css application/javascript"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - your-domain.com
+        - blog.your-domain.com
+        - admin.your-domain.com
       secretName: myblog-tls
   rules:
-    - host: your-domain.com
+    # ── 博客前台 ──
+    - host: blog.your-domain.com
       http:
         paths:
           - path: /api
@@ -241,13 +259,6 @@ spec:
                 name: backend
                 port:
                   number: 3000
-          - path: /admin
-            pathType: Prefix
-            backend:
-              service:
-                name: admin
-                port:
-                  number: 80
           - path: /
             pathType: Prefix
             backend:
@@ -255,3 +266,28 @@ spec:
                 name: blog
                 port:
                   number: 3001
+    # ── 管理后台 ──
+    - host: admin.your-domain.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port:
+                  number: 80

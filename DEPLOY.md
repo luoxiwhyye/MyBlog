@@ -87,9 +87,25 @@ vim .env.docker
 **必须修改的配置项：**
 
 ```env
+# 安全类（生产环境必改）
 DB_PASSWORD=your-strong-password-here
 JWT_SECRET=change-me-to-a-random-string-at-least-32-chars
+MEILI_MASTER_KEY=your-random-meili-key
+
+# 博主邮箱（默认 admin@example.com 是保留域名，通知必退信）
+BLOGGER_EMAIL=you@example.com
+
+# 地址类：按「是否用反向代理」二选一，详见「配置说明 → 站点信息」
+# ① IP 直连部署：
+VITE_API_BASE=http://<服务器IP>:3000/api/v1
+APP_BASE_URL=http://<服务器IP>:3000
+SITE_URL=http://<服务器IP>:3001
+# ② 反向代理部署：VITE_API_BASE=/api/v1、APP_BASE_URL=https://blog.example.com
 ```
+
+> 生成随机串：`openssl rand -hex 32`（三个密钥各跑一次）。
+> ⚠️ 密码里避免 `$`、`&`、`#` 等字符，它们在 `.env.docker` 的 shell 解析里会出问题，
+> 典型表现是 `myblog-mysql` 一直不 healthy。
 
 ### 3. 构建并启动所有服务
 
@@ -108,13 +124,18 @@ docker compose ps
 预期所有服务状态均为 `Up`（healthy）：
 
 ```
-NAME              STATUS
-myblog-mysql      Up (healthy)
-myblog-redis      Up (healthy)
-myblog-backend    Up
-myblog-blog       Up
-myblog-admin      Up
+NAME                STATUS
+myblog-mysql        Up (healthy)
+myblog-redis        Up (healthy)
+myblog-meilisearch  Up (healthy)
+myblog-backend      Up
+myblog-blog         Up
+myblog-admin        Up
+myblog-backup       Up
 ```
+
+> `myblog-backend` 会等 mysql / redis `healthy` 之后才启动（`depends_on` 的
+> `condition: service_healthy`），所以头一分钟它可能还是 `Created`，属正常。
 
 ### 5. 访问服务
 
@@ -191,13 +212,51 @@ myblog-admin      Up
 
 #### 前端配置
 
-| 变量              | 说明                    | 默认值                              |
-| ----------------- | ----------------------- | ----------------------------------- |
-| `NUXT_API_BASE`   | 博客调用的 API 地址     | `http://myblog-backend:3000/api/v1` |
-| `NUXT_SITE_URL`   | 站点公开 URL            | `http://localhost:3001`             |
-| `VITE_API_BASE`   | 管理后台调用的 API 地址 | `http://myblog-backend:3000/api/v1` |
-| `FRONTEND_ORIGIN` | CORS 允许的博客域名     | `http://localhost:3001`             |
-| `ADMIN_ORIGIN`    | CORS 允许的后台域名     | `http://localhost:3002`             |
+| 变量              | 说明                            | 默认值                              |
+| ----------------- | ------------------------------- | ----------------------------------- |
+| `NUXT_API_BASE`   | 博客调用的 API 地址（**容器内部**） | `http://myblog-backend:3000/api/v1` |
+| `NUXT_SITE_URL`   | 站点公开 URL（canonical / sitemap / OG） | `http://localhost:3001`      |
+| `VITE_API_BASE`   | 管理后台调用的 API 地址（**浏览器直连**） | `http://myblog-backend:3000/api/v1` |
+| `FRONTEND_ORIGIN` | CORS 允许的博客域名             | `http://localhost:3001`             |
+| `ADMIN_ORIGIN`    | CORS 允许的后台域名             | `http://localhost:3002`             |
+
+> ⚠️ `NUXT_API_BASE` 与 `VITE_API_BASE` 的**使用方不同**：
+> - `NUXT_API_BASE` 由**博客容器服务端**用来访问 API，填容器间服务名（`myblog-backend`）；
+>   博客自带 `/api/v1/**` 代理，浏览器不需要直连后端，**不要改成公网域名**。
+> - `VITE_API_BASE` 是**构建期写进后台 JS、由浏览器直连**的地址。填 `myblog-backend` 会
+>   让后台能打开页面但一登录就转圈（浏览器解析不了容器服务名）。
+>   - IP 直连部署→ `http://<服务器IP>:3000/api/v1`
+>   - 走反向代理（同源）→ `/api/v1`
+>
+> 改 `NUXT_SITE_URL` / `VITE_API_BASE` 后**必须重新构建前端镜像**（`build myblog-blog myblog-admin`），
+> 只 `up -d` 不会生效。
+
+#### 站点信息
+
+| 变量            | 说明                | 默认值                  |
+| --------------- | ------------------- | ----------------------- |
+| `SITE_URL`      | 邮件里链接的前缀（**必须是收信人能打开的地址**） | `http://localhost:3001` |
+| `SITE_NAME`     | 邮件署名与主题里的站点名 | `MyBlog`            |
+| `APP_BASE_URL`  | 拼入库的图片绝对地址前缀 `<本项>/uploads/...` | 空（回退 `http://localhost:<PORT>`） |
+
+> ⚠️ **`APP_BASE_URL` 一定要填**。不填时上传会往库里写 `http://localhost:3000/uploads/...`：
+> 博客前台渲染前会归一化，**页面看起来正常**；但后台是把库里的地址**直接绑到 `<img src>`** 的，
+> 于是封面图、头像、表情图会全部裂掉。
+> - IP 直连部署 → `http://<服务器IP>:3000`
+> - 反向代理部署 → `https://blog.example.com`（博客会把 `/uploads/**` 代理到后端）
+>
+> 它只影响**新上传**的图，改完不需要重建前端；**存量行**（`article.cover_image` /
+> `blogger.avatar` / `friend_link.avatar` / `setting.setting_value` / `emoji.content`）
+> 需要用 SQL 回填（先备份，先 `SELECT` 确认范围）。
+
+#### 反向代理
+
+| 变量          | 说明                                            | 默认值 |
+| ------------- | ----------------------------------------------- | ------ |
+| `TRUST_PROXY` | 信任右起 N 跳代理，只认 `X-Forwarded-For`；`0` = 不信任转发头 | `1` |
+
+> 限流 / 评论入库 / 留言入库都靠它取真实访客 IP。配错（比如反代了却填 `0`）会让
+> 所有访客共用一个限流桶，正常浏览也会被 429。
 
 ---
 
@@ -331,13 +390,14 @@ DB_HOST=localhost DB_PORT=3307 DB_USER=root DB_PASSWORD=yourpass DB_NAME=myblog 
 
 ## 数据持久化
 
-Docker Compose 定义了 4 个命名数据卷，容器删除后数据不会丢失：
+Docker Compose 定义了 5 个命名数据卷，容器删除后数据不会丢失：
 
 | 数据卷          | 路径             | 说明                                    |
 | --------------- | ---------------- | --------------------------------------- |
 | `mysql-data`    | MySQL 数据目录   | 文章、评论、用户等全部数据              |
 | `redis-data`    | Redis 持久化文件 | 缓存数据                                |
-| `uploads-data`  | 上传文件目录     | 文章封面、头像、站点图片                |
+| `meili-data`    | 搜索索引目录     | Meilisearch 全文索引                    |
+| `uploads-data`  | 上传文件目录     | 文章封面、头像、站点图片（**图片唯一存放处**） |
 | `backup-data`   | 数据库备份文件   | 定时备份生成的 `.sql.gz` + `.sha256` 校验和 |
 
 ```bash
@@ -356,35 +416,80 @@ docker compose down -v
 
 推荐在容器前放置 **Nginx** 或 **Traefik** 作为反向代理，统一处理 SSL 终止、域名绑定和静态资源缓存。
 
+完整可直接使用的模板见仓库根目录 [`nginx.conf`](./nginx.conf)（含 SSL、Gzip、缓存、安全头与两个入口域名）。
+
 示例 Nginx 配置：
 
 ```nginx
+# HTTP → HTTPS
+server {
+    listen 80;
+    server_name blog.example.com www.blog.example.com admin.example.com;
+    return 301 https://$host$request_uri;
+}
+
+# 博客前台
 server {
     listen 443 ssl http2;
-    server_name blog.example.com;
+    server_name blog.example.com www.blog.example.com;
 
     ssl_certificate     /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
 
-    # 博客前台
+    client_max_body_size 20m;
+
+    # 博客容器自带 /api/v1/** 与 /uploads/** 的服务端代理，整体转发即可
     location / {
         proxy_pass http://127.0.0.1:3001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection        "";
+    }
+}
+
+# 管理后台
+server {
+    listen 443 ssl http2;
+    server_name admin.example.com;
+
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    client_max_body_size 20m;
+
+    # 后台用相对路径 /api/v1 调接口（VITE_API_BASE=/api/v1）
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # 管理后台
-    location /admin/ {
-        proxy_pass http://127.0.0.1:3002/;
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # SPA 的所有路由回退到 index.html（容器内的 Nginx 已处理）
+    location / {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection        "";
     }
 }
 ```
+
+> ⚠️ **管理后台必须挂在「域名根」上，不能用 `blog.example.com/admin` 这种子路径**：
+> 它的构建未设置 Vite `base`，资源路径是 `/assets/...`，而客户端路由前缀是 `/admin/...`。
+> 挂在子路径会表现为页面空白、静态资源 404（`base` 是构建期写死的，配反代改不回来）。
+> 所以下面 `*_ORIGIN` 里的两个域名是不同的。
 
 ### 2. 安全加固
 
@@ -471,12 +576,17 @@ docker compose --env-file .env.docker up -d myblog-blog
 
 ### 4. 上传文件不显示
 
-确保 `uploads-data` 卷已正确挂载：
+分两种，先分清是哪一种：
 
 ```bash
-# 检查上传目录
+# 文件到底在不在（uploads-data 卷是否挂对）
 docker compose exec myblog-backend ls -la /app/uploads
 ```
+
+- **文件在，但前台/后台图片裂** → `APP_BASE_URL` 没配（库里存的是 `http://localhost:3000/...`）。
+  见「配置说明 → 站点信息」。
+- **文件不在** → 卷未挂载或上传失败（后端 body 上限 10MB；走反向代理时
+  还要看 `client_max_body_size`，`nginx.conf` 模板给的是 20m）。
 
 ### 5. 完全重置
 
@@ -516,17 +626,20 @@ myblog/
 ├── docker-compose.yml          # Docker Compose 编排文件
 ├── .env.docker.example         # 环境变量模板
 ├── DEPLOY.md                   # 本文档
+├── nginx.conf                  # Nginx 反向代理模板（blog + admin 双域名）
+├── scripts/                    # 备份 / 校验 / 恢复脚本（含备份容器 Dockerfile）
+├── deploy/k8s/myblog.yaml      # Kubernetes 清单
 ├── myblog-express/
 │   ├── Dockerfile              # Express 后端镜像
+│   ├── myblog-1.1.sql          # 数据库初始化脚本（首次启动自动导入）
 │   └── .dockerignore
 ├── myblog-springboot/
-│   └── Dockerfile              # Spring Boot 后端镜像
-├── myblog-vue/
-│   ├── myblog-blog/
-│   │   └── Dockerfile          # Nuxt 博客前端镜像
-│   └── myblog-admin/
-│       ├── Dockerfile          # Vue 管理后台镜像
-│       └── nginx.conf          # Nginx 配置
-└── myblog-express/
-    └── myblog-1.1.sql          # 数据库初始化脚本
+│   ├── Dockerfile              # Spring Boot 后端镜像
+│   └── myblog-1.1.sql          # 本端自带的等价初始化脚本
+└── myblog-vue/
+    ├── myblog-blog/
+    │   └── Dockerfile          # Nuxt 博客前端镜像
+    └── myblog-admin/
+        ├── Dockerfile          # Vue 管理后台镜像
+        └── nginx.conf          # 容器内 Nginx 配置（SPA fallback）
 ```

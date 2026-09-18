@@ -145,8 +145,11 @@ myblog-vue/
 deploy/k8s/                      # Kubernetes 部署清单（可选）
 scripts/                         # backup.sh / restore.sh / verify-backup.sh / backup.Dockerfile
 docker-compose.yml               # 一键编排（7 服务）
+nginx.conf                       # 反向代理模板（blog + admin 双域名）
 .env.docker.example              # Docker 环境变量模板
-DEPLOY.md                        # Docker 部署详细指南
+DEPLOY.md                        # Docker 部署快速指南
+DEPLOY-GUIDE.md                  # 完整部署指南（IP 直连 / 域名 + HTTPS）
+DEPLOY-BEGINNERS.md              # 零基础部署教程
 README.md
 ```
 
@@ -365,6 +368,26 @@ docker compose --env-file .env.docker up -d --build
 
 详细说明（环境变量、后端切换 Spring Boot、数据备份/校验/恢复、生产建议、故障排查）请参阅 **[DEPLOY.md](./DEPLOY.md)**。
 
+#### 部署文档
+
+| 文档                                       | 适合谁               | 覆盖内容                                                         |
+| ------------------------------------------ | -------------------- | ---------------------------------------------------------------- |
+| [DEPLOY.md](./DEPLOY.md)                   | 熟悉 Docker / 命令行 | 快速开始、全部环境变量、后端切换、备份恢复、故障排查             |
+| [DEPLOY-GUIDE.md](./DEPLOY-GUIDE.md)       | 会 SSH 的部署者      | IP 直连与域名 + HTTPS 两种形态的完整流程、验收方法、时区配对、日常运维 |
+| [DEPLOY-BEGINNERS.md](./DEPLOY-BEGINNERS.md) | 零基础               | 从「什么是部署」讲起：装 Docker、买服务器、上传代码、绑定域名与 HTTPS |
+
+> ⚠️ **管理后台需要独立域名**（`admin.example.com`），不能挂在 `blog.example.com/admin` 子路径：
+> 它的构建未设 Vite `base`，资源路径是 `/assets/**`，而客户端路由前缀是 `/admin/**` ——
+> 挂在子路径会页面空白、静态资源 404。仓库根 [nginx.conf](./nginx.conf) 与
+> [deploy/k8s/myblog.yaml](./deploy/k8s/myblog.yaml) 的 Ingress 均为 **blog + admin 双域名**结构。
+>
+> ⚠️ 环境变量里两个 API 地址的**使用方不同**：`NUXT_API_BASE` 由博客容器在服务端使用
+> （填容器服务名，博客自带 `/api/v1/**` 代理）；`VITE_API_BASE` 由**访客浏览器直连**
+> （构建期注入，IP 直连填 `http://<IP>:3000/api/v1`，走反代填 `/api/v1`）。
+>
+> ⚠️ `APP_BASE_URL` 决定入库图片的绝对地址前缀，**不填会让管理后台的封面 / 头像 / 表情图全部裂开**
+> （博客前台会自动归一化，所以页面看起来正常）。
+
 ### 手动部署
 
 ```bash
@@ -404,6 +427,8 @@ cd myblog-vue/myblog-admin && npm run build   # → dist/
 ## 相关文档
 
 - [DEPLOY.md](./DEPLOY.md) — Docker 一键部署指南
+- [DEPLOY-GUIDE.md](./DEPLOY-GUIDE.md) — 完整部署指南（IP 直连 / 域名 + HTTPS）
+- [DEPLOY-BEGINNERS.md](./DEPLOY-BEGINNERS.md) — 零基础部署教程
 - 各子项目 README：· [Express](./myblog-express/README.md) · [Spring Boot](./myblog-springboot/README.md) · [博客前台](./myblog-vue/myblog-blog/README.md) · [管理后台](./myblog-vue/myblog-admin/README.md)
 
 > 设计规范、评估报告与变更日志属本地文档，未纳入版本库（`.gitignore` 排除 `documents/`）。
