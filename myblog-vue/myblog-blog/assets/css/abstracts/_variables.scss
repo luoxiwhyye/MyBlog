@@ -109,6 +109,18 @@ $layout-max-width: 1200px;
 $layout-gutter: $spacing-5; // 桌面水平留白 ≈ 18.75px
 $layout-gutter-mobile: clamp(10px, 3vw, 14px); // ≤480px 收窄，提升屏幕利用率
 
+// -------------------- 移动端（≤480px）尺寸基准 --------------------
+// 桌面档沿用上面的 $spacing-*；移动端容器偏大时统一降到下面这几档，
+// 避免每个组件各写一个数字（历史上正是这样漂移出 10px~30px 各种内边距）。
+$mobile-block-gap: $spacing-4; // 相邻块之间的间距（卡片 / 表单行）
+$mobile-section-margin: $spacing-4; // 区块上下外边距（分页 / 导航等）
+$mobile-container-padding: $spacing-4; // 容器内边距（卡片）
+
+// 主要触摸目标的最小边长。**允许「视觉尺寸」小于它** ——
+// 无法在不撑高容器的前提下放大的控件（内联文字链接、行内小按钮），
+// 用 @include tap-target($w, $h) 撑开**命中区**即可，外观保持不变。
+$touch-target-min: 44px;
+
 // -------------------- 断点系统 --------------------
 $breakpoint-xs: 480px;
 $breakpoint-sm: 576px;

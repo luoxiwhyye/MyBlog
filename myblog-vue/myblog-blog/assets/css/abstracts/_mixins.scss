@@ -86,6 +86,49 @@
   padding: $padding;
 }
 
+// -------------------- 文字胶囊配方（标签 / 分类 / chip） --------------------
+// 站点的标签、分类、chip 都是「小圆角文字块」，但历史上各自写 padding 与字号，
+// 且**都没有自己的 line-height** → 行盒高度由「胶囊里实际命中的字体」决定。
+// 字体栈把拉丁字体排在中文字体前面（Avenir → Windows 上不存在 → Arial），
+// 两者 ascent/descent 比例不同 → 同一个 padding 下巴西文与中文的视觉中心差 3~4px。
+//
+// 所以胶囊必须**自己钉住行盒**：`inline-flex + align-items: center` + 固定 line-height。
+// 桌面端唯一已达标的一处是 `ArticleCard.vue` 的 `.meta-item`（height/line-height 都是 24px），
+// 配方即照它提取。
+//
+// ⚠️ 只加 `align-items: center` 而不钉 line-height 是**无效的**（实测中文仍偏下）——
+//    因为对齐发生在「行盒」这一层，行盒本身仍由字体决定。
+// ⚠️ `$line-height` 必须 ≥ `$height` 才能让文字在盒内居中；两者都传时以 `$height` 为准补足。
+@mixin text-pill($height: 28px, $line-height: 20px, $padding-x: 12px) {
+  display: inline-flex;
+  align-items: center;
+  height: $height;
+  line-height: $line-height;
+  padding: 0 $padding-x;
+}
+
+// -------------------- 扩大触摸命中区（外观不变） --------------------
+// 需要 44px 触摸目标的控件里，有一类**不能真的放大**：内联文字链接、行内小图标按钮、
+// 分页按钮 —— 放大会撑高容器（与「移动端容器偏大」的修复方向相反）。
+// 这类用本 mixin 撑开一个透明命中层：`inset` 取负值向外扩，视觉尺寸完全不变。
+//
+// ⚠️ `$x` / `$y` 受**相邻元素间距**约束：命中区之间不能重叠，否则会点错。
+//    例：间距 8px 的两个按钮最多各自外扩 4px；间距 0 的（如 input + 后缀）只能单向扩。
+// ⚠️⚠️ 这里必须先把负值落成变量再拼 `inset`：直接写 `inset: -$y -$x;` 会被 Sass
+//    解析成**减法**（`-11px - 4px` → `-15px`），得到一个「四边都扩 15px」的正方形命中区 ——
+//    不报错，但相邻控件的命中区会互相压住，点 A 触发 B。实测踩过。
+@mixin tap-target($x: 4px, $y: 4px) {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    $neg-y: -$y;
+    $neg-x: -$x;
+    inset: $neg-y $neg-x;
+  }
+}
+
 // -------------------- 卡片样式 Mixin --------------------
 @mixin card($padding: $spacing-6, $radius: $border-radius-lg) {
   padding: $padding;

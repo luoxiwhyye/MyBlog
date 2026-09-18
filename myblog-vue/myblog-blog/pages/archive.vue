@@ -453,6 +453,16 @@ $tl-dot-center: 10px;
   transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
+/* 移动端：把行内边距从 10px 提到 12px，让整行高到 45px ——
+   这样 `.article-link` 的 45px 命中区恰好落在行内，不会溢出到相邻行（实测 10px 时会
+   上下各溢出 1px 与下一行的命中区重叠）。代价是每行 +2px 总高。 */
+@media (max-width: 768px) {
+  .article-item {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}
+
 .article-item:hover {
   background: var(--bg-card);
   border-color: var(--color-category-soft);
@@ -467,6 +477,11 @@ $tl-dot-center: 10px;
   min-width: 0;
   text-decoration: none;
   color: var(--text-primary);
+  /* 归档页文章链接是列表主入口，但它的盒子只有标题行那么高（实测 21px）。
+     上下各加 12px 内边距、再用等量负外边距抵消 —— 命中区 45px，而行高 / 行距 / 外层
+     .article-item 的盒子完全不变（.article-list 的 12px 行间距足够容纳外扩部分，不会与相邻行重叠）。 */
+  padding: 12px 0;
+  margin: -12px 0;
 }
 
 .article-link:hover .article-title {
@@ -507,6 +522,37 @@ $tl-dot-center: 10px;
   font-size: 13px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* 移动端：把日期从「同一行右侧」改到「标题下方右端」，标题随之拿到整行宽度。
+   原先标题与日期同行（日期固定 67px、不收缩），390px 下标题只有 179px 可用
+   —— 实测 6 篇里全部被截断（最长需要 267px）。 */
+@media (max-width: 768px) {
+  .article-item {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .article-link {
+    width: 100%;
+  }
+
+  /* 允许标题换行完整显示（最多 2 行），不再用省略号切掉 */
+  .article-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  /* 日期：缩小一档并靠右（标题右下角） */
+  .date {
+    justify-self: end;
+    font-size: 12px;
+  }
 }
 
 /* 搜索 / 按时间筛选 / 排序 工具栏 */

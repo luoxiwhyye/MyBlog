@@ -78,6 +78,7 @@ usePageSeo({
 
 <style lang="scss" scoped>
 @use "../../assets/css/abstracts/variables" as *;
+@use "../../assets/css/abstracts/mixins" as *;
 
 .tag {
   margin: 0 auto;
@@ -102,9 +103,12 @@ usePageSeo({
 
 .tag-item {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
-  padding: 8px 18px;
+  padding: 0 18px;
+  /* 胶囊配方：铉住行盒。原先桌面端是 align-items: baseline，拉丁字下降部分更大 →
+     实测拉丁 8/13、中文 12/9（中心差 4px）。只改 align-items 对中文无效，必须铉行盒。 */
+  @include text-pill(37px, 21px, 18px);
   /* 统一字号（改用 rem 跟根字号走，不再写 px）：标签云是导航入口，
      取原四档的中间偏上值。 */
   font-size: 0.95rem;
@@ -127,11 +131,11 @@ usePageSeo({
 }
 
 @media (max-width: 768px) {
-  /* 移动端标签云提升到 44px 触摸目标 */  .tag-item {
+  /* 移动端标签云提升到 44px 触摸目标 */
+  .tag-item {
     min-height: 44px;
-    padding: 10px 20px;
-    display: inline-flex;
-    align-items: center;
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 </style>

@@ -14,16 +14,16 @@
         </NuxtLink>
       </nav>
       <div class="header-controls">
-        <!-- 桌面内联控件：≤992px 收进抽屉（移动端顶栏 3×44px 会挤掉站点名，
-             实测 390px 下站点名被折成 2 行）。
-             ⚠️ 不能给 SearchTrigger / ThemeToggle 加「组件级全局隐藏」——
-             欢迎页没有汉堡按钮，layouts/landing.vue 的 .landing-controls
-             是移动端唯一的搜索 / 主题入口。 -->
-        <div class="header-controls__inline">
+        <!-- 桌面内联的搜索入口：≤992px 收进抽屉（移动端顶栏放不下两个 44px 控件 + 站点名）。
+             ⚠️ 不能给 SearchTrigger 加「组件级全局隐藏」—— 欢迎页没有汉堡按钮，
+             layouts/landing.vue 的 .landing-controls 是移动端唯一的搜索入口。 -->
+        <div class="header-search">
           <SearchTrigger />
-          <div class="theme-toggle-wrapper">
-            <ThemeToggle />
-          </div>
+        </div>
+        <!-- 主题切换：**所有宽度都留在顶栏**。原先 ≤992px 它是收进抽屉的，
+             但明暗切换是高频操作，进抽屉要多点一步；顶栏只留一个不挤。 -->
+        <div class="header-theme">
+          <ThemeToggle />
         </div>
         <button
           type="button"
@@ -48,17 +48,13 @@
             </NuxtLink>
           </nav>
 
-          <!-- 搜索与外观：移动端顶栏放不下，收进抽屉。
-               搜索是浮层，必须等抽屉关闭动画结束再打开，否则会被抽屉盖住。 -->
+          <!-- 搜索：浮层，必须等抽屉关闭动画结束再打开，否则会被抽屉盖住。
+               主题切换已移到顶栏，不再占抽屉一行。 -->
           <div class="drawer-actions">
             <button type="button" class="drawer-action" @click="openPaletteFromDrawer">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               <span>{{ t("commandPalette.open") }}</span>
             </button>
-            <div class="drawer-action drawer-action--split">
-              <span>{{ t("theme.label") }}</span>
-              <ThemeToggle />
-            </div>
           </div>
         </el-drawer>
       </div>
@@ -248,16 +244,16 @@ const { src: siteLogo, onError: onLogoError } = useSmartImage(() =>
   margin-left: auto;
 }
 
-/* 桌面内联控件（≤992px 由下方媒体查询隐藏）。
+/* 桌面内联的搜索入口（≤992px 由下方媒体查询隐藏）。
    警告：这里只隐藏「Header 内的一份」，组件本身在其他容器（如欢迎页
    layouts/landing.vue 的 .landing-controls）里仍然可见。 */
-.header-controls__inline {
+.header-search {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.theme-toggle-wrapper {
+.header-theme {
   flex-shrink: 0;
 }
 
@@ -310,7 +306,8 @@ const { src: siteLogo, onError: onLogoError } = useSmartImage(() =>
   background: var(--color-category-soft);
 }
 
-/* ===== 抽屉内的搜索 / 外观 ===== */
+/* 抽屉内只剩搜索一行；主题切换已移到顶栏。
+   `.drawer-action--split`（左字 + 右控件）随之作废，一并删除。 */
 .drawer-actions {
   display: flex;
   flex-direction: column;
@@ -342,27 +339,14 @@ const { src: siteLogo, onError: onLogoError } = useSmartImage(() =>
     color 0.2s;
 }
 
-/* 只有「搜索」这一行是可点的动作；外观行的反馈交给真实的切换按钮本身 */
-.drawer-action:not(.drawer-action--split):hover {
+/* 只有「搜索」这一行是可点的动作（原「外观」行的反馈交给顶栏的真实切换按钮） */
+.drawer-action:hover {
   color: var(--color-category-strong);
   background: var(--color-category-soft);
 }
 
-.drawer-action--split {
-  justify-content: space-between;
-  cursor: default;
-}
-
 .drawer-action svg {
   flex-shrink: 0;
-}
-
-/* 抽屉内统一到 44px（组件自身只在 ≤768px 是 44px，768~992px 仍是 36px）。
-   ⚠️ 别用 :deep(.theme-toggle)：那会编译成 [data-v-x] .theme-toggle（0,2,0），
-   与子组件自身的 .theme-toggle[data-v-y] 同特异性、胜负取决于加载顺序。 */
-.drawer-action .theme-toggle {
-  width: 44px;
-  height: 44px;
 }
 
 @media (max-width: 992px) {
@@ -370,13 +354,23 @@ const { src: siteLogo, onError: onLogoError } = useSmartImage(() =>
     display: none;
   }
 
-  /* 搜索与主题切换让位给站点名（改走汉堡抽屉，见 .drawer-actions） */
-  .header-controls__inline {
+  /* 搜索让位（顶栏只留主题切换 + 汉堡）；它改走汉堡抽屉里的 .drawer-actions */
+  .header-search {
     display: none;
   }
 
   .mobile-menu-btn {
     display: inline-flex;
+  }
+
+  /* 顶栏收紧：上下内边距 12 → 8（高 69 → 60）；站点名字号 20 → 17。
+     控件（主题切换 44 + 汉堡 44）保持触摸目标不变，省下的高度只从留白与字号来。 */
+  .header {
+    padding: 8px 0;
+  }
+
+  .logo-text {
+    font-size: 17px;
   }
 }
 

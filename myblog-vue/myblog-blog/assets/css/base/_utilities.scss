@@ -54,6 +54,20 @@ html {
   background: var(--color-accent);
 }
 
+// ============ 固定底部操作栏与页脚的互斥 ============
+// 文章页在 ≤768px 有一个 `position: fixed` 的底部操作栏（目录 / 评论 / 顶部，
+// 高 56px + 安全区）。它总是盖在视口底部，而文档滚到尽头时，那儿正好是**页脚**
+// —— 实测页脚最后 57px 被完全盖住。
+//
+// ⚠️ 不能靠「给主内容加 padding-bottom」解决：那会把页脚一起往下推，
+// 滚到尽头时被盖住的仍然还是页脚。**只能在页脚之后再留一段空间**。
+// 用 `:has()` 让这条只在底栏真的存在时才生效（其它页面页脚高度不变）。
+@media (max-width: 768px) {
+  body:has(.mobile-bottom-bar) .footer {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 // ============ 页面入场动效（一次性） ============
 @keyframes page-in {
   from {

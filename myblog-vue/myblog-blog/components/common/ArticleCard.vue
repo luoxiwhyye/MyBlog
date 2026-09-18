@@ -258,6 +258,11 @@ const coverSizes = computed(() =>
   align-items: center;
   gap: 10px;
   min-height: 24px;
+  /* 标签行最多两行：卡片带的标签数量不固定，不封顶时窄屏会一直往下撑
+     （实测 8 个标签、320px 下单列就折到 92px / 4 行）。
+     注意只封行数不减少内容 —— 第二行之后被 chrome 的 line-clamp 截断。 */
+  max-height: 58px;
+  overflow: hidden;
 }
 
 .meta-bottom {

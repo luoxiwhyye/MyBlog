@@ -45,34 +45,8 @@
             </svg>
             {{ likeCount }}
           </el-button>
-          <el-button link size="small" @click="showReplyForm">回复</el-button>
+          <el-button link size="small" @click="emit('reply', comment)">回复</el-button>
         </div>
-      </div>
-
-      <div v-if="showReply" class="reply-form">
-        <el-form @submit.prevent="handleReply">
-          <div class="reply-form-row">
-            <el-input v-model="replyForm.authorName" placeholder="您的姓名" class="form-name" />
-            <el-input v-model="replyForm.authorEmail" placeholder="您的邮箱" class="form-email" />
-            <el-input v-model="replyForm.authorUrl" placeholder="https://（选填）" class="form-url" />
-          </div>
-          <div class="reply-textarea-wrap">
-            <CommentInput
-              ref="replyInputRef"
-              v-model="replyForm.content"
-              placeholder="写下您的回复..."
-            />
-          </div>
-          <el-checkbox v-model="replyForm.notifyEmail" class="reply-form-notify">
-            {{ t('article.notifyReplyOnReply') }}
-          </el-checkbox>
-          <div class="reply-actions">
-            <el-button type="primary" native-type="submit" :loading="submitting">
-              提交回复
-            </el-button>
-            <el-button @click="showReply = false">取消</el-button>
-          </div>
-        </el-form>
       </div>
 
       <div v-if="comment.replies && comment.replies.length" class="replies">
@@ -80,6 +54,7 @@
           v-for="reply in comment.replies"
           :key="reply.id"
           :comment="reply"
+          @reply="(c) => emit('reply', c)"
           @reply-submitted="handleReplySubmitted"
         />
       </div>
@@ -94,38 +69,27 @@ import type { Comment } from "~/types";
 import { formatDateTime } from "~/utils/format";
 import { getGravatarUrl } from "~/utils/gravatar";
 import { renderCommentContent } from "~/utils/commentRender";
-import CommentInput from "~/components/common/CommentInput.vue";
 
 defineOptions({
   name: "BlogComment",
 });
 
-// 回复区文案多数仍为硬编码中文（既有状况），只有新增的邮件订阅勾选框走 i18n
-const { t } = useI18n();
-
 const props = defineProps<{
   comment: Comment;
 }>();
 
+/**
+ * 回复表单**不在这里**渲染：它被提到评论区的表单里（见 pages/article/[id].vue）。
+ * 原先就地展开在本条评论下方 —— 子评论只剩一半宽度，表单（3 个输入框 +
+ * 富文本 + 勾选框 + 2 个按钮）挤不下。现在只把「要回复哪条」抛给父级。
+ */
 const emit = defineEmits<{
+  reply: [comment: Comment];
   replySubmitted: [];
 }>();
 
-const showReply = ref(false);
 const liked = ref(false);
-const submitting = ref(false);
 const likeCount = ref(props.comment.likeCount);
-const replyInputRef = ref<any>(null);
-
-const replyForm = reactive({
-  authorName: "",
-  authorEmail: "",
-  authorUrl: "",
-  content: "",
-  // 邮件订阅开关，**默认不勾**（不接收）。不持久化（订阅是「同意收信」的意愿，
-  // 不像名字 / 邮箱那样只是少填一次的便利），提交后也不重置。
-  notifyEmail: false,
-});
 
 const normalizeUrl = (url: string) => {
   if (!url) return "";
@@ -137,17 +101,6 @@ const normalizeUrl = (url: string) => {
 
 // 标记文本 → 安全 HTML（白名单：仅 [img:url] 与 @提及）
 const renderContent = (content: string) => renderCommentContent(content);
-
-// 回复时自动 @ 对方（若未手动输入）
-const showReplyForm = () => {
-  showReply.value = true;
-  if (!replyForm.content.includes(`@${props.comment.authorName}`)) {
-    // 通过编辑器 API 插入，并按标记文本序列化
-    nextTick(() => {
-      replyInputRef.value?.insertEmoji(`@${props.comment.authorName} `);
-    });
-  }
-};
 
 watch(
   () => props.comment.likeCount,
@@ -166,53 +119,15 @@ const handleLike = async () => {
   }
 };
 
-const handleReply = async () => {
-  // 按 trim 后判空：标记文本里的 `\n` 等不可见字符不算内容
-  if (!replyForm.authorName || !replyForm.content.trim()) {
-    ElMessage.warning("请填写姓名和内容");
-    return;
-  }
-  if (replyForm.authorEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyForm.authorEmail)) {
-    ElMessage.warning("请输入有效的邮箱地址");
-    return;
-  }
-
-  submitting.value = true;
-  try {
-    await commentApi.create({
-      articleId: props.comment.articleId,
-      // 两级扁平结构：回复任意层的评论，都挂到其所属顶级评论下（第二层）
-      parentId: props.comment.parentId ?? props.comment.id,
-      // 但「回复谁」要如实上报：parentId 已被规整到顶层，只有这个字段能让
-      // 二级回复者（= 本条评论的作者）在勾选了通知时真的收到邮件
-      replyToId: props.comment.id,
-      authorName: replyForm.authorName,
-      authorEmail: replyForm.authorEmail,
-      authorUrl: replyForm.authorUrl || undefined,
-      content: replyForm.content,
-      notifyEmail: replyForm.notifyEmail,
-    });
-    ElMessage.success("回复成功");
-    showReply.value = false;
-    replyForm.authorName = "";
-    replyForm.authorEmail = "";
-    replyForm.authorUrl = "";
-    // 清空富文本编辑器（会同步 v-model 为空）
-    replyInputRef.value?.clear();
-    emit("replySubmitted");
-  } catch {
-    ElMessage.error("回复失败");
-  } finally {
-    submitting.value = false;
-  }
-};
-
 const handleReplySubmitted = () => {
   emit("replySubmitted");
 };
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+@use "../../assets/css/abstracts/mixins" as *;
+
 .comment {
   display: flex;
   gap: 12px;
@@ -250,6 +165,8 @@ const handleReplySubmitted = () => {
 .author a {
   color: var(--color-link);
   text-decoration: none;
+  /* 内联链接：视觉不变，只把命中区向外撑开（受上下的气泡与描述行约束，取 ±10px） */
+  @include tap-target(6px, 10px);
 }
 
 .author a:hover {
@@ -312,8 +229,17 @@ const handleReplySubmitted = () => {
 
 .comment-actions {
   display: flex;
+  /* 操作区撑满气泡宽度，两个按钮靠右对齐（原先无 justify-content → flex-start，
+     按钮贴左而右侧空出一大片）。
+     ⚠️ 不要顺手改 .reply-actions（回复表单里的「提交回复 / 取消」）—— 表单按钮靠左是惯例。 */
+  justify-content: flex-end;
   gap: 8px;
   margin-top: 2px;
+}
+
+/* 点赞 / 回复：视觉高度仅 22px，靠 ::after 把命中区撑到 44px（按钮间距 8px → 横向只能 ±4）。 */
+.comment-actions :deep(.el-button) {
+  @include tap-target(4px, 11px);
 }
 
 .like-btn {
@@ -370,6 +296,12 @@ const handleReplySubmitted = () => {
   display: flex;
   margin-bottom: 12px;
 
+  /* 勾选框本身只有 14×14、整行 32px —— 移动端把整行提到 44px 触摸目标 */
+  @media (max-width: 768px) {
+    min-height: $touch-target-min;
+    align-items: center;
+  }
+
   :deep(.el-checkbox__label) {
     font-size: $font-size-sm;
     color: var(--text-secondary);
@@ -409,9 +341,30 @@ const handleReplySubmitted = () => {
     grid-template-columns: 1fr;
   }
 
+  /* ===== 子评论：「分支式」排版 =====
+     原先子评论仍是「头像 + 内容」两列，且外面还有 16px 缩进 + 10px 内边距 + 2px 竖线，
+     再减掉 36px 头像与间距 → 正文实际只剩约 210/356 = **59%** 宽度，手机上一行放不下
+     几个字。移动端改成分支树常见的写法：
+       · 去掉子评论头像（侧边竖线已能表达从属关系）
+       · 缩进收到 12px（竖线的位置）
+     这样正文回到 ~85% 宽度。
+     ⚠️ 只影响移动端；桌面端保持「头像 + 内容」原样。 */
   .replies {
-    margin-left: 16px;
-    padding-left: 10px;
+    margin-left: 0;
+    padding-left: 12px;
+  }
+
+  .replies .avatar {
+    display: none;
+  }
+
+  /* 气泡尾巴是指向头像的，头像没了尾巴就悬空了 */
+  .replies .bubble::before {
+    display: none;
+  }
+
+  .replies .bubble {
+    border-top-left-radius: var(--radius-card-lg);
   }
 
   /* ===== 评论区移动端排版 ===== */

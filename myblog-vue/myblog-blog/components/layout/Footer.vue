@@ -159,6 +159,12 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
 @media (max-width: 480px) {
   .container {
     padding: 0 $layout-gutter-mobile;
+    /* 两行之间的间距也收紧一档（页脚实测 127px，其中上下 padding 占 41.9px） */
+    gap: $spacing-2;
+  }
+
+  .footer {
+    padding: $mobile-container-padding 0;
   }
 }
 </style>

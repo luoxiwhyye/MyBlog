@@ -45,6 +45,9 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 {{ readTime }}
               </span>
+              <!-- 阅读设置：作为元信息行的一个操作项靠右（原先单独占一整行，实测浪费 53/61px）。
+                   仅桌面/平板保留在这里；≤768px 由底部操作栏接管，见 .mobile-bar-settings。 -->
+              <ArticleReadingSettings v-model="readingPrefs" class="meta-settings" />
             </div>
             <p v-if="article.summary" class="article-summary">{{ markdownToPlain(article.summary) }}</p>
             <div class="article-tags">
@@ -75,10 +78,6 @@
               :class="{ 'cover-fallback': detailCoverFailed }"
               @error="handleDetailCoverError"
             />
-          </div>
-
-          <div class="article-toolbar">
-            <ArticleReadingSettings v-model="readingPrefs" />
           </div>
 
           <div class="article-body" v-html="renderContent" :style="articleBodyStyle"></div>
@@ -175,6 +174,14 @@
             </el-radio-group>
           </div>
           <div class="comment-form">
+            <!-- 回复目标提示：点某条评论的「回复」后表单就在下方（不跳动、不重进），
+                 所以这里必须明确告知「正在回复谁」并给一个取消的出口。 -->
+            <div v-if="replyTarget" class="reply-target-bar">
+              <span class="reply-target-text">
+                正在回复 <strong>@{{ replyTarget.authorName }}</strong>
+              </span>
+              <button type="button" class="reply-target-cancel" @click="cancelReply">取消回复</button>
+            </div>
             <el-form ref="commentFormRef" :model="commentForm" :rules="commentRules" @submit.prevent="handleComment">
               <div class="comment-form-row">
                 <el-form-item prop="authorName" class="form-name">
@@ -198,7 +205,7 @@
                 {{ t('article.notifyReplyOnComment') }}
               </el-checkbox>
               <el-button type="primary" native-type="submit" :loading="submitting" class="submit-btn">
-                发表评论
+                {{ replyTarget ? '提交回复' : '发表评论' }}
               </el-button>
             </el-form>
           </div>
@@ -208,6 +215,7 @@
               v-for="comment in comments"
               :key="comment.id"
               :comment="comment"
+              @reply="startReply"
               @reply-submitted="refreshComments"
             />
 
@@ -281,6 +289,8 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>评论</span>
       </button>
+      <!-- 阅读设置：移动端从元信息行移到这里（元信息行那段空间留给文字） -->
+      <ArticleReadingSettings v-model="readingPrefs" variant="bar" class="mobile-bar-settings" />
       <button type="button" class="mobile-bar-btn" @click="scrollToTop">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
         <span>顶部</span>
@@ -430,6 +440,32 @@ const commentForm = ref({
 });
 
 const commentFormRef = ref<any>(null);
+
+/**
+ * 正在回复的目标评论（null = 发表顶层评论）。
+ *
+ * ⚠️ 回复表单**不再嵌在评论条目里** —— 子评论只有一半宽度，塞不下
+ * 3 个输入框 + 富文本 + 勾选框 + 2 个按钮。现在统一用评论区顶部这个表单，
+ * 只把「回复谁」记在这里，提交时带上 parentId / replyToId。
+ * （parentId 会被后端规整到**顶层**，所以「回复谁」必须靠 replyToId 如实上报，
+ *   否则被回复者在勾选了通知时收不到邮件。）
+ */
+const replyTarget = ref<CommentType | null>(null);
+
+const startReply = (target: CommentType) => {
+  replyTarget.value = target;
+  // 表单就在评论列表上方；移动端长列表下可能不在视口内，滚过去并聚焦。
+  // 等 nextTick 让提示条先渲染出来再滚，否则滚完位置还会被它顶下去。
+  nextTick(() => {
+    document.querySelector('.comment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    nextTick(() => commentInputRef.value?.focus?.());
+  });
+};
+
+const cancelReply = () => {
+  replyTarget.value = null;
+  commentInputRef.value?.clear();
+};
 
 // 姓名、邮箱均为必填；邮箱还需为合法格式
 const commentRules = {
@@ -849,18 +885,25 @@ const handleComment = async () => {
 
   submitting.value = true;
   try {
+    const target = replyTarget.value;
     await commentApi.create({
       articleId: articleId.value,
+      // 两级扁平结构：回复任意层的评论，都挂到其所属**顶层**评论下（第二层）
+      parentId: target ? (target.parentId ?? target.id) : undefined,
+      // 「回复谁」如实上报（见 replyTarget 的注释）
+      replyToId: target ? target.id : undefined,
       authorName: commentForm.value.authorName,
       authorEmail: commentForm.value.authorEmail,
       authorUrl: commentForm.value.authorUrl || undefined,
       content: commentForm.value.content,
       notifyEmail: commentForm.value.notifyEmail,
     });
-    ElMessage.success("评论已提交，审核通过后将显示。");
+    ElMessage.success(target ? "回复已提交，审核通过后将显示。" : "评论已提交，审核通过后将显示。");
     saveCommentInfo();
     // 清空富文本编辑器（会同步 v-model 为空）
     commentInputRef.value?.clear();
+    // 回复完成 → 退出回复态（保留姓名/邮箱方便连续回复）
+    replyTarget.value = null;
     await refreshComments();
   } catch (err: any) {
     // 优先展示后端返回的具体错误原因（如邮箱格式不正确/内容校验失败）
@@ -1030,6 +1073,7 @@ useHead(() => {
 
 <style lang="scss" scoped>
 @use "../../assets/css/abstracts/variables" as *;
+@use "../../assets/css/abstracts/mixins" as *;
 
 .article-detail {
   max-width: 1280px;
@@ -1098,6 +1142,16 @@ useHead(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 260px;
+}
+
+/* 窄屏：文章标题往往很长，不限宽会把面包屑挤成多行（实测 390px 下标题项占 210px、
+   整条高 78px，观感很差）。按视口百分比限宽让整条保持单行。
+   ⚠️ 38vw 是实测出来的：42vw 时 360px 下只差 0.3px 放不下（子项 261.7 + 间距 32 = 293.7，
+   可用 294）→ 一旦差一点点就整项掉到第二行。留出余量。 */
+@media (max-width: 768px) {
+  .breadcrumb-current {
+    max-width: 38vw;
+  }
 }
 
 /* ===== 统合卡片 ===== */
@@ -1479,11 +1533,13 @@ useHead(() => {
 @media (max-width: 480px) {
   .article-pagination {
     grid-template-columns: 1fr;
-    gap: clamp(8px, 2vw, 12px);
+    gap: clamp(6px, 1.5vw, 10px);
+    margin-top: $mobile-section-margin * 1.5;
   }
 
   .pagination-card {
-    padding: clamp(10px, 3vw, 16px);
+    padding: clamp(8px, 2.5vw, 12px) clamp(10px, 3vw, 16px);
+    gap: 4px;
   }
 
   .pagination-title {
@@ -1511,12 +1567,23 @@ useHead(() => {
   margin-bottom: 15px;
 }
 
-/* 文章元信息在真机（≤480px）：折行 + 收紧间距，避免挤在一行 */
+/* 文章元信息在真机（≤480px）：收紧间距与字号。
+   用流式取值而不是写死一档 —— 这一行有 4 个文本项，
+   在不同视口宽下的余量差别不大（375 只差十几像素），
+   写死 12px 会在窄屏折行、写死 11px 又在 390 白白变小。
+   （阅读设置按钮已移到移动端底部操作栏，这里不再为它留 44px。） */
 @media (max-width: 480px) {
   .article-meta {
-    gap: clamp(8px, 2vw, 12px);
-    row-gap: 6px;
+    gap: clamp(4px, 1.2vw, 6px);
     margin-bottom: clamp(10px, 2vw, 15px);
+    /* 下限 10.5px 是为 360px 档留的：那里四项文本仍偏紧 */
+    font-size: clamp(10.5px, 3vw, 12px);
+  }
+
+  /* 行高跟着收，否则 24px 的行盒会把这一行顶得很高 */
+  .article-meta .meta-item {
+    height: 20px;
+    line-height: 20px;
   }
 
   .article-summary {
@@ -1527,7 +1594,12 @@ useHead(() => {
   .category,
   .tag {
     font-size: clamp(12px, 3.4vw, 14px);
-    padding: 3px clamp(8px, 2.5vw, 12px);
+    /* 保持胶囊行盒：只收横向内边距与高度，不再写 `padding: 3px …`
+       （那会盖掉 @include text-pill 的 padding: 0 …，又把文字压回非居中状态） */
+    height: 24px;
+    line-height: 18px;
+    padding-left: clamp(8px, 2.5vw, 12px);
+    padding-right: clamp(8px, 2.5vw, 12px);
   }
 }
 
@@ -1565,19 +1637,20 @@ useHead(() => {
 .tag {
   text-decoration: none;
   font-size: 14px;
+  /* 胶囊配方：钉住行盒 —— 字体栈把拉丁字体排在中文字体前，两者 ascent/descent 比例不同，
+     不钉行盒时巴西文的视觉中心比中文高 3px（实测上/下留白 4/8 vs 7/5）。 */
+  @include text-pill(28px, 20px, 12px);
 }
 
 .category {
   background: var(--color-category-soft);
   color: var(--color-accent-deep);
-  padding: 4px 12px;
   border-radius: 4px;
 }
 
 .tag {
   background: var(--color-accent-light);
   color: var(--color-accent-deep);
-  padding: 4px 12px;
   border-radius: 4px;
   opacity: 0.8;
 }
@@ -1603,10 +1676,10 @@ useHead(() => {
 }
 
 /* 阅读设置工具栏：右对齐，位于正文上方 */
-.article-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: $spacing-5;
+.meta-settings {
+  /* 推到元信息行右端；flex 子项默认会被压缩，故显式不收缩 */
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .article-body :deep(img) {
@@ -1781,6 +1854,14 @@ useHead(() => {
   padding: 4px 8px;
   border-radius: 6px;
   transition: color 0.2s, background-color 0.2s;
+  /* 视觉仅 23px 高：靠 ::after 把命中区撑到 44px（代码块头部空间充分，不担心重叠） */
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -11px -6px;
+  }
 }
 
 .article-body :deep(.code-copy:hover) {
@@ -1849,6 +1930,51 @@ useHead(() => {
 
 .comment-form {
   margin-bottom: 28px;
+  /* 点评论的「回复」会 scrollIntoView 到这个表单 —— 顶栏是 sticky 的，
+     不避让的话表单标题会被压在顶栏下面。scrollIntoView **认** scroll-margin-top。 */
+  scroll-margin-top: 80px;
+}
+
+/* 回复目标提示条：点某条评论的「回复」后表单不跳动（就在下方），
+   所以必须明确告知正在回复谁，并给一个取消的出口。
+   ⚠️ 回复表单**不再嵌在评论条目里**（原先它展开在子评论内部，可用宽只剩一半）。 */
+.reply-target-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: $spacing-3;
+  padding: 8px 12px;
+  border-radius: var(--radius-card-lg);
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-category-soft);
+  font-size: $font-size-sm;
+  color: var(--text-secondary);
+}
+
+.reply-target-text strong {
+  color: var(--color-accent-deep);
+  font-weight: 600;
+}
+
+.reply-target-cancel {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--border-radius-base);
+  background: transparent;
+  color: var(--color-accent-deep);
+  font-family: inherit;
+  font-size: $font-size-xs;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  /* 内联小按钮：视觉不变，靠 ::after 把命中区撑到 44px */
+  @include tap-target(6px, 14px);
+}
+
+.reply-target-cancel:hover {
+  background: var(--color-category-soft);
 }
 
 /* 表单三列布局 */
@@ -1906,6 +2032,13 @@ useHead(() => {
      输入框 → 选项 → 主操作 三段等距 */
   margin-bottom: 14px;
 
+  /* 勾选框本身只有 14×14、整行 32px —— 移动端把整行提到 44px，
+     命中区随之覆盖到整行（点标签任意位置也能勾选）。 */
+  @media (max-width: 768px) {
+    min-height: $touch-target-min;
+    align-items: center;
+  }
+
   :deep(.el-checkbox__label) {
     font-size: $font-size-sm;
     color: var(--text-secondary);
@@ -1915,6 +2048,14 @@ useHead(() => {
 /* 与上方元素的垂直间距完全由“前者”的 margin-bottom 决定，避免两处相加 */
 .submit-btn {
   margin-top: 0;
+}
+
+/* 主要操作按钮：移动端撑到 44px 触摸目标（原为控件默认 32px）。
+   这是表单主按钮，放大它是必要的 —— 区别于内联链接那类「只扩大命中区」的处理。 */
+@media (max-width: 768px) {
+  .submit-btn {
+    min-height: $touch-target-min;
+  }
 }
 
 .quick-nav {
@@ -2112,6 +2253,11 @@ useHead(() => {
     display: none;
   }
 
+  /* 移动端：阅读设置移到底部操作栏，元信息行不再放按钮 */
+  .meta-settings {
+    display: none;
+  }
+
   /* 为固定底部操作栏预留空间，避免遮挡评论区/表单 */
   .article-detail {
     padding-bottom: 76px;
@@ -2136,7 +2282,9 @@ useHead(() => {
   bottom: 0;
   z-index: 120;
   display: none;
-  grid-template-columns: repeat(3, 1fr);
+  /* 列数跟着按钮数走：评论可关闭，写死 repeat(3/4, 1fr) 会在少一个按钮时留出空列 */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   background: var(--bg-backdrop);
   backdrop-filter: blur(var(--glass-blur)) saturate(140%);
@@ -2149,6 +2297,11 @@ useHead(() => {
   .mobile-bottom-bar {
     display: grid;
   }
+}
+
+/* 阅读设置是组件根节点，作为 grid 子项撑满所在列 */
+.mobile-bar-settings {
+  width: 100%;
 }
 
 .mobile-bar-btn {
@@ -2292,4 +2445,7 @@ useHead(() => {
 .fade-leave-to {
   opacity: 0;
 }
+
+/* 极窄屏（≤340px，目前只有 320px 一类）：元信息已不再含 44px 按钮，
+   上面的流式取值在 320px 也放得下，故此前为此写死的 10px 字号已移除。 */
 </style>

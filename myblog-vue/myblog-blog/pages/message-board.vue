@@ -34,7 +34,7 @@
           {{ t('messageBoard.notifyApproved') }}
         </el-checkbox>
         <div class="message-form-actions">
-          <el-button type="primary" native-type="submit" :loading="submitting">
+          <el-button type="primary" native-type="submit" class="submit-btn" :loading="submitting">
             {{ t('messageBoard.submit') }}
           </el-button>
         </div>
@@ -310,6 +310,12 @@ const handleSubmit = async () => {
   display: flex;
   margin-top: 12px;
 
+  /* 勾选框本身只有 14×14、整行 32px —— 移动端把整行提到 44px 触摸目标 */
+  @media (max-width: 768px) {
+    min-height: $touch-target-min;
+    align-items: center;
+  }
+
   :deep(.el-checkbox__label) {
     font-size: $font-size-sm;
     color: var(--text-secondary);
@@ -400,6 +406,14 @@ const handleSubmit = async () => {
 .message-load-more {
   text-align: center;
   margin-top: 16px;
+}
+
+/* 表单主按钮：移动端撑到 44px 触摸目标（原为控件默认 32px）。
+   与后台文章页的发表评论按钮同一口径。 */
+@media (max-width: 768px) {
+  .submit-btn {
+    min-height: $touch-target-min;
+  }
 }
 
 @media (max-width: 768px) {

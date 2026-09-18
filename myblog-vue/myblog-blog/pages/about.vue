@@ -377,9 +377,13 @@ usePageSeo({
   align-items: center;
   gap: $spacing-1;
   padding: $spacing-3 $spacing-2;
-  background: transparent;
-  border: none;
-  border-radius: 0;
+}
+
+/* 三项之间的竖向细分隔线：只有数字与文字而没有分隔时，三项会连成一整块、
+   看不出是「文章 / 分类 / 标签」三个统计项。
+   ⚠️ 不用 border 写在外层容器上 —— 分隔线必须跟随实际列数（auto-fit 会变列数）。 */
+.stat-item + .stat-item {
+  border-left: 1px solid var(--border-light);
 }
 
 .stat-num {
@@ -546,6 +550,13 @@ usePageSeo({
   .about-cta {
     justify-content: center;
   }
+
+  /* 触摸目标：社交胶囊与 CTA 按钮提到 44px。
+     两者都是成块目标（不是内联文字链），真加高比扩命中区恰当。 */
+  .social-link,
+  .cta-btn {
+    min-height: $touch-target-min;
+  }
 }
 
 @media (max-width: 480px) {
@@ -570,6 +581,19 @@ usePageSeo({
 
   .meta-label {
     font-size: 12px;
+  }
+
+  /* 三项统计：移动端固定并排三列（不再随 auto-fit 掉成单列）。
+     单列时三项连成一竖条、又只有数字与文字，看不出是三个独立统计项；
+     并排后高度 227 → 约 80px，也符合移动端「收紧纵向空间」的方向。 */
+  .about-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    padding: $spacing-3 $spacing-2;
+  }
+
+  .stat-item {
+    padding: $spacing-2 4px;
   }
 
   .stat-num {

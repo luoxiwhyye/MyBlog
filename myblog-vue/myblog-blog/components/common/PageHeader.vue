@@ -84,7 +84,10 @@ defineProps<{
 }
 
 .page-head__desc {
-  margin: 8px 0 0;
+  /* 说明与标题的间距：取 $spacing-4 档。原为 8px（≈$spacing-2），是全站最小档，
+     实测标题字形底到说明字形顶只有 13.5px，观感上「贴在标题下面」。
+     本组件是 8 个站内页页头的唯一实现，改这里全站生效。 */
+  margin: $spacing-4 0 0;
   color: var(--text-secondary);
   font-size: $font-size-sm;
   line-height: $line-height-relaxed;
@@ -93,6 +96,11 @@ defineProps<{
 @media (max-width: 768px) {
   .page-head {
     margin-bottom: $spacing-5;
+  }
+
+  /* 窄屏标题换行后 15px 偏大，收到 $spacing-3 */
+  .page-head__desc {
+    margin-top: $spacing-3;
   }
 }
 </style>

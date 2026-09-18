@@ -1,5 +1,5 @@
 <template>
-  <div class="reading-settings">
+  <div class="reading-settings" :class="`reading-settings--${variant}`">
     <button
       type="button"
       class="reading-settings-btn"
@@ -25,6 +25,7 @@
         <path d="M9 20h6" />
         <path d="M12 5v15" />
       </svg>
+      <span v-if="variant === 'bar'" class="reading-settings-label">阅读</span>
     </button>
 
     <Transition name="rs-drop">
@@ -82,6 +83,11 @@ interface ReadingPrefs {
 }
 
 const model = defineModel<ReadingPrefs>({ required: true });
+
+/* `inline`：元信息行里的方形图标按钮（桌面/平板）。
+   `bar`：移动端底部操作栏里的图标+文字按钮，面板向上弹出。
+   两种形态共用同一份面板与状态，父级按断点各挂一个、按需切换显隐。 */
+withDefaults(defineProps<{ variant?: "inline" | "bar" }>(), { variant: "inline" });
 
 const KEY = "myblog:reading-prefs";
 const MIN_FONT = 14;
@@ -194,6 +200,66 @@ watch(model, savePrefs, { deep: true });
 
 .reading-settings-btn svg {
   pointer-events: none;
+}
+
+/* ===== bar 变体：底部操作栏里的形态，尺寸与布局对齐 .mobile-bar-btn ===== */
+.reading-settings--bar {
+  display: flex;
+  /* 交给底栏做包含块（底栏是 fixed），面板才能贴着底栏向上弹，见下面 */
+  position: static;
+}
+
+.reading-settings--bar .reading-settings-btn {
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: auto;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 12px;
+  line-height: 1;
+  /* 去掉移动端点击瞬间的灰色高亮蒙层（与底部栏其它按钮一致） */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reading-settings--bar .reading-settings-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.reading-settings-label {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* 底部栏贴屏幕下沿，面板只能向上弹，否则会落到视口外 */
+.reading-settings--bar .reading-settings-panel {
+  width: auto;
+  /* 相对**底栏**定位：按钮在底栏第 3 列，若按按钮右边缘对齐，
+     232px 的面板会在 320px 屏上越出左边。贴底栏左右内边距后，
+     窄屏上就是一块与底栏等宽的设置面板。 */
+  left: 8px;
+  right: 8px;
+  bottom: calc(100% + 8px);
+  top: auto;
+}
+
+.reading-settings--bar .rs-drop-enter-from,
+.reading-settings--bar .rs-drop-leave-to {
+  transform: translateY(6px);
+}
+
+/* 悬停反馈对齐底部栏其它按钮（:active 反馈沿用上面的 active 态） */
+@media (hover: hover) and (pointer: fine) {
+  .reading-settings--bar .reading-settings-btn:hover {
+    color: var(--color-category-strong);
+    background: var(--bg-hover);
+    box-shadow: none;
+  }
 }
 
 .reading-settings-panel {

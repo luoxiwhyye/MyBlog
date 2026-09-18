@@ -221,6 +221,7 @@ useWebsiteJsonLd();
 
 <style lang="scss" scoped>
 @use "../assets/css/abstracts/variables" as *;
+@use "../assets/css/abstracts/mixins" as *;
 
 .home-page {
   padding-top: $spacing-2;
@@ -475,6 +476,10 @@ useWebsiteJsonLd();
     background: var(--color-accent-light);
     transform: translateY(-1px);
   }
+
+  /* 视觉 89×29：靠 ::after 扩到 45px 高。横向只能 ±3 ——
+     ≤480px 时 `.profile-links` 的间距收到 6px，再大就会与相邻链接的命中区重叠。 */
+  @include tap-target(3px, 8px);
 }
 
 /* 图标不参与 flex 压缩，保证各链接图标尺寸一致（与文字基线错位的根因）
@@ -491,6 +496,9 @@ useWebsiteJsonLd();
   transition:
     background-color 0.2s,
     box-shadow var(--transition-bounce);
+  /* 视觉 65×32：靠 ::after 扩到 44px 高。
+     这里**不能**真加高 —— 它会连带把博主卡（已 109px）再撑高。 */
+  @include tap-target(4px, 6px);
 }
 
 .profile-more:hover {
@@ -540,6 +548,20 @@ useWebsiteJsonLd();
     line-height: 1.6;
     max-width: 60ch;
   }
+
+  /* 社交链接胶囊收一档：图标 + 文字 + 内外边距都比桌面小一档 */
+  .profile-link {
+    padding: 4px 10px;
+    gap: 4px;
+    font-size: $font-size-xs;
+  }
+
+  /* 「关于我」在移动端不再显示：它独占一行后会被拉成整行宽度，
+     而桌面端仍保留（作为唯一的整站介绍入口，移动端可从顶栏进关于页）。
+     隐藏后博主卡回到「头像 + 信息列」两列，信息列拿到整宽。 */
+  .profile-more {
+    display: none;
+  }
 }
 
 /* ===== 移动端（375~430px 真机）：整体收紧间距，避免"偏大偏挤" ===== */
@@ -574,6 +596,61 @@ useWebsiteJsonLd();
   .chip {
     padding: 8px clamp(0.57rem, 2.5vw, 1rem);
     font-size: $font-size-sm;
+  }
+
+  /* 列表头：标题 + 筛选条。原实测 127px，其中筛选条占 95px（6 个 chip 折成 2 行，
+     每行 44px）。改成横向滚动单行后回到 44px，列表头降到约 76px，
+     且**触摸目标不变**（chip 仍是 44px，只是换成拇指横扫）—— 比缩小 chip 更合适。 */
+  .article-list-header {
+    gap: $mobile-block-gap;
+  }
+
+  /* 信息列给一个下限，避免长站点名/长简介把它压得过窄 */
+  .profile-info {
+    min-width: 140px;
+  }
+
+  .filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* 横向滚动用拇指手势，不需要可见滑轨；保留可滚动能力 */
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 不收缩：否则 chip 会被压扁到文字宽度以下 */
+  .chip {
+    flex-shrink: 0;
+  }
+
+  /* 博主卡：实测 109px，内容（名 / 简介 / 链接）已无冗余，只收行间距 */
+  .profile-links {
+    gap: 6px;
+    margin-top: 4px;
+  }
+}
+
+/* 小屏（≤360px）：信息列只剩 ~204px，而三个社交胶囊需 224px → 再收内边距与图标间距。
+   ⚠️ 必须放在上面 ≤480px 块**之后** —— 两者特异性相同，靠顺序决定胜负。 */
+@media (max-width: 360px) {
+  .profile-link {
+    padding: 3px 7px;
+    gap: 3px;
+  }
+}
+
+/* 极窄屏（≤330px，目前只有 320px 一类）：再收一档，否则三个胶囊仍差几像素 */
+@media (max-width: 330px) {
+  .profile-links {
+    gap: 4px;
+  }
+
+  .profile-link {
+    padding: 3px 5px;
   }
 }
 </style>
