@@ -1,9 +1,13 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -91,25 +95,38 @@ public class ArticleController {
         return ResponseEntity.ok(ApiResponse.success(articleService.getAdjacentArticles(id)));
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<Map<String, Object>>> createArticle(@RequestBody Map<String, Object> body) {
-        String title = (String) body.get("title");
-        String content = (String) body.get("content");
-        String summary = (String) body.get("summary");
-        Integer typeId = body.get("typeId") != null ? ((Number) body.get("typeId")).intValue() : null;
-        String coverImage = (String) body.get("coverImageUrl");
-        String status = (String) body.get("status");
-        String contentFormat = (String) body.get("contentFormat");
+    /**
+     * 创建文章（JSON 编码）。
+     *
+     * <p>⚠️ 写接口必须同时接受 **表单编码**（multipart / urlencoded）：后台
+     * `ArticleEditor.vue` 用 axios + FormData 提交，原先这里只有 `@RequestBody`，
+     * multipart 请求会被 Spring 以 `HttpMediaTypeNotSupportedException` 拒绝，
+     * 再被全局兜底成 **500** —— 即后台在本端从未能建成文章。
+     * Express 侧同时接受 JSON / urlencoded / multipart（`express.json` +
+     * `express.urlencoded` + multer 三件套），本端按同一契约补齐。
+     */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createArticle(
+            @RequestBody Map<String, Object> body) {
+        return doCreateArticle(body);
+    }
 
-        @SuppressWarnings("unchecked")
-        List<Integer> labelIds = body.get("labelIds") instanceof List
-                ? ((List<Number>) body.get("labelIds")).stream().map(Number::intValue).toList()
-                : null;
-
-        ArticleDTO article = articleService.createArticle(title, content, summary, typeId, coverImage, status,
-                contentFormat, labelIds, parseSwitch(body.get("commentEnabled")));
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(Map.of("id", article.getId()), "文章创建成功", 201));
+    /**
+     * 创建文章（表单编码：multipart / urlencoded）。
+     *
+     * <p>表单里的值**只有字符串**，所以不能直接强转 {@code (Number)} / {@code (String)}：
+     * 解析统一走下面那几个 helper，两个入口共用同一段业务代码。
+     *
+     * <p>⚠️ multipart 里若带 `coverImage` **文件部分**，本端会解析后丢弃（不写入封面）——
+     * Express 的 `uploadConfig.single("coverImage")` 会用它更新封面，两者行为不同。
+     * 后台当前流程不走这条路（封面先调 `/upload/image` 得到 URL，再以
+     * `coverImageUrl` 字段提交），所以实际影响面为零，差异记在待办里。
+     */
+    @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
+            MediaType.APPLICATION_FORM_URLENCODED_VALUE })
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createArticleForm(
+            @RequestParam Map<String, String> form) {
+        return doCreateArticle(new LinkedHashMap<>(form));
     }
 
     /**
@@ -124,25 +141,108 @@ public class ArticleController {
                 ApiResponse.success(Map.of("affected", affected), "已更新 " + affected + " 篇文章"));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Void>> updateArticle(@PathVariable Integer id,
                                                             @RequestBody Map<String, Object> body) {
-        String title = (String) body.get("title");
-        String content = (String) body.get("content");
-        String summary = (String) body.get("summary");
-        Integer typeId = body.get("typeId") != null ? ((Number) body.get("typeId")).intValue() : null;
-        String coverImage = (String) body.get("coverImageUrl");
-        String status = (String) body.get("status");
-        String contentFormat = (String) body.get("contentFormat");
+        return doUpdateArticle(id, body);
+    }
 
-        @SuppressWarnings("unchecked")
-        List<Integer> labelIds = body.get("labelIds") instanceof List
-                ? ((List<Number>) body.get("labelIds")).stream().map(Number::intValue).toList()
-                : null;
+    /** 更新文章（表单编码：multipart / urlencoded）；字段解析与 JSON 通道共用 doUpdateArticle */
+    @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
+            MediaType.APPLICATION_FORM_URLENCODED_VALUE })
+    public ResponseEntity<ApiResponse<Void>> updateArticleForm(@PathVariable Integer id,
+                                                              @RequestParam Map<String, String> form) {
+        return doUpdateArticle(id, new LinkedHashMap<>(form));
+    }
 
-        articleService.updateArticle(id, title, content, summary, typeId, coverImage, status, contentFormat,
-                labelIds, parseSwitch(body.get("commentEnabled")));
+    private ResponseEntity<ApiResponse<Map<String, Object>>> doCreateArticle(Map<String, Object> body) {
+        String status = textOf(body, "status");
+        ArticleDTO article = articleService.createArticle(
+                textOf(body, "title"),
+                textOf(body, "content"),
+                textOf(body, "summary"),
+                intOf(body.get("typeId")),
+                optionalText(body, "coverImageUrl"),
+                // 空串按未传处理，与 Express 的 `status || "draft"` 同口径
+                status == null || status.isEmpty() ? "draft" : status,
+                textOf(body, "contentFormat"),
+                labelIdsOf(body.get("labelIds")),
+                parseSwitch(body.get("commentEnabled")));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(Map.of("id", article.getId()), "文章创建成功", 201));
+    }
+
+    private ResponseEntity<ApiResponse<Void>> doUpdateArticle(Integer id, Map<String, Object> body) {
+        articleService.updateArticle(
+                id,
+                textOf(body, "title"),
+                textOf(body, "content"),
+                textOf(body, "summary"),
+                intOf(body.get("typeId")),
+                optionalText(body, "coverImageUrl"),
+                textOf(body, "status"),
+                textOf(body, "contentFormat"),
+                labelIdsOf(body.get("labelIds")),
+                parseSwitch(body.get("commentEnabled")));
         return ResponseEntity.ok(ApiResponse.success(null, "文章更新成功"));
+    }
+
+    /**
+     * 取字符串字段：{@code null} = 未传，{@code ""} = 传了但为空 —— 两者语义不同，不能合并。
+     *
+     * <p>不做 trim：正文 / 摘要的首尾空白要原样入库（Express 也不 trim）。
+     */
+    private static String textOf(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    /**
+     * 取「可选地址」字段：空串按未传处理。
+     *
+     * <p>对齐 Express 的 `if (req.body.coverImageUrl)` 真值判断 —— 因此**两端都无法
+     * 通过该字段清空封面**（要清空得由前端不带封面提交，或直改库）。
+     */
+    private static String optionalText(Map<String, Object> body, String key) {
+        String value = textOf(body, key);
+        return value == null || value.isEmpty() ? null : value;
+    }
+
+    /**
+     * 解析整数字段：表单里是字符串、JSON 里可能是数字；解析不出来按「未传」处理。
+     *
+     * <p>与 Express 的差异：Express 把原串直接交给 mysql（`"7"` 由数据库隐式转换）；
+     * 这里显式解析，非法值（如 `"abc"`）会落成 null 而 Express 会报数据库错误，
+     * 非法入参下两端的错误码不同。
+     */
+    private static Integer intOf(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number n) return n.intValue();
+        String s = String.valueOf(value).trim();
+        if (s.isEmpty()) return null;
+        try {
+            return Integer.valueOf(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 解析标签 id 列表：表单里是逗号分隔串（清空标签时是 `""`），JSON 里是数组。
+     *
+     * <p>⚠️ 「未传」（null）与「传了空值」（空列表）语义不同：前者不动标签关联，
+     * 后者清空全部标签 —— 与 Express 的 `if (labelIds !== undefined) { 清空; if (labelIds) 重建 }`
+     * 同口径，不能把两者合并成 null。
+     */
+    private static List<Integer> labelIdsOf(Object value) {
+        if (value == null) return null;
+        if (value instanceof List<?> list) {
+            return list.stream().map(ArticleController::intOf).filter(Objects::nonNull).toList();
+        }
+        return Arrays.stream(String.valueOf(value).split(","))
+                .map(ArticleController::intOf)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /**

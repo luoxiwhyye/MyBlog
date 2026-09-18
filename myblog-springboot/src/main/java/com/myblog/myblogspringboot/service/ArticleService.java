@@ -306,7 +306,7 @@ public class ArticleService {
         Article article = new Article();
         article.setTitle(title);
         article.setContent(content);
-        article.setContentFormat(contentFormat != null ? contentFormat : "html");
+        article.setContentFormat(normalizeContentFormat(contentFormat));
         article.setSummary(summary != null ? summary : "");
         article.setTypeId(typeId);
         article.setCoverImage(coverImage != null ? coverImage : "");
@@ -339,7 +339,7 @@ public class ArticleService {
 
         if (title != null) article.setTitle(title);
         if (content != null) article.setContent(content);
-        if (contentFormat != null) article.setContentFormat(contentFormat);
+        if (contentFormat != null) article.setContentFormat(normalizeContentFormat(contentFormat));
         if (summary != null) article.setSummary(summary);
         if (typeId != null) article.setTypeId(typeId);
         if (coverImage != null) article.setCoverImage(coverImage);
@@ -443,6 +443,17 @@ public class ArticleService {
         articleRepository.delete(article);
         // F-01: 从 Meilisearch 移除
         meilisearchService.deleteArticle(id);
+    }
+
+    /**
+     * 收敛内容格式：只认 `markdown`，其余（含 null / 空串 / 非法值）一律按 `html`。
+     *
+     * <p>与 Express 的 `contentFormat === "markdown" ? "markdown" : "html"` 同口径。
+     * `article.content_format` 是 **varchar 而非 enum**（无 FK、无枚举兜底），
+     * 不收敛的话非法值会静默入库，只有数据体检脚本能发现。
+     */
+    private static String normalizeContentFormat(String contentFormat) {
+        return "markdown".equals(contentFormat) ? "markdown" : "html";
     }
 
     /**
