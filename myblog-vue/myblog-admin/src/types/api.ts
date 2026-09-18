@@ -71,6 +71,8 @@ export interface ArticleDetail {
   typeId: number
   labelIds: number[]
   status: 'draft' | 'published'
+  /** 是否开放评论区（后台可下线单篇文章的评论区） */
+  commentEnabled?: boolean
 }
 
 // 评论类型

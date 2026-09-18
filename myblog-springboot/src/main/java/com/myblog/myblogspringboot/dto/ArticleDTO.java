@@ -14,6 +14,13 @@ public class ArticleDTO {
     private String status;
     private Boolean isPinned;
     private Boolean isFeatured;
+    /**
+     * 是否开放评论区。
+     *
+     * <p>⚠️ 声明位置必须紧随 {@link #isFeatured} —— Express 的 formatArticle 就是把它
+     * 接在 isFeatured 后面，两端键序要逐项一致。
+     */
+    private Boolean commentEnabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
@@ -70,6 +77,8 @@ public class ArticleDTO {
     public void setIsPinned(Boolean isPinned) { this.isPinned = isPinned; }
     public Boolean getIsFeatured() { return isFeatured; }
     public void setIsFeatured(Boolean isFeatured) { this.isFeatured = isFeatured; }
+    public Boolean getCommentEnabled() { return commentEnabled; }
+    public void setCommentEnabled(Boolean commentEnabled) { this.commentEnabled = commentEnabled; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -27,6 +27,8 @@ const formatArticle = (row) => {
     status: row.status,
     isPinned: Boolean(row.is_pinned),
     isFeatured: Boolean(row.is_featured),
+    // 是否开放评论区。⚠️ 位置紧随 isFeatured —— 键序要与 Spring 的 ArticleDTO 声明顺序逐项一致。
+    commentEnabled: Boolean(row.comment_enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -40,7 +42,7 @@ const formatArticle = (row) => {
 const getArticles = async (offset, limit, filters = {}) => {
   let query = `
     SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
-           a.is_pinned, a.is_featured,
+           a.is_pinned, a.is_featured, a.comment_enabled,
            a.type_id, a.created_at, a.updated_at, a.deleted_at,
            t.type_name,
            GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
@@ -183,7 +185,7 @@ const getTypeArticleDistribution = async (scope = "published") => {
 const getArticleById = async (id) => {
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
-            a.is_pinned, a.is_featured,
+            a.is_pinned, a.is_featured, a.comment_enabled,
             a.type_id, a.created_at, a.updated_at, a.deleted_at,
             t.type_name,
             GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
@@ -201,10 +203,19 @@ const getArticleById = async (id) => {
 };
 
 const createArticle = async (articleData) => {
+  // 未传（undefined）按「开放」——与建表默认值 1 对齐（旧客户端不带这个字段）；
+  // 0 / false 才是「下线」。
+  // ⚠️ 不能直接写 `articleData.commentEnabled ? 1 : 0`：undefined 会落成 0，
+  //    于是「不带该字段的旧客户端」新建的文章会静默失去评论区。
+  const commentEnabled =
+    articleData.commentEnabled === undefined || articleData.commentEnabled
+      ? 1
+      : 0;
+
   const [result] = await pool.query(
     `INSERT INTO article
-      (type_id, title, summary, content, content_format, cover_image, view_count, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      (type_id, title, summary, content, content_format, cover_image, view_count, status, comment_enabled, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
     [
       articleData.typeId,
       articleData.title,
@@ -214,6 +225,7 @@ const createArticle = async (articleData) => {
       articleData.coverImage || null,
       articleData.viewCount || 0,
       articleData.status || "draft",
+      commentEnabled,
     ],
   );
 
@@ -259,6 +271,10 @@ const updateArticle = async (id, articleData) => {
   if (articleData.isFeatured !== undefined) {
     updates.push("is_featured = ?");
     params.push(articleData.isFeatured);
+  }
+  if (articleData.commentEnabled !== undefined) {
+    updates.push("comment_enabled = ?");
+    params.push(articleData.commentEnabled);
   }
 
   if (updates.length === 0) return false;
@@ -316,7 +332,7 @@ const getTrashArticles = async (offset, limit) => {
   //    （2026-09-14 双端实测发现。）
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.content, a.content_format, a.cover_image, a.view_count, a.status,
-            a.is_pinned, a.is_featured,
+            a.is_pinned, a.is_featured, a.comment_enabled,
             a.type_id, a.created_at, a.updated_at, a.deleted_at,
             t.type_name,
             GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,
@@ -380,7 +396,7 @@ const getArticlesByIds = async (ids) => {
   const placeholders = ids.map(() => "?").join(",");
   const [rows] = await pool.query(
     `SELECT a.id, a.title, a.summary, a.content, a.cover_image, a.view_count, a.status,
-            a.is_pinned, a.is_featured,
+            a.is_pinned, a.is_featured, a.comment_enabled,
             a.type_id, a.created_at, a.updated_at, a.deleted_at,
             t.type_name,
             GROUP_CONCAT(l.id ORDER BY l.id) AS label_ids,

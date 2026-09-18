@@ -8,6 +8,22 @@ const { uploadToCDN } = require("../utils/upload");
 const meilisearch = require("../services/meilisearch");
 
 /**
+ * 解析「开关」类字段（multipart / urlencoded 表单里拿到的是字符串）。
+ *
+ * ⚠️ 不能直接写 `value ? 1 : 0`：表单传来的是字符串 "0"，它在 JS 里是**真值**，
+ *    于是「关闭」会被反着写成「开启」。也不能只认 "1"——JSON 客户端传的是布尔 true/false。
+ * 未传（undefined / null / 空串）返回 undefined，由调用方决定是否跳过该字段。
+ */
+const parseSwitch = (value) => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (typeof value === "number") return value ? 1 : 0;
+  return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase())
+    ? 1
+    : 0;
+};
+
+/**
  * 分页查询文章
  */
 const getArticles = async (req, res, next) => {
@@ -149,6 +165,12 @@ const createArticle = async (req, res, next) => {
       status: status || "draft",
     };
 
+    // 评论区开关：未传时留给建表默认值 1（= 开放），避免旧客户端新建的文章被静默关掉评论
+    const commentEnabled = parseSwitch(req.body.commentEnabled);
+    if (commentEnabled !== undefined) {
+      articleData.commentEnabled = commentEnabled;
+    }
+
     const articleId = await articleModel.createArticle(articleData);
 
     // 处理标签关联
@@ -204,6 +226,10 @@ const updateArticle = async (req, res, next) => {
       articleData.isPinned = req.body.isPinned ? 1 : 0;
     if (req.body.isFeatured !== undefined)
       articleData.isFeatured = req.body.isFeatured ? 1 : 0;
+    // 评论区开关：必须走 parseSwitch，不能直接取真值（表单里的 "0" 是真值）
+    const commentEnabled = parseSwitch(req.body.commentEnabled);
+    if (commentEnabled !== undefined)
+      articleData.commentEnabled = commentEnabled;
 
     // 优先处理前端传来的地址字段，兼容先上传再写入场景
     if (req.body.coverImageUrl) {

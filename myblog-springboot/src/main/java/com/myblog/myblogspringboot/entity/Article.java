@@ -65,6 +65,13 @@ public class Article {
     @Column(name = "is_featured", nullable = false)
     private Boolean isFeatured = false;
 
+    /**
+     * 是否开放评论区（article.comment_enabled，默认 1）。
+     * 默认值必须与建表默认值一致 —— 旧客户端不带这个字段时新建的文章仍应能评论。
+     */
+    @Column(name = "comment_enabled", nullable = false)
+    private Boolean commentEnabled = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_id", insertable = false, updatable = false)
     private Type type;
@@ -130,6 +137,9 @@ public class Article {
 
     public Boolean getIsFeatured() { return isFeatured; }
     public void setIsFeatured(Boolean isFeatured) { this.isFeatured = isFeatured; }
+
+    public Boolean getCommentEnabled() { return commentEnabled; }
+    public void setCommentEnabled(Boolean commentEnabled) { this.commentEnabled = commentEnabled; }
 
     public Type getType() { return type; }
     public void setType(Type type) { this.type = type; }

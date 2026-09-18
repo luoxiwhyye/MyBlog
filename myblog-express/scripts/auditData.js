@@ -119,6 +119,8 @@ const EXPECTED_COLUMNS = [
   ["article", "deleted_at"],
   ["article", "is_pinned"],
   ["article", "is_featured"],
+  // 文章评论区开关（迁移脚本加的列，同样要进安全网）
+  ["article", "comment_enabled"],
   ["article", "cover_image"],
   ["emoji", "group_id"],
   ["emoji", "type"],

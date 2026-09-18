@@ -9,6 +9,8 @@ export interface Article {
   status: "published" | "draft";
   isPinned?: boolean;
   isFeatured?: boolean;
+  /** 后台可对单篇文章下线评论区；缺省（老接口/未返回）视为开放 */
+  commentEnabled?: boolean;
   type: Category;
   labels: Tag[];
   createdAt: string;

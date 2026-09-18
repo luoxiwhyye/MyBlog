@@ -162,9 +162,11 @@
           </div>
         </section>
 
-        <hr class="card-divider" />
+        <!-- 评论区：后台可对单篇文章下线（commentEnabled=false）→ 连分隔线一起隐藏，
+             避免正文底部悬着一条多余横线 -->
+        <hr v-if="commentsEnabled" class="card-divider" />
 
-        <div class="comments-section">
+        <div v-if="commentsEnabled" class="comments-section">
           <div class="comments-header">
             <h3>评论 ({{ commentPagination.total }})</h3>
             <el-radio-group v-model="commentSort" size="small" @change="handleSortChange">
@@ -275,7 +277,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         <span>目录</span>
       </button>
-      <button type="button" class="mobile-bar-btn" @click="scrollToComments">
+      <button v-if="commentsEnabled" type="button" class="mobile-bar-btn" @click="scrollToComments">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>评论</span>
       </button>
@@ -497,6 +499,12 @@ const { data: article, pending: articlePending } = await useAsyncData(
   },
 );
 
+/**
+ * 评论区是否开放。只有后端明确返回 false 才隐藏 —— 老接口不返回该字段时保持原行为。
+ * 模板与取数都用它：关闭时连评论请求也不发（省掉一次必然看不到结果的请求）。
+ */
+const commentsEnabled = computed(() => article.value?.commentEnabled !== false);
+
 // 相关推荐：后端按 共享标签 + 同分类 聚合评分（标签权重高、分类次之）
 const { data: relatedArticles } = await useAsyncData(
   () => `related-${articleId.value}`,
@@ -567,6 +575,11 @@ const { data: commentPage, refresh: refreshComments } = await useAsyncData(
   () => `comments-${articleId.value}-${commentSort.value}-${commentPagination.value.page}`,
   async () => {
     if (!articleId.value) {
+      return emptyCommentPage();
+    }
+
+    // 评论区已下线：不必再拉数据（列表为空，区块也不渲染）
+    if (!commentsEnabled.value) {
       return emptyCommentPage();
     }
 

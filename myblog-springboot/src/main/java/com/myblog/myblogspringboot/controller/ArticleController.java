@@ -106,7 +106,8 @@ public class ArticleController {
                 ? ((List<Number>) body.get("labelIds")).stream().map(Number::intValue).toList()
                 : null;
 
-        ArticleDTO article = articleService.createArticle(title, content, summary, typeId, coverImage, status, contentFormat, labelIds);
+        ArticleDTO article = articleService.createArticle(title, content, summary, typeId, coverImage, status,
+                contentFormat, labelIds, parseSwitch(body.get("commentEnabled")));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(Map.of("id", article.getId()), "文章创建成功", 201));
     }
@@ -139,8 +140,28 @@ public class ArticleController {
                 ? ((List<Number>) body.get("labelIds")).stream().map(Number::intValue).toList()
                 : null;
 
-        articleService.updateArticle(id, title, content, summary, typeId, coverImage, status, contentFormat, labelIds);
+        articleService.updateArticle(id, title, content, summary, typeId, coverImage, status, contentFormat,
+                labelIds, parseSwitch(body.get("commentEnabled")));
         return ResponseEntity.ok(ApiResponse.success(null, "文章更新成功"));
+    }
+
+    /**
+     * 解析「开关」类字段：multipart / urlencoded 表单里拿到的是字符串，JSON 客户端传的是布尔。
+     *
+     * <p>⚠️ 不能直接用 {@code Boolean.valueOf(String)} —— 它只认 "true"，
+     * 而 admin 表单送的是 "1" / "0"，会把「开启」静默解析成 false。
+     * 返回 null 表示「未传」，由调用方决定是否跳过该字段（对齐 Express 的 parseSwitch）。
+     */
+    private static Boolean parseSwitch(Object value) {
+        if (value == null) return null;
+        if (value instanceof Boolean b) return b;
+        if (value instanceof Number n) return n.intValue() != 0;
+        String s = String.valueOf(value).trim();
+        if (s.isEmpty()) return null;
+        return switch (s.toLowerCase()) {
+            case "1", "true", "yes", "on" -> Boolean.TRUE;
+            default -> Boolean.FALSE;
+        };
     }
 
     @DeleteMapping("/{id}")

@@ -63,6 +63,8 @@ public class AuditTool implements OpsTool {
             new String[]{"article", "deleted_at"},
             new String[]{"article", "is_pinned"},
             new String[]{"article", "is_featured"},
+            // 文章评论区开关（迁移脚本加的列，同样要进安全网）
+            new String[]{"article", "comment_enabled"},
             new String[]{"article", "cover_image"},
             new String[]{"emoji", "group_id"},
             new String[]{"emoji", "type"},

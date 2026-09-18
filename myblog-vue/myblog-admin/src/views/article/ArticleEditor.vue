@@ -169,6 +169,19 @@
           </el-radio-group>
         </el-form-item>
 
+        <el-form-item label="评论区">
+          <div class="comment-switch-field">
+            <el-switch
+              v-model="form.commentEnabled"
+              active-text="开放"
+              inactive-text="已下线"
+            />
+            <span class="comment-switch-hint">
+              下线后前台不再显示该文章的评论区，读者无法发表评论（已通过的评论一并隐藏，数据保留）
+            </span>
+          </div>
+        </el-form-item>
+
         <el-form-item>
           <el-button
             type="primary"
@@ -490,7 +503,9 @@ const form = reactive({
   summary: '',
   content: '',
   contentFormat: 'html' as 'html' | 'markdown',
-  status: 'draft'
+  status: 'draft',
+  /** 是否开放评论区；新建默认开放（与建表默认值 1 一致） */
+  commentEnabled: true
 })
 
 // 防抖自动保存草稿到 localStorage（仅"写文章"未提交场景；编辑已有文章不写，避免污染草稿恢复）
@@ -772,7 +787,9 @@ const fetchArticle = async (id: number) => {
         summary: data.summary,
         content: data.content,
         contentFormat: data.contentFormat === 'markdown' ? 'markdown' : 'html',
-        status: data.status
+        status: data.status,
+        // 老接口不返回该字段时按「开放」处理，不能因缺失就把评论区显示为已下线
+        commentEnabled: data.commentEnabled !== false
       })
       const fmt = data.contentFormat === 'markdown' ? 'markdown' : 'richtext'
       editorMode.value = fmt
@@ -825,6 +842,9 @@ const submitArticle = async () => {
         formData.append('summary', form.summary || '')
         formData.append('status', form.status)
         formData.append('labelIds', form.labelIds.join(','))
+        // ⚠️ 必须送 '1' / '0' 而不是布尔：multipart 表单只传字符串，
+        //    而后端把非空字符串一律视为真值 —— 直接送 'false' 会被反着写成「开放」。
+        formData.append('commentEnabled', form.commentEnabled ? '1' : '0')
 
         if (form.coverImage) {
           formData.append('coverImageUrl', form.coverImage)
@@ -870,6 +890,7 @@ const resetForm = () => {
   form.content = ''
   form.contentFormat = 'html'
   form.status = 'draft'
+  form.commentEnabled = true
   editorMode.value = 'richtext'
   prevEditorMode.value = 'richtext'
 }
@@ -1009,6 +1030,20 @@ onBeforeUnmount(() => {
 .editor-mode-tip {
   font-size: 12px;
   color: #94a3b8;
+}
+
+/* 评论区开关：开关与说明文字同一行，窄屏换成上下叠放 */
+.comment-switch-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.comment-switch-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 /* Markdown 左右分屏编辑

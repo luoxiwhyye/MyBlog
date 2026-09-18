@@ -297,7 +297,8 @@ public class ArticleService {
     @Transactional
     @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO createArticle(String title, String content, String summary, Integer typeId,
-                                     String coverImage, String status, String contentFormat, List<Integer> labelIds) {
+                                     String coverImage, String status, String contentFormat, List<Integer> labelIds,
+                                     Boolean commentEnabled) {
         if (title == null || title.isBlank() || content == null || content.isBlank() || typeId == null) {
             throw new BusinessException(400, "标题、内容和分类不能为空");
         }
@@ -311,6 +312,8 @@ public class ArticleService {
         article.setCoverImage(coverImage != null ? coverImage : "");
         article.setStatus(status != null ? status : "draft");
         article.setViewCount(0);
+        // 未传时按「开放」——与建表默认值 1 对齐（旧客户端不带这个字段）
+        article.setCommentEnabled(commentEnabled != null ? commentEnabled : Boolean.TRUE);
 
         if (labelIds != null && !labelIds.isEmpty()) {
             article.setLabels(labelIds.stream().map(Label::new).collect(Collectors.toSet()));
@@ -329,7 +332,8 @@ public class ArticleService {
     @CacheEvict(value = "articles", allEntries = true)
     public ArticleDTO updateArticle(Integer id, String title, String content, String summary,
                                      Integer typeId, String coverImage, String status,
-                                     String contentFormat, List<Integer> labelIds) {
+                                     String contentFormat, List<Integer> labelIds,
+                                     Boolean commentEnabled) {
         Article article = articleRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new BusinessException(404, "文章不存在"));
 
@@ -340,6 +344,7 @@ public class ArticleService {
         if (typeId != null) article.setTypeId(typeId);
         if (coverImage != null) article.setCoverImage(coverImage);
         if (status != null) article.setStatus(status);
+        if (commentEnabled != null) article.setCommentEnabled(commentEnabled);
 
         if (labelIds != null) {
             if (labelIds.isEmpty()) {
@@ -480,6 +485,7 @@ public class ArticleService {
         dto.setStatus(article.getStatus());
         dto.setIsPinned(article.getIsPinned());
         dto.setIsFeatured(article.getIsFeatured());
+        dto.setCommentEnabled(article.getCommentEnabled());
         dto.setCreatedAt(article.getCreatedAt());
         dto.setUpdatedAt(article.getUpdatedAt());
         dto.setDeletedAt(article.getDeletedAt());

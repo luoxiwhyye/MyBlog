@@ -98,6 +98,8 @@ export const article = {
       typeId: number
       labelIds: number[]
       status: 'draft' | 'published'
+      /** 是否开放评论区（后台可下线单篇文章的评论区） */
+      commentEnabled: boolean
     }>
   > => {
     return request.get(`/articles/${id}`)
