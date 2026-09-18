@@ -31,6 +31,13 @@ public class UploadService {
     @Value("${app.upload.path:uploads}")
     private String uploadBasePath;
 
+    /** 上传文件对外访问的基地址（留空则回退 http://localhost:<server.port>）。 */
+    @Value("${app.upload.base-url:}")
+    private String uploadBaseUrl;
+
+    @Value("${server.port:3000}")
+    private int serverPort;
+
     public String uploadImage(MultipartFile file, String scene) throws IOException {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("请选择要上传的图片");
@@ -48,7 +55,14 @@ public class UploadService {
         String filename = UUID.randomUUID().toString() + extension;
 
         // Create directory and save
-        Path uploadDir = Paths.get(uploadBasePath, subDir);
+        // ⚠️⚠️ 必须落成**绝对路径**再交给 `transferTo`：Tomcat 的 `Part.write()` 遇到
+        //    相对路径会把它拼到自己的 multipart 临时目录下（
+        //    `<java.io.tmpdir>/tomcat.<port>.xxx/work/Tomcat/localhost/ROOT/../uploads/...`），
+        //    于是必然 `FileNotFoundException` → 上传接口 500。
+        //    `UPLOAD_PATH` 在本机是相对路径（`../myblog-express/uploads`），
+        //    所以这个坑只在「相对 UPLOAD_PATH + HTTP 上传」组合下出现，
+        //    而运维工具（regenerate-thumbs 等）自己拼绝对路径，不会暴露它。
+        Path uploadDir = Paths.get(uploadBasePath, subDir).toAbsolutePath().normalize();
         Files.createDirectories(uploadDir);
         Path filePath = uploadDir.resolve(filename);
         file.transferTo(filePath.toFile());
@@ -58,7 +72,25 @@ public class UploadService {
 
         // Return full URL
         String relativePath = subDir + "/" + filename;
-        return "/uploads/" + relativePath.replace("\\", "/");
+        return resolveBaseUrl() + "/uploads/" + relativePath.replace("\\", "/");
+    }
+
+    /**
+     * 上传文件对外访问的基地址。
+     *
+     * <p>⚠️ 必须返回**绝对地址**（同 Express 的 `uploadToCDN()`）：后台把库里的地址直接绑
+     * `:src`，而它的 vite 只代理 `/api`（没有 `/uploads`）—— 返回户对路径会让后台
+     * 拿浏览器地址去求 `/uploads/...`，得到 404（图片裂）。
+     * 留空时回退 `http://localhost:<server.port>`，与 Express 的
+     * `process.env.APP_BASE_URL || http://localhost:${PORT || 3000}` 同口径。
+     */
+    private String resolveBaseUrl() {
+        String configured = uploadBaseUrl == null ? "" : uploadBaseUrl.trim();
+        String base = configured.isEmpty()
+                ? "http://localhost:" + serverPort
+                : configured;
+        // 去掉末尾斜杠，避免拼出 //uploads
+        return base.replaceAll("/+$", "");
     }
 
     /**

@@ -202,7 +202,7 @@ const getArticleById = async (id) => {
   return rows.length > 0 ? formatArticle(rows[0]) : null;
 };
 
-const createArticle = async (articleData) => {
+const createArticle = async (articleData, conn = pool) => {
   // 未传（undefined）按「开放」——与建表默认值 1 对齐（旧客户端不带这个字段）；
   // 0 / false 才是「下线」。
   // ⚠️ 不能直接写 `articleData.commentEnabled ? 1 : 0`：undefined 会落成 0，
@@ -212,7 +212,7 @@ const createArticle = async (articleData) => {
       ? 1
       : 0;
 
-  const [result] = await pool.query(
+  const [result] = await conn.query(
     `INSERT INTO article
       (type_id, title, summary, content, content_format, cover_image, view_count, status, comment_enabled, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -232,7 +232,7 @@ const createArticle = async (articleData) => {
   return result.insertId;
 };
 
-const updateArticle = async (id, articleData) => {
+const updateArticle = async (id, articleData, conn = pool) => {
   const updates = [];
   const params = [];
 
@@ -282,7 +282,7 @@ const updateArticle = async (id, articleData) => {
   updates.push("updated_at = NOW()");
   params.push(id);
 
-  const [result] = await pool.query(
+  const [result] = await conn.query(
     `UPDATE article SET ${updates.join(", ")} WHERE id = ?`,
     params,
   );
@@ -369,22 +369,76 @@ const incrementViewCount = async (id) => {
   return result.affectedRows > 0;
 };
 
-const addArticleLabels = async (articleId, labelIds) => {
+const addArticleLabels = async (articleId, labelIds, conn = pool) => {
   if (!labelIds || labelIds.length === 0) return true;
 
   const values = labelIds.map((labelId) => [articleId, labelId]);
-  const [result] = await pool.query(
+  const [result] = await conn.query(
     "INSERT INTO article_label (article_id, label_id) VALUES ?",
     [values],
   );
   return result.affectedRows > 0;
 };
 
-const clearArticleLabels = async (articleId) => {
-  await pool.query("DELETE FROM article_label WHERE article_id = ?", [
+const clearArticleLabels = async (articleId, conn = pool) => {
+  await conn.query("DELETE FROM article_label WHERE article_id = ?", [
     articleId,
   ]);
   return true;
+};
+
+/**
+ * 新建文章并写标签关联，**在同一个事务内**（对标 Spring 的 @Transactional）。
+ *
+ * ⚠️ 先前的实现是「先 INSERT 文章、再 INSERT 标签」两次独立写：
+ * 标签关联失败（如 label_id 不存在触发外键约束）时接口返回 500，
+ * 但**文章行已经落库**，于是留下一条没有标签、而前端以为创建失败的文章。
+ * 分成两条语句后不能再各自用 pool.query —— 那样它们不在同一连接、不在同一事务，
+ * 所以这里显式取连接并向下传。
+ */
+const createArticleWithLabels = async (articleData, labelIds) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const articleId = await createArticle(articleData, connection);
+    if (labelIds && labelIds.length > 0) {
+      await addArticleLabels(articleId, labelIds, connection);
+    }
+    await connection.commit();
+    return articleId;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * 更新文章并按需重建标签关联，**在同一个事务内**。
+ *
+ * @param {number[]|undefined} labelIds `undefined` = 不动标签关联；
+ *   `[]` = 清空全部标签（与单条删除/恢复的级联一样，「空」与「未传」语义不同）。
+ */
+const updateArticleWithLabels = async (id, articleData, labelIds) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const updated = await updateArticle(id, articleData, connection);
+    if (labelIds !== undefined) {
+      await clearArticleLabels(id, connection);
+      if (labelIds.length > 0) {
+        await addArticleLabels(id, labelIds, connection);
+      }
+    }
+    await connection.commit();
+    return updated;
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 };
 
 /**
@@ -621,4 +675,6 @@ module.exports = {
   getTypeArticleDistribution,
   addArticleLabels,
   clearArticleLabels,
+  createArticleWithLabels,
+  updateArticleWithLabels,
 };

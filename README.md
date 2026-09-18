@@ -288,7 +288,7 @@ npm run dev               # http://localhost:5173
 
 ## 双后端差异
 
-两种后端共用同一份数据库（Spring Boot `ddl-auto: none`），REST 路径、统一响应 `{ code, message, data }`、时间字段 JSON 格式（UTC 瞬时串，见[时间字段与时区](#时间字段与时区)）与缓存 / 限流口径已对齐；以下是仍然存在或有意保留的差异：
+两种后端共用同一份数据库（Spring Boot `ddl-auto: none`），REST 路径、统一响应 `{ code, message, data }`、写接口的请求编码（JSON / urlencoded / multipart，含与表单同传的封面文件）、鉴权 token 的形状（`id` 与 `sub` 双写双读，任一端签发都可在另一端使用）、时间字段 JSON 格式（UTC 瞬时串，见[时间字段与时区](#时间字段与时区)）与缓存 / 限流口径已对齐；以下是仍然存在或有意保留的差异：
 
 | 维度 | Express | Spring Boot | 说明 |
 | --- | --- | --- | --- |
@@ -296,7 +296,7 @@ npm run dev               # http://localhost:5173
 | `.env` | `JWT_EXPIRES_IN=7d`（时长字符串） | `JWT_EXPIRES_IN=604800000`（毫秒） | **两端不能共用同一份 `.env`** |
 | 可观测 | 自研 `/metrics` + winston 日志 | 额外提供 Actuator + Micrometer（`/actuator/health`、`/actuator/prometheus`） | Spring 侧增量，非缺口 |
 | 缓存降级 | Redis 不可用时直查数据库 | Redis 不可用时降级为内存缓存 | 行为差异，不影响接口契约 |
-| 上传目录 | 固定在 `myblog-express/uploads`（不受工作目录影响） | `UPLOAD_PATH`（相对工作目录，默认 `uploads`） | 图片地址 `/uploads/xxx` 存在库里，因此**两端必须指向同一份目录**；本机同时跑两个后端时，把 Spring 的 `UPLOAD_PATH` 指向 `../myblog-express/uploads`（否则接口与迁移都不报错、只有前台图片 404；两端启动时都会打印解析后的根目录） |
+| 上传目录 | 固定在 `myblog-express/uploads`（不受工作目录影响） | `UPLOAD_PATH`（相对工作目录，默认 `uploads`） | 图片地址 `/uploads/xxx` 存在库里，因此**两端必须指向同一份目录**；本机同时跑两个后端时，把 Spring 的 `UPLOAD_PATH` 指向 `../myblog-express/uploads`（否则接口与迁移都不报错、只有前台图片 404；两端启动时都会打印解析后的根目录）。上传接口返回的地址两端都是 `APP_BASE_URL` + `/uploads/...` 的**绝对地址**（未配置时回退 `http://localhost:<PORT>`） |
 
 ---
 

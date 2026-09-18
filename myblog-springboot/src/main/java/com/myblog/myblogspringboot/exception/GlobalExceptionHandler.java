@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -60,6 +61,21 @@ public class GlobalExceptionHandler {
         log.warn("请求体无法解析: {}", ex.getMessage());
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error(400, "请求体格式不正确"));
+    }
+
+    /**
+     * 请求内容类型不支持（如 `text/plain` 打 JSON 写接口）同样不能落到兜底的 500。
+     *
+     * 这是**客户端**错误，语义上就该是 415；交给 {@link #handleException(Exception)}
+     * 会变成 500 + 堆栈日志，既把客户端错计入错误率指标，也掩盖了真因
+     * （曾因此把一个「只支持 JSON」的写接口误读成「服务器内部错误」）。
+     * Express 侧由 `middleware/contentType.js` 返回同码同文案。
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        log.warn("请求内容类型不支持: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiResponse.error(415, "不支持的请求内容类型"));
     }
 
     @ExceptionHandler(Exception.class)

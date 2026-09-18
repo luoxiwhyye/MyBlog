@@ -4,6 +4,7 @@ const articleController = require("../controllers/articleController");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/role");
 const uploadConfig = require("../config/upload");
+const requireWritableContentType = require("../middleware/contentType");
 const {
   validatePagination,
   validateIntId,
@@ -72,6 +73,7 @@ router.post(
   "/",
   auth,
   requireRole("admin"),
+  requireWritableContentType,
   uploadConfig.single("coverImage"),
   articleController.createArticle,
 );
@@ -83,6 +85,7 @@ router.put(
   handleValidationErrors,
   auth,
   requireRole("admin"),
+  requireWritableContentType,
   uploadConfig.single("coverImage"),
   articleController.updateArticle,
 );

@@ -105,6 +105,13 @@ app:
     expiration-ms: ${JWT_EXPIRES_IN:604800000}
   upload:
     path: ${UPLOAD_PATH:uploads}
+    # 上传文件对外访问的基地址（拼在返回的 URL 前面）。
+    # ⚠️ 必须与 Express 的 APP_BASE_URL 同口径：两端都返回**绝对地址** ——
+    #    后台把库里的地址直接绑 `:src`（且 vite 只代理 /api，没有 /uploads），
+    #    返回户对路径会让后台的上传图片（封面/头像/表情/设置图）全部裂掉。
+    # 留空时回退 `http://localhost:<server.port>`，与 Express 的
+    # `process.env.APP_BASE_URL || http://localhost:${PORT || 3000}` 一致。
+    base-url: ${APP_BASE_URL:}
   blogger:
     username: ${BLOGGER_USERNAME:admin}
     password: ${BLOGGER_PASSWORD:admin123}

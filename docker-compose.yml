@@ -192,6 +192,7 @@ services:
   #     TRUST_PROXY: ${TRUST_PROXY:-1}
   #     PORT: 3000
   #     UPLOAD_PATH: uploads
+  #     APP_BASE_URL: ${APP_BASE_URL:-}
   #     BLOGGER_USERNAME: ${BLOGGER_USERNAME:-admin}
   #     BLOGGER_PASSWORD: ${BLOGGER_PASSWORD:-admin123}
   #     BLOGGER_NICKNAME: ${BLOGGER_NICKNAME:-博主}

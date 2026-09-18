@@ -1,10 +1,11 @@
 package com.myblog.myblogspringboot.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import com.myblog.myblogspringboot.dto.AdjacentArticlesDTO;
 import com.myblog.myblogspringboot.dto.ApiResponse;
@@ -27,17 +30,23 @@ import com.myblog.myblogspringboot.dto.ArticleDTO;
 import com.myblog.myblogspringboot.dto.ArticleNavDTO;
 import com.myblog.myblogspringboot.dto.BatchStatusRequest;
 import com.myblog.myblogspringboot.dto.PageResponse;
+import com.myblog.myblogspringboot.exception.BusinessException;
 import com.myblog.myblogspringboot.security.UserPrincipal;
 import com.myblog.myblogspringboot.service.ArticleService;
+import com.myblog.myblogspringboot.service.UploadService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/v1/articles")
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final UploadService uploadService;
 
-    public ArticleController(ArticleService articleService) {
+    public ArticleController(ArticleService articleService, UploadService uploadService) {
         this.articleService = articleService;
+        this.uploadService = uploadService;
     }
 
     @GetMapping
@@ -107,8 +116,8 @@ public class ArticleController {
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Map<String, Object>>> createArticle(
-            @RequestBody Map<String, Object> body) {
-        return doCreateArticle(body);
+            @RequestBody Map<String, Object> body) throws IOException {
+        return doCreateArticle(body, null);
     }
 
     /**
@@ -117,16 +126,17 @@ public class ArticleController {
      * <p>表单里的值**只有字符串**，所以不能直接强转 {@code (Number)} / {@code (String)}：
      * 解析统一走下面那几个 helper，两个入口共用同一段业务代码。
      *
-     * <p>⚠️ multipart 里若带 `coverImage` **文件部分**，本端会解析后丢弃（不写入封面）——
-     * Express 的 `uploadConfig.single("coverImage")` 会用它更新封面，两者行为不同。
-     * 后台当前流程不走这条路（封面先调 `/upload/image` 得到 URL，再以
-     * `coverImageUrl` 字段提交），所以实际影响面为零，差异记在待办里。
+     * <p>`coverImage` **文件部分**也支持（与 Express 的 `uploadConfig.single("coverImage")`
+     * 同口径）：非空时走 {@link UploadService} 存盘并生成变体，**优先于** `coverImageUrl`。
+     * 后台当前不走这条路（先调 `/upload/image` 拿 URL 再以字段提交），
+     * 但两端都接受才是真对齐 —— 否则文件部分会被静默丢弃。
      */
     @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
             MediaType.APPLICATION_FORM_URLENCODED_VALUE })
     public ResponseEntity<ApiResponse<Map<String, Object>>> createArticleForm(
-            @RequestParam Map<String, String> form) {
-        return doCreateArticle(new LinkedHashMap<>(form));
+            @RequestParam Map<String, String> form,
+            HttpServletRequest request) throws IOException {
+        return doCreateArticle(new LinkedHashMap<>(form), coverFileOf(request));
     }
 
     /**
@@ -143,26 +153,28 @@ public class ArticleController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<Void>> updateArticle(@PathVariable Integer id,
-                                                            @RequestBody Map<String, Object> body) {
-        return doUpdateArticle(id, body);
+                                                            @RequestBody Map<String, Object> body) throws IOException {
+        return doUpdateArticle(id, body, null);
     }
 
     /** 更新文章（表单编码：multipart / urlencoded）；字段解析与 JSON 通道共用 doUpdateArticle */
     @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE,
             MediaType.APPLICATION_FORM_URLENCODED_VALUE })
     public ResponseEntity<ApiResponse<Void>> updateArticleForm(@PathVariable Integer id,
-                                                              @RequestParam Map<String, String> form) {
-        return doUpdateArticle(id, new LinkedHashMap<>(form));
+                                                               @RequestParam Map<String, String> form,
+                                                               HttpServletRequest request) throws IOException {
+        return doUpdateArticle(id, new LinkedHashMap<>(form), coverFileOf(request));
     }
 
-    private ResponseEntity<ApiResponse<Map<String, Object>>> doCreateArticle(Map<String, Object> body) {
+    private ResponseEntity<ApiResponse<Map<String, Object>>> doCreateArticle(Map<String, Object> body,
+                                                                            MultipartFile coverFile) throws IOException {
         String status = textOf(body, "status");
         ArticleDTO article = articleService.createArticle(
                 textOf(body, "title"),
                 textOf(body, "content"),
                 textOf(body, "summary"),
                 intOf(body.get("typeId")),
-                optionalText(body, "coverImageUrl"),
+                resolveCoverImage(body, coverFile),
                 // 空串按未传处理，与 Express 的 `status || "draft"` 同口径
                 status == null || status.isEmpty() ? "draft" : status,
                 textOf(body, "contentFormat"),
@@ -172,19 +184,41 @@ public class ArticleController {
                 .body(ApiResponse.success(Map.of("id", article.getId()), "文章创建成功", 201));
     }
 
-    private ResponseEntity<ApiResponse<Void>> doUpdateArticle(Integer id, Map<String, Object> body) {
+    private ResponseEntity<ApiResponse<Void>> doUpdateArticle(Integer id, Map<String, Object> body,
+                                                              MultipartFile coverFile) throws IOException {
         articleService.updateArticle(
                 id,
                 textOf(body, "title"),
                 textOf(body, "content"),
                 textOf(body, "summary"),
                 intOf(body.get("typeId")),
-                optionalText(body, "coverImageUrl"),
+                resolveCoverImage(body, coverFile),
                 textOf(body, "status"),
                 textOf(body, "contentFormat"),
                 labelIdsOf(body.get("labelIds")),
                 parseSwitch(body.get("commentEnabled")));
         return ResponseEntity.ok(ApiResponse.success(null, "文章更新成功"));
+    }
+
+    /** 从 multipart 请求里取 `coverImage` 文件部分（非 multipart 请求返回 null） */
+    private static MultipartFile coverFileOf(HttpServletRequest request) {
+        if (request instanceof MultipartHttpServletRequest multipart) {
+            return multipart.getFile("coverImage");
+        }
+        return null;
+    }
+
+    /**
+     * 解析封面地址：**随表单上传的文件优先**于 `coverImageUrl`（与 Express 同序）。
+     *
+     * <p>两者都没传时返回 null：新建时落到空串（由 service 处理），
+     * 更新时表示「不动该列」。
+     */
+    private String resolveCoverImage(Map<String, Object> body, MultipartFile coverFile) throws IOException {
+        if (coverFile != null && !coverFile.isEmpty()) {
+            return uploadService.uploadImage(coverFile, "article-cover");
+        }
+        return optionalText(body, "coverImageUrl");
     }
 
     /**
@@ -230,19 +264,36 @@ public class ArticleController {
     /**
      * 解析标签 id 列表：表单里是逗号分隔串（清空标签时是 `""`），JSON 里是数组。
      *
-     * <p>⚠️ 「未传」（null）与「传了空值」（空列表）语义不同：前者不动标签关联，
-     * 后者清空全部标签 —— 与 Express 的 `if (labelIds !== undefined) { 清空; if (labelIds) 重建 }`
-     * 同口径，不能把两者合并成 null。
+     * <p>⚠️ 「未传」（null）与「传了空值」（空列表 / 空串）语义不同：前者不动标签关联，
+     * 后者清空全部标签 —— 与 Express 的 `normalizeLabelIds()` 同口径，
+     * 不能把两者合并成 null。
+     *
+     * <p>⚠️ 非空但**一个有效 id 都没有**（如 `"abc"` / `["x"]` / `"0"`）报 400：
+     * 若当成空列表会把标签**静默清空**，而这类输入其实是客户端的错。
+     * 部分有效（`"1,abc"`）则只保留有效项（两端一致）。
      */
     private static List<Integer> labelIdsOf(Object value) {
         if (value == null) return null;
         if (value instanceof List<?> list) {
-            return list.stream().map(ArticleController::intOf).filter(Objects::nonNull).toList();
+            List<Integer> ids = list.stream()
+                    .map(ArticleController::intOf)
+                    .filter(id -> id != null && id > 0)
+                    .toList();
+            if (ids.isEmpty() && !list.isEmpty()) {
+                throw new BusinessException(400, "标签 ID 必须是正整数");
+            }
+            return ids;
         }
-        return Arrays.stream(String.valueOf(value).split(","))
+        String raw = String.valueOf(value).trim();
+        if (raw.isEmpty()) return new ArrayList<>();
+        List<Integer> ids = Arrays.stream(raw.split(","))
                 .map(ArticleController::intOf)
-                .filter(Objects::nonNull)
+                .filter(id -> id != null && id > 0)
                 .toList();
+        if (ids.isEmpty()) {
+            throw new BusinessException(400, "标签 ID 必须是正整数");
+        }
+        return ids;
     }
 
     /**

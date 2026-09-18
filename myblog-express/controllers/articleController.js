@@ -24,6 +24,50 @@ const parseSwitch = (value) => {
 };
 
 /**
+ * 归一化标签 id：表单里是逗号分隔串（`"1,2"`）、JSON 里也可能是数组（`[1,2]`）。
+ *
+ * 返回值语义（**未传**与**传了空值**不同，与单条删除 / 恢复的级联一致）：
+ * - 未传（undefined / null）→ `undefined`：**不动**标签关联
+ * - 空串 / 空数组 / 只有空白 → `[]`：**清空**全部标签
+ * - `"1,2"` / `[1,2]` → `[1, 2]`
+ *
+ * ⚠️ 非空但**一个有效 id 都没有**（如 `"abc"`）返 `null` 而不是 `[]`：
+ *    空数组会把标签静默清空，而这类输入其实是客户端的错。调用方据此报 400。
+ * ⚠️ 别忘了 `"".split(",")` 得到的是 `[""]`（长度 1）—— 空串（= 清空标签）
+ *    必须先单独判掉，否则会被误判成非法输入。
+ */
+const normalizeLabelIds = (value) => {
+  if (value === undefined || value === null) return undefined;
+
+  let raw;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return [];
+    raw = value;
+  } else {
+    const text = String(value).trim();
+    if (text === "") return [];
+    raw = text.split(",");
+  }
+
+  const ids = raw
+    .map((item) => parseInt(String(item).trim(), 10))
+    .filter((id) => Number.isInteger(id) && id > 0);
+  return ids.length === 0 ? null : ids;
+};
+
+/**
+ * 解析封面地址。
+ *
+ * 两个来源都支持（兼容两条流程），且**随表单上传的文件优先**于 `coverImageUrl`：
+ * - `coverImageUrl`：前端先调 `/upload/image` 拿到地址，再把它当普通字段提交（后台当前走这条）
+ * - `coverImage` 文件部分：multer 已落盘，这里取它的访问地址
+ */
+const resolveCoverImage = (req) => {
+  if (req.file) return uploadToCDN(req.file.path);
+  return req.body.coverImageUrl || null;
+};
+
+/**
  * 分页查询文章
  */
 const getArticles = async (req, res, next) => {
@@ -137,21 +181,16 @@ const getArticleRelated = async (req, res, next) => {
  */
 const createArticle = async (req, res, next) => {
   try {
-    const { title, content, summary, typeId, labelIds, status, contentFormat } =
-      req.body;
+    const { title, content, summary, typeId, status, contentFormat } = req.body;
 
     // 验证必填字段
     if (!title || !content || !typeId) {
       return error(res, "标题、内容和分类不能为空", 400);
     }
 
-    let coverImage = "";
-    // 优先使用前端传来的封面地址，兼容通过 upload/image 先上传再写入场景
-    if (req.body.coverImageUrl) {
-      coverImage = req.body.coverImageUrl;
-    }
-    if (req.file) {
-      coverImage = uploadToCDN(req.file.path);
+    const labelIds = normalizeLabelIds(req.body.labelIds);
+    if (labelIds === null) {
+      return error(res, "标签 ID 必须是正整数", 400);
     }
 
     // 创建文章
@@ -160,7 +199,7 @@ const createArticle = async (req, res, next) => {
       content,
       contentFormat: contentFormat === "markdown" ? "markdown" : "html",
       summary: summary || "",
-      coverImage,
+      coverImage: resolveCoverImage(req) || "",
       typeId,
       status: status || "draft",
     };
@@ -171,13 +210,11 @@ const createArticle = async (req, res, next) => {
       articleData.commentEnabled = commentEnabled;
     }
 
-    const articleId = await articleModel.createArticle(articleData);
-
-    // 处理标签关联
-    if (labelIds) {
-      const ids = labelIds.split(",").map((id) => parseInt(id));
-      await articleModel.addArticleLabels(articleId, ids);
-    }
+    // 文章与标签关联在同一个事务里落库（否则标签关联失败会留下没标签的文章行）
+    const articleId = await articleModel.createArticleWithLabels(
+      articleData,
+      labelIds ?? [],
+    );
 
     // F-01: 同步到 Meilisearch（仅已发布文章）
     if (articleData.status === "published") {
@@ -205,12 +242,16 @@ const createArticle = async (req, res, next) => {
 const updateArticle = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, content, summary, typeId, labelIds, status, contentFormat } =
-      req.body;
+    const { title, content, summary, typeId, status, contentFormat } = req.body;
 
     const article = await articleModel.getArticleById(id);
     if (!article) {
       return error(res, "文章不存在", 404);
+    }
+
+    const labelIds = normalizeLabelIds(req.body.labelIds);
+    if (labelIds === null) {
+      return error(res, "标签 ID 必须是正整数", 400);
     }
 
     const articleData = {};
@@ -231,28 +272,16 @@ const updateArticle = async (req, res, next) => {
     if (commentEnabled !== undefined)
       articleData.commentEnabled = commentEnabled;
 
-    // 优先处理前端传来的地址字段，兼容先上传再写入场景
+    // 封面：传了地址就覆盖，随表单上传的文件优先（两者都没传则不动该列）
     if (req.body.coverImageUrl) {
       articleData.coverImage = req.body.coverImageUrl;
     }
-
     if (req.file) {
       articleData.coverImage = uploadToCDN(req.file.path);
     }
 
-    const updated = await articleModel.updateArticle(id, articleData);
-    if (!updated && req.file === undefined) {
-      // 如果没有更新字段且没有文件，返回成功
-    }
-
-    // 更新标签关联
-    if (labelIds !== undefined) {
-      await articleModel.clearArticleLabels(id);
-      if (labelIds) {
-        const ids = labelIds.split(",").map((id) => parseInt(id));
-        await articleModel.addArticleLabels(id, ids);
-      }
-    }
+    // 字段更新与标签重建在同一个事务里（否则清空标签后重建失败会丢掉原有标签）
+    await articleModel.updateArticleWithLabels(id, articleData, labelIds);
 
     // F-01: 同步到 Meilisearch
     const updatedArticle = await articleModel.getArticleById(id);

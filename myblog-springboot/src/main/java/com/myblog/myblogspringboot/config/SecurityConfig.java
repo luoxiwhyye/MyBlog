@@ -71,6 +71,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/types/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/labels/**").permitAll()
+                // ⚠️ 回收站必须排在下面那条 `GET /api/v1/articles/**` **之前**：
+                //    Spring Security 取**第一条匹配**的规则，写在通配后面就永远轮不到，
+                //    于是匿名请求能列出软删的文章（Express 侧 `GET /articles/trash` 需管理员）。
+                .requestMatchers(HttpMethod.GET, "/api/v1/articles/trash").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/search/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/comments/**").permitAll()

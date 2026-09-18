@@ -131,6 +131,7 @@ src/main/java/com/myblog/myblogspringboot/
 | `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` | CORS 白名单 | — |
 | `TRUST_PROXY` | 反向代理信任层级（限流 / 评论入库 / 留言入库三处按它取客户端 IP；语义与 Express 同值：信任右起 N 跳、只认 `X-Forwarded-For`） | `1` |
 | `UPLOAD_PATH` | 上传文件目录（**必须与另一端的 uploads 指向同一份**；本机同时跑 Express 时填 `../myblog-express/uploads`） | `uploads` |
+| `APP_BASE_URL` | 上传资源的对外基地址（上传接口返回 `APP_BASE_URL` + `/uploads/...` 的**绝对地址**，与 Express 同口径；不填回退 `http://localhost:<server.port>`） | — |
 | `MEILI_HOST` / `MEILI_PORT` / `MEILI_MASTER_KEY` | Meilisearch | — |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | Redis 缓存 | — |
 | `SITE_URL` / `SITE_NAME` | 站点信息（邮件通知用） | — |
