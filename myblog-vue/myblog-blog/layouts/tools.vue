@@ -29,17 +29,9 @@ useLayoutSeo();
   flex-direction: column;
   background-color: var(--bg-primary);
   transition: background-color 0.3s;
-  /* 自身形成层叠上下文，让背景遮罩(z:-1)压在图之上、内容之下 */
+  /* 自身形成层叠上下文：约束内部 fixed / z-index 的作用范围。
+     页面背景图与遮罩挂在 body 上（见 assets/css/base/_page-backdrop.scss）。 */
   isolation: isolate;
-}
-
-.layout::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: var(--bg-page-overlay);
-  z-index: -1;
-  pointer-events: none;
 }
 
 .main-content {
@@ -54,36 +46,6 @@ useLayoutSeo();
 @media (max-width: 480px) {
   .main-content {
     padding: $spacing-5 $layout-gutter-mobile $spacing-8;
-  }
-}
-</style>
-
-<style lang="scss">
-/* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
-.layout {
-  background-image: var(--site-bg-light);
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
-}
-
-html.dark .layout {
-  background-image: var(--site-bg-dark, var(--site-bg-light));
-}
-
-/* 移动端优先用竖版专用图，未配置时回退桌面图；
-   fixed 在 iOS 上不可靠，一并降级为 scroll（与 default / landing 布局一致）。 */
-@media (max-width: 768px) {
-  .layout {
-    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
-    background-attachment: scroll;
-  }
-
-  html.dark .layout {
-    background-image: var(
-      --site-bg-dark-mobile,
-      var(--site-bg-dark, var(--site-bg-light))
-    );
   }
 }
 </style>

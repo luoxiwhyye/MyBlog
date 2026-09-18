@@ -1,0 +1,66 @@
+// ============================================
+// base/_page-backdrop.scss - 页面背景层
+// ============================================
+//
+// 背景图与可读性遮罩画在「恒等于视口」的固定层上，不画在布局元素自身。
+//
+// 为什么不画在布局元素上：元素盒子高度等于内容高度（长页面可达上万像素），
+// `cover` 会按整页高度缩放 —— 图片被放大到几十倍，屏幕上只剩中间一小块。
+// 定位区必须恒等于视口。
+//
+// 为什么挂在 `body` 而不挂在布局内：`#__nuxt` 的入场动画带 `transform`，
+// 会使其成为 `position: fixed` 的 containing block —— 挂在它内部的固定层
+// 会被抬成内容高度，依然是错的。`body` 没有 transform 祖先，才真正拿得到视口。
+//
+// 为什么不用 `background-attachment: fixed`：iOS Safari 上不可靠。
+//
+// 层叠顺序由 z-index 显式指定，不依赖伪元素的文档顺序：
+// `::before`（背景图，z:-2）→ `::after`（遮罩，z:-1）→ 页面内容。
+
+// `body` 自身形成层叠上下文，让上面两层的负 z-index 落在 **body 底色之上**、
+// 页面内容之下 —— 否则按根层叠上下文的绘制顺序，body 背景会盖住负 z-index 层，
+// 「body 底色必须透明」就成了隐式前提。
+body {
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: var(--site-bg-light);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 背景图之上的文字可读性遮罩 — 亮/暗随 --bg-page-overlay 自适应 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg-page-overlay);
+}
+
+html.dark body::before {
+  background-image: var(--site-bg-dark, var(--site-bg-light));
+}
+
+/* 移动端优先用竖版专用图，未配置时回退桌面图。
+   变量在未配置/图片失联时会被移除（而不是写 none），回退链才能生效。 */
+@media (max-width: 768px) {
+  body::before {
+    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
+  }
+
+  html.dark body::before {
+    background-image: var(
+      --site-bg-dark-mobile,
+      var(--site-bg-dark, var(--site-bg-light))
+    );
+  }
+}

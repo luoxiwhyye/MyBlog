@@ -28,28 +28,9 @@ useLayoutSeo();
   display: flex;
   flex-direction: column;
   position: relative;
-  /* 自身形成层叠上下文，让背景遮罩(z:-1)压在图之上、内容之下 */
+  /* 自身形成层叠上下文：约束内部 fixed / z-index 的作用范围。
+     页面背景图与遮罩挂在 body 上（见 assets/css/base/_page-backdrop.scss）。 */
   isolation: isolate;
-}
-
-.layout::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-color: var(--bg-primary);
-  transition: background-color 0.3s;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* 背景图之上的文字可读性遮罩 — 亮/暗随 --bg-page-overlay 自适应 */
-.layout::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: var(--bg-page-overlay);
-  z-index: -1;
-  pointer-events: none;
 }
 
 .main-content {
@@ -59,49 +40,12 @@ useLayoutSeo();
   margin: 0 auto;
   width: 100%;
   position: relative;
-  z-index: 1;
 }
 
 /* 真机（≤480px）：收窄左右留白，提升屏幕利用率（与顶栏 / 页脚同步） */
 @media (max-width: 480px) {
   .main-content {
     padding: $spacing-3 $layout-gutter-mobile $spacing-6;
-  }
-}
-</style>
-
-<style lang="scss">
-/* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
-.layout {
-  background-image: var(--site-bg-light);
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-html.dark .layout {
-  background-image: var(--site-bg-dark, var(--site-bg-light));
-}
-
-/* 在移动端使用更轻量的背景处理：
-   cover 在窄屏会把图片横向裁剪、焦点偏移，改为中心覆盖并锁定两端，
-   保证亮/暗两套背景都能完整显示、焦点居中。
-   背景图优先用移动端专用图，未配置时回退桌面图（JS 侧未配置时会移除变量，
-   否则写入 none 会让第二个 var() 参数失效）。 */
-@media (max-width: 768px) {
-  .layout {
-    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
-    background-attachment: scroll;
-    background-size: cover;
-    background-position: center center;
-  }
-
-  html.dark .layout {
-    background-image: var(
-      --site-bg-dark-mobile,
-      var(--site-bg-dark, var(--site-bg-light))
-    );
   }
 }
 </style>

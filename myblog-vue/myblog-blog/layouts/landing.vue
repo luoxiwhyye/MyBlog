@@ -27,7 +27,8 @@ useLayoutSeo();
   position: relative;
   background-color: var(--bg-primary);
   transition: background-color 0.3s;
-  /* 自身形成层叠上下文，让背景遮罩(z:-1)压在图之上、内容之下 */
+  /* 自身形成层叠上下文：约束内部 fixed / z-index 的作用范围。
+     页面背景图与遮罩挂在 body 上（见 assets/css/base/_page-backdrop.scss）。 */
   isolation: isolate;
 }
 
@@ -67,46 +68,5 @@ useLayoutSeo();
   /* 页脚是纯色底不需要阴影；欢迎页背景是图片，
      给偏浅的 --text-muted 文字补一层阴影，保证备案号真能被看清 */
   text-shadow: var(--text-shadow-on-bg);
-}
-
-/* 背景图之上的文字可读性遮罩 — 亮/暗随 --bg-page-overlay 自适应 */
-.landing::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: var(--bg-page-overlay);
-  z-index: -1;
-  pointer-events: none;
-}
-</style>
-
-<style lang="scss">
-/* 背景图片 — 通过 CSS 变量控制，主题切换时自动变换 */
-.landing {
-  background-image: var(--site-bg-light);
-  background-size: cover;
-  background-attachment: fixed;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-html.dark .landing {
-  background-image: var(--site-bg-dark, var(--site-bg-light));
-}
-
-@media (max-width: 768px) {
-  .landing {
-    /* 优先用移动端专用图，未配置时回退桌面图 */
-    background-image: var(--site-bg-light-mobile, var(--site-bg-light));
-    background-attachment: scroll;
-    background-size: auto 100%;
-  }
-
-  html.dark .landing {
-    background-image: var(
-      --site-bg-dark-mobile,
-      var(--site-bg-dark, var(--site-bg-light))
-    );
-  }
 }
 </style>
