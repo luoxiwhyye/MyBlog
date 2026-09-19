@@ -86,8 +86,16 @@ services:
       - "${BIND_ADDR:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
+    environment:
+      # 让容器内的 redis-cli（含下面的健康检查）自动带上密码。
+      # 不设这一项时，--requirepass 生效后 `redis-cli ping` 只会返回 NOAUTH，stdout 里没有 PONG
+      # → 健康检查会误报 unhealthy（服务其实是好的），进而卡住依赖它的 myblog-backend。
+      # 另外要注意：ping 失败时 redis-cli 的**退出码仍是 0**，所以判据必须是「输出里有 PONG」。
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # 特意不用 `redis-cli ping`（退出码不足以判定），而是要求真正收到 PONG。
+      # 密码为空时 redis-cli 会因「已设置空的 REDISCLI_AUTH」往 stderr 抱怨一句，这里一并丢弃。
+      test: ["CMD-SHELL", "redis-cli ping 2>/dev/null | grep -q PONG"]
       interval: 10s
       timeout: 3s
       retries: 5

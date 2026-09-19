@@ -108,6 +108,24 @@ const env = parseEnvFile(ENV_FILE);
 const get = (key) => (env[key] ?? "").trim();
 const set = (key) => get(key) !== "";
 
+// 未替换的占位符（形如 __DB_PASSWORD__）必须当成「没填」：否则它的长度、非空都能骗过下面
+// 每一项检查，最后得到一个「全部通过」的假结论。
+const PLACEHOLDER = /^__[A-Z0-9_]+__$/;
+const placeholders = Object.entries(env)
+  .filter(([, v]) => PLACEHOLDER.test((v ?? "").trim()))
+  .map(([k]) => k);
+if (placeholders.length > 0) {
+  error(
+    `以下配置项仍是未替换的占位符：${placeholders.join(" / ")}`,
+    "用 .env.docker 顶部注释里给的两条命令替换（密钥在本地生成，不必经过任何第三方）",
+  );
+}
+/** 判断某项是否「有效配置」：非空且不是占位符 */
+const filled = (key) => {
+  const value = get(key);
+  return value !== "" && !PLACEHOLDER.test(value);
+};
+
 // ─────────────────────────────────────────────
 // 复用运行时实现的判定规则（避免两套口径）
 // ─────────────────────────────────────────────
@@ -168,11 +186,14 @@ const FORBIDDEN_SECRETS = {
 
 const checkSecret = (key, { minLength, why }) => {
   const value = get(key);
-  if (!value) {
-    error(
-      `${key} 未配置${why ? `（${why}）` : ""}`,
-      `${key} 留空时 docker-compose.yml 会采用兜底默认值，必须显式填一个随机值`,
-    );
+  if (!filled(key)) {
+    // 占位符已由上面的总检查报过，这里不重复报同一件事
+    if (!PLACEHOLDER.test(value)) {
+      error(
+        `${key} 未配置${why ? `（${why}）` : ""}`,
+        `${key} 留空时 docker-compose.yml 会采用兜底默认值，必须显式填一个随机值`,
+      );
+    }
     return;
   }
   if (FORBIDDEN_SECRETS[key].includes(value)) {
@@ -268,11 +289,13 @@ const isLoopbackish = (v) =>
 // 2.1 VITE_API_BASE —— 浏览器直连（构建期注入）
 {
   const value = get("VITE_API_BASE");
-  if (!value) {
-    error(
-      "VITE_API_BASE 未配置（后台的浏览器直连地址）",
-      "反向代理同源部署填 /api/v1；不填会落到 compose 兜底的容器服务名，浏览器解析不了",
-    );
+  if (!filled("VITE_API_BASE")) {
+    if (!PLACEHOLDER.test(value)) {
+      error(
+        "VITE_API_BASE 未配置（后台的浏览器直连地址）",
+        "反向代理同源部署填 /api/v1；不填会落到 compose 兜底的容器服务名，浏览器解析不了",
+      );
+    }
   } else if (CONTAINER_HOSTS.some((h) => value.includes(h))) {
     error(
       "VITE_API_BASE 含容器服务名，浏览器无法解析（表现为「后台能开页面，一登录就转圈」）",
@@ -291,11 +314,13 @@ const isLoopbackish = (v) =>
 // 2.2 APP_BASE_URL —— 入库图片的绝对地址前缀
 {
   const value = get("APP_BASE_URL");
-  if (!value) {
-    error(
-      "APP_BASE_URL 未配置，新上传的图片会以 http://localhost:3000/uploads/... 入库",
-      "后台把库里的地址直接绑到 <img src>，会表现为封面 / 头像 / 表情全部裂掉；填站点域名",
-    );
+  if (!filled("APP_BASE_URL")) {
+    if (!PLACEHOLDER.test(value)) {
+      error(
+        "APP_BASE_URL 未配置，新上传的图片会以 http://localhost:3000/uploads/... 入库",
+        "后台把库里的地址直接绑到 <img src>，会表现为封面 / 头像 / 表情全部裂掉；填站点域名",
+      );
+    }
   } else if (!isHttpUrl(value)) {
     error(
       "APP_BASE_URL 必须是带协议的完整地址",
@@ -326,8 +351,12 @@ const isLoopbackish = (v) =>
 // 2.3 SITE_URL —— 邮件里链接的前缀（收信人视角）
 {
   const value = get("SITE_URL");
-  if (!value) {
-    error("SITE_URL 未配置：邮件里的链接会渲染成 /article/1，收信人点开是空页");
+  if (!filled("SITE_URL")) {
+    if (!PLACEHOLDER.test(value)) {
+      error(
+        "SITE_URL 未配置：邮件里的链接会渲染成 /article/1，收信人点开是空页",
+      );
+    }
   } else if (mailboxRules) {
     const reason = mailboxRules.undeliverableSiteUrlReason(value);
     if (reason) {
@@ -352,11 +381,13 @@ const isLoopbackish = (v) =>
     ["ADMIN_ORIGIN", admin],
   ];
   for (const [key, value] of origins) {
-    if (!value) {
-      error(
-        `${key} 未配置：CORS 白名单为空时，前端请求会被整体拦下`,
-        "填页面实际 origin，含协议与端口，末尾不要带斜杠",
-      );
+    if (!filled(key)) {
+      if (!PLACEHOLDER.test(value)) {
+        error(
+          `${key} 未配置：CORS 白名单为空时，前端请求会被整体拦下`,
+          "填页面实际 origin，含协议与端口，末尾不要带斜杠",
+        );
+      }
       continue;
     }
     if (!isHttpUrl(value)) {
@@ -567,29 +598,24 @@ const fmtOffset = (minutes) => {
 // ─────────────────────────────────────────────
 
 {
-  const host = get("SMTP_HOST");
-  const user = get("SMTP_USER");
-  const pass = get("SMTP_PASS");
   const port = get("SMTP_PORT") || "465";
   const secure = get("SMTP_SECURE").toLowerCase();
-  const configured = Boolean(host && user && pass);
+  const smtpKeys = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"];
+  const smtpFilled = smtpKeys.filter((k) => filled(k));
+  const smtpPlaceholder = smtpKeys.filter((k) => PLACEHOLDER.test(get(k)));
 
-  if (!host && !user && !pass) {
+  if (smtpPlaceholder.length > 0) {
+    // 占位符已由总检查报出，这里不重复
+  } else if (smtpFilled.length === 0) {
     warn(
       "SMTP 未配置：评论 / 回复 / 留言的邮件通知会停用（后台「邮件通知」面板显示 disabled）",
       "要启用就填齐 SMTP_HOST、SMTP_USER、SMTP_PASS 三项后重启后端",
     );
-  } else if (!configured) {
-    const missing = [
-      ["SMTP_HOST", host],
-      ["SMTP_USER", user],
-      ["SMTP_PASS", pass],
-    ]
-      .filter(([, v]) => !v)
-      .map(([k]) => k);
+  } else if (smtpFilled.length < 3) {
+    const missing = smtpKeys.filter((k) => !filled(k));
     error(
       `SMTP 配置不完整（缺 ${missing.join(" / ")}），判定为「未启用」→ 通知静默不发`,
-      "三项必须齐全，改完 docker compose restart myblog-backend",
+      "三项必须齐全（只配主机等于没配），改完 docker compose restart myblog-backend",
     );
   } else {
     ok("SMTP 三项齐全");
@@ -615,11 +641,14 @@ const fmtOffset = (minutes) => {
 
   // 收件人：blogger.email 不在 .env 里（在库里），这里只能检查模板里的初始值
   const bloggerEmail = get("BLOGGER_EMAIL");
-  if (bloggerEmail) {
+  if (filled("BLOGGER_EMAIL")) {
     if (mailboxRules) {
       const reason = mailboxRules.undeliverableReason(bloggerEmail);
       if (reason) {
-        const level = configured ? "error" : "warn";
+        const level =
+          filled("SMTP_HOST") && filled("SMTP_USER") && filled("SMTP_PASS")
+            ? "error"
+            : "warn";
         add(
           level,
           `BLOGGER_EMAIL 不可送达：${reason}`,
@@ -652,11 +681,13 @@ const fmtOffset = (minutes) => {
 
 {
   const remote = get("RCLONE_REMOTE");
-  if (!remote) {
-    warn(
-      "RCLONE_REMOTE 未配置：备份只留在本机备份目录，宿主机磁盘损坏即全部丢失",
-      "配置对象存储后填 rclone 远端名，例如 oss:myblog-backup（备份脚本会自动同步）",
-    );
+  if (!filled("RCLONE_REMOTE")) {
+    if (!PLACEHOLDER.test(remote)) {
+      warn(
+        "RCLONE_REMOTE 未配置：备份只留在本机备份目录，宿主机磁盘损坏即全部丢失",
+        "配置对象存储后填 rclone 远端名，例如 oss:myblog-backup（备份脚本会自动同步）",
+      );
+    }
   } else {
     ok(`备份会同步到对象存储（${remote}）`);
   }

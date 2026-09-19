@@ -405,10 +405,29 @@ bash /scripts/backup-uploads.sh
 > 定时任务默认 `30 2 * * *`（可用 `UPLOAD_BACKUP_CRON` 覆盖）。恢复方式：`tar -xzf <归档> -C <目标父目录>`（归档内是 `uploads/` 前缀）。
 >
 > **异地备份（对象存储 / 另一台机器）**：在 `myblog-backup` 容器里内置了 `rclone`，
-> 配置好远端后在 `.env.docker` 里填 `RCLONE_REMOTE=oss:myblog-backup`（或 `s3:` / `b2:` 等），
-> 每次备份会自动同步上去；**同步失败会让备份任务返回非 0**（不会静默留下一份「只在本机」的备份）。
-> 配置目录默认从宿主机 `/root/.config/rclone` 只读挂进容器（可用 `RCLONE_CONFIG_DIR` 改路径），
-> 所以在宿主机上跑 `rclone config` 即可；不是 root 部署时记得改这个路径。
+> 配置好远端后在 `.env.docker` 里填 `RCLONE_REMOTE`，每次备份会自动同步上去；
+> **同步失败会让备份任务返回非 0**（不会静默留下一份「只在本机」的备份）。
+>
+> `RCLONE_REMOTE` 的格式是 **`<远端名>:<桶名>[/<前缀目录>]`**。其中
+> **「远端名」是你在 rclone 里自己起的名字**（配置文件 `rclone.conf` 里 `[名字]` 段的键名，叫什么都行）；
+> 桶名要填服务商给的**真实桶名**（腾讯云 COS 形如 `bucket-125xxxxxxx`）。
+>
+> ```bash
+> # 远端名取 myoss，一条命令建好（不必走交互向导）
+> rclone config create myoss oss provider Alibaba \
+>   access_key_id <AK> access_key_secret <SK> endpoint oss-cn-hangzhou.aliyuncs.com
+> rclone config create myoss cos provider TencentCOS \
+>   secret_id <Id> secret_key <Key> endpoint cos.ap-guangzhou.myqcloud.com
+> rclone config create myoss s3  provider Cloudflare \
+>   access_key_id <AK> secret_access_key <SK> endpoint https://<账号ID>.r2.cloudflarestorage.com
+>
+> rclone lsd myoss:                  # 能列出桶 → 凭据正确
+> rclone mkdir myoss:myblog-backup   # 桶不存在就建一个
+> # 于是 .env.docker 里填：RCLONE_REMOTE=myoss:myblog-backup
+> ```
+>
+> ⚠️ rclone 必须在**服务器上以 root** 跑（容器只读挂载宿主机的 `/root/.config/rclone`，
+> 非 root 部署用 `RCLONE_CONFIG_DIR` 改路径）；**桶保持私有**，别开公共读 —— 备份文件等于整库数据。
 
 > 备份目录挂载在 Docker 卷 `backup-data`，容器宿主机也可挂载到本地持久化目录。
 > 定时备份默认每天 `02:00` 触发（`BACKUP_CRON` 可在 `.env.docker` 覆盖），
