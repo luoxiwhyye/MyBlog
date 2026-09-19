@@ -219,7 +219,11 @@
               @reply-submitted="refreshComments"
             />
 
-            <el-empty v-if="!comments.length" description="暂无评论，欢迎留下第一条讨论" />
+            <EmptyState
+              v-if="!comments.length"
+              variant="plain"
+              message="暂无评论，欢迎留下第一条讨论"
+            />
           </div>
 
           <div v-if="commentPagination.total > commentPagination.pageSize" class="comments-pagination">
@@ -1034,7 +1038,7 @@ usePageSeo({
     () =>
       article.value?.summary ||
       truncateText(stripHtml(article.value?.content || ""), 160) ||
-      "查看博客文章详情。",
+      "查看网站文章详情。",
   ),
   image: computed(() => article.value?.coverImage),
   type: "article",

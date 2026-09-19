@@ -58,14 +58,19 @@ const emit = defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "../../assets/css/abstracts/variables" as *;
+@use "../../assets/css/abstracts/mixins" as *;
+
+/* 错误态与 EmptyState 是同一页上互斥出现的两个结果态（加载失败 vs 没有内容），
+   载体必须一致 —— 这里走同一个卡片配方。 */
 .app-error {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 64px 20px;
-  gap: 12px;
+  gap: $spacing-3;
+  @include card-glass($spacing-16 $spacing-5);
 }
 
 .error-icon {
@@ -75,10 +80,9 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--bg-card);
+  background: transparent;
   border: 1px solid var(--border-light);
   color: var(--color-danger);
-  box-shadow: var(--shadow-card);
   margin-bottom: 4px;
 }
 

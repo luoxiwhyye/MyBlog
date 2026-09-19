@@ -14,11 +14,12 @@
   </div>
 
   <div v-else class="not-found">
-    <el-result icon="warning" title="工具不存在" sub-title="请从工具箱首页重新选择可用工具。">
-      <template #extra>
-        <NuxtLink to="/tools" class="back-link">返回工具箱</NuxtLink>
-      </template>
-    </el-result>
+    <EmptyState
+      message="工具不存在"
+      description="请从工具箱首页重新选择可用工具。"
+      action-text="返回工具箱"
+      action-to="/tools"
+    />
   </div>
 </template>
 
@@ -59,7 +60,7 @@ useSeoMeta({
   title: () => (toolMeta.value ? `${toolMeta.value.name} - 编程工具箱` : "工具不存在"),
   description: () =>
     toolMeta.value
-      ? `${toolMeta.value.description} MyBlog 工具箱页面保持客户端渲染，不影响博客主体 SSR。`
+      ? `${toolMeta.value.description}工具箱，提供在线使用的辅助编程工具。`
       : "MyBlog 编程工具箱",
   robots: "index,follow",
 });
@@ -68,15 +69,5 @@ useSeoMeta({
 <style lang="scss" scoped>
 .not-found {
   padding: 40px 0;
-}
-
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-radius: 999px;
-  background: var(--color-accent);
-  color: var(--bg-card);
-  text-decoration: none;
 }
 </style>

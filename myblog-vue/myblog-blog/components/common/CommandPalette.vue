@@ -167,7 +167,6 @@ const { isOpen, close, toggle } = useCommandPalette();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const settingsStore = useSettingsStore();
 
 const keyword = ref("");
 const results = ref<PaletteItem[]>([]);
@@ -184,10 +183,9 @@ let fetchSeq = 0;
 let bodyLocked = false;
 
 /** 空关键词时的快速跳转（与 Header 导航同一套，并遵循功能开关） */
-const quickCommands = computed<PaletteItem[]>(() => {
-  const featureEnabled = (key: string) =>
-    settingsStore.getSetting(key) !== "false";
+const { isEnabled } = useFeatureFlags();
 
+const quickCommands = computed<PaletteItem[]>(() => {
   const base = [
     { to: "/home", label: t("nav.home") },
     { to: "/category", label: t("nav.category") },
@@ -198,8 +196,8 @@ const quickCommands = computed<PaletteItem[]>(() => {
     { to: "/message-board", label: t("nav.messageBoard") },
     { to: "/about", label: t("nav.about") },
   ].filter((item) => {
-    if (item.to === "/tools") return featureEnabled("enable_tools");
-    if (item.to === "/message-board") return featureEnabled("enable_message_board");
+    if (item.to === "/tools") return isEnabled("enable_tools");
+    if (item.to === "/message-board") return isEnabled("enable_message_board");
     return true;
   });
 

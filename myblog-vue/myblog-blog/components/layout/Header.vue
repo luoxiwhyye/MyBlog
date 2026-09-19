@@ -85,9 +85,9 @@ const handleDrawerClosed = () => {
 
 await settingsStore.ensureSettings();
 
-// 主导航项：桌面内联展示，移动端抽屉复用
-// 功能开关：未配置（''）视为启用；仅显式 'false' 才隐藏对应入口
-const featureEnabled = (key: string) => settingsStore.getSetting(key) !== "false";
+// 主导航项：桌面内联展示，移动端抽屉复用。
+// 功能开关判定统一走 useFeatureFlags（与命令面板、关于页 CTA 同源）。
+const { isEnabled } = useFeatureFlags();
 
 const navItems = computed(() => {
   const base = [
@@ -101,8 +101,8 @@ const navItems = computed(() => {
     { to: "/about", label: t("nav.about") },
   ];
   return base.filter((item) => {
-    if (item.to === "/tools") return featureEnabled("enable_tools");
-    if (item.to === "/message-board") return featureEnabled("enable_message_board");
+    if (item.to === "/tools") return isEnabled("enable_tools");
+    if (item.to === "/message-board") return isEnabled("enable_message_board");
     return true;
   });
 });

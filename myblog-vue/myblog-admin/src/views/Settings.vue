@@ -674,6 +674,16 @@ const groups: GroupConfig[] = [
         type: 'text',
         placeholder: '请输入网站名称',
         required: true,
+        description:
+          '浏览器标签页标题的前半段（全站固定），同时用作顶栏站名与分享卡片中的网站名。建议与备案名称保持一致。',
+      },
+      {
+        key: 'site_subtitle',
+        label: '网站副标题',
+        type: 'text',
+        placeholder: '如：一个普通人的技术自留地',
+        description:
+          '标签页标题的后半段（首页与欢迎页使用），即你自己更想要的那个标题。留空时首页标签页只显示网站名称。',
       },
       {
         key: 'site_established',
@@ -686,22 +696,14 @@ const groups: GroupConfig[] = [
         key: 'site_description',
         label: '网站描述',
         type: 'textarea',
-        placeholder: '一句话介绍你的博客',
+        placeholder: '一句话介绍你的网站',
       },
       {
         key: 'site_icp',
         label: 'ICP 备案号',
         type: 'text',
         placeholder: '如：京ICP备XXXXXXXX号',
-        description: '显示在页脚，为空则不显示。',
-      },
-      {
-        key: 'site_admin_url',
-        label: '后台入口',
-        type: 'text',
-        placeholder: '如：https://admin.example.com 或 /admin/',
-        description:
-          '前台页脚的文字入口，为空则不显示。可填完整 URL（生产环境前后台不同域时用这个），也可填相对路径（需反向代理到后台）。',
+        description: '显示在前台页脚与后台登录页，为空则不显示。',
       },
       {
         key: 'enable_tools',

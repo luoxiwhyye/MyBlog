@@ -29,7 +29,7 @@ export const zh = {
   },
   category: {
     title: "分类",
-    description: "浏览博客的全部文章分类，按主题快速查找内容。",
+    description: "浏览网站的全部文章分类，按主题快速查找内容。",
     empty: "暂无分类",
     emptyDesc: "还没有包含文章的分类，欢迎常回来看看。",
     notFound: "分类详情",
@@ -71,7 +71,7 @@ export const zh = {
   },
   home: {
     hero: {
-      welcome: "欢迎来到我的博客",
+      welcome: "欢迎来到我的网站",
       latest: "最新文章",
       latestBadge: "最新",
       hot: "热门文章",
@@ -95,7 +95,7 @@ export const zh = {
   },
   about: {
     title: "关于我",
-    description: "关于这个博客与它的作者。",
+    description: "关于这个网站与它的作者。",
     siteInfo: "网站信息",
     siteName: "网站名称",
     siteDescription: "网站描述",
@@ -167,7 +167,6 @@ export const zh = {
   },
   footer: {
     rights: "All rights reserved.",
-    adminEntry: "后台管理",
   },
   siteIcp: {
     linkTitle: "在工信部备案系统查验",
@@ -374,7 +373,6 @@ export const en: typeof zh = {
   },
   footer: {
     rights: "All rights reserved.",
-    adminEntry: "Admin",
   },
   siteIcp: {
     linkTitle: "Verify this ICP filing at the MIIT registry",

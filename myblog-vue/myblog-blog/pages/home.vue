@@ -207,13 +207,17 @@ const handleTypeFilter = (id: number | "") => {
   currentPage.value = 1;
 };
 
-const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
 const siteDescription = computed(
-  () => settingsStore.getSetting("site_description") || "一个个人博客",
+  () => settingsStore.getSetting("site_description") || "一个个人网站",
+);
+// 标题后段 = 站长自己起的副标题（标题前段固定是站点名，见 useLayoutSeo 的 titleTemplate）。
+// 未配置副标题时传 undefined，标题只显示站点名，不出现「A | A」式的自重复。
+const siteSubtitle = computed(
+  () => settingsStore.getSetting("site_subtitle") || undefined,
 );
 
 usePageSeo({
-  title: computed(() => siteName.value),
+  title: siteSubtitle,
   description: siteDescription,
 });
 useWebsiteJsonLd();
@@ -440,6 +444,8 @@ useWebsiteJsonLd();
   margin: 0;
   color: var(--text-secondary);
   line-height: $line-height-relaxed;
+  /* 保留后台输入的换行（与公告栏同一口径；HTML 默认会把 \n 折叠成空格） */
+  white-space: pre-line;
 }
 
 .profile-links {

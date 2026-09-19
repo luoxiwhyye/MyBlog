@@ -138,6 +138,9 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 备案信息：合规项，压在品牌渐变上用固定浅色（不跟随后台明暗主题） -->
+    <SiteIcp class="login-icp" />
   </div>
 </template>
 
@@ -149,6 +152,7 @@ import { User, Lock, Message } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useSettingsStore } from '@/stores/settings'
 import { blogger } from '@/api'
+import SiteIcp from '@/components/SiteIcp.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -322,6 +326,27 @@ onMounted(() => {
   align-items: center;
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* 备案号绝对定位到底部（登录卡片垂直居中，不把它挤下去） */
+  position: relative;
+}
+
+/* 登录页背景是固定的品牌渐变，其上的文字不跟随后台明暗主题。
+   选择器带上 .login-container 是为了稳定压过后台 SiteIcp 组件内的默认颜色 ——
+   同特异度的两条声明只靠注入顺序决定胜负，不可靠。 */
+.login-container .login-icp {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  text-align: center;
+  color: var(--text-on-brand);
+  opacity: 0.85;
+}
+
+.login-container .login-icp:hover,
+.login-container .login-icp:focus-visible {
+  color: var(--text-on-brand);
+  opacity: 1;
 }
 
 .login-card {

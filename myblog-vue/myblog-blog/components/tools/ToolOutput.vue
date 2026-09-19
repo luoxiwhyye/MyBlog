@@ -14,9 +14,10 @@
       class="output-alert"
     />
 
-    <el-empty
+    <EmptyState
       v-else-if="!props.loading && !props.output && !props.details"
-      description="输入内容后将自动处理并在这里展示结果"
+      variant="plain"
+      message="输入内容后将自动处理并在这里展示结果"
     />
 
     <template v-else>

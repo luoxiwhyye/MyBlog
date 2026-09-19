@@ -183,8 +183,11 @@ export const useLayoutSeo = () => {
   });
 
   useHead(() => ({
+    // 标题的**前段固定是站点名（主标题 / 备案名称）**，后段是页面自己的标题：
+    // 首页与欢迎页传 `site_subtitle`（副标题），其余页面传各自的子模块名
+    // （归档 / 分类 / 标签 / 关于 …）。页面不传标题时只输出站点名，不出现分隔符。
     titleTemplate: (titleChunk: string | undefined) =>
-      titleChunk ? `${titleChunk} | ${siteName.value}` : siteName.value,
+      titleChunk ? `${siteName.value} | ${titleChunk}` : siteName.value,
     meta: [
       { name: "description", content: siteDescription.value },
       { property: "og:locale", content: "zh_CN" },

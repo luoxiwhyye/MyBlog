@@ -57,8 +57,9 @@
       </div>
     </section>
 
-    <!-- CTA：和我说句话（留言板） -->
-    <section class="about-cta">
+    <!-- CTA：和我说句话（留言板）。留言板关闭时整块不渲染 —— 否则会把访客
+         引到一个只剩「已关闭」提示的页面，比入口不存在更差。 -->
+    <section v-if="isEnabled('enable_message_board')" class="about-cta">
       <div class="cta-text">
         <h3>{{ t('about.ctaTitle') }}</h3>
         <p>{{ t('about.ctaDesc') }}</p>
@@ -109,12 +110,13 @@ import type { FriendLink } from "~/types";
 const settingsStore = useSettingsStore();
 const bloggerStore = useBloggerStore();
 const { t } = useI18n();
+const { isEnabled } = useFeatureFlags();
 
 await Promise.all([settingsStore.ensureSettings(), bloggerStore.ensureProfile()]);
 
 const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog");
 const siteDescription = computed(
-  () => settingsStore.getSetting("site_description") || "一个个人博客",
+  () => settingsStore.getSetting("site_description") || "一个个人网站",
 );
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
@@ -292,6 +294,8 @@ usePageSeo({
 .bio {
   color: var(--text-secondary);
   line-height: $line-height-relaxed;
+  /* 保留后台输入的换行（与公告栏同一口径） */
+  white-space: pre-line;
 }
 
 .social-links {

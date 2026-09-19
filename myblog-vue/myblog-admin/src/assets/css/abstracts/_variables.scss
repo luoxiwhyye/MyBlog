@@ -142,6 +142,9 @@ $glass-blur: 12px;
   --color-accent: #475569;
   --color-accent-light: rgba(241, 245, 249, 0.9);
   --color-accent-deep: #1e293b;
+  /* 压在品牌填充面 / 品牌渐变上的文字色（亮暗同值）。
+     登录页背景是一层固定的品牌渐变，其上的文字不能跟随页面主题变深变浅。 */
+  --text-on-brand: #ffffff;
 }
 
 html.dark {
@@ -160,4 +163,5 @@ html.dark {
   --color-accent: #cbd5e1;
   --color-accent-light: rgba(51, 65, 85, 0.9);
   --color-accent-deep: #f1f5f9;
+  --text-on-brand: #ffffff;
 }

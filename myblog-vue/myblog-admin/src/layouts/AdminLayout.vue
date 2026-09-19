@@ -139,7 +139,10 @@
 
       <!-- 底部 -->
       <el-footer class="footer">
-        © 2026 MyBlog 后台管理系统 · 用心记录每一次思考
+        <SiteIcp />
+        <span class="footer-copy"
+          >&copy; {{ currentYear }} {{ siteName }} 后台管理系统 · 用心记录每一次思考</span
+        >
       </el-footer>
     </el-container>
   </el-container>
@@ -170,6 +173,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { useThemeStore } from '@/stores/theme'
 import { ElMessageBox } from 'element-plus'
 import { dashboard } from '@/api'
+import SiteIcp from '@/components/SiteIcp.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,6 +184,7 @@ const themeStore = useThemeStore()
 const isCollapse = ref(false)
 const siteName = computed(() => settingsStore.getSetting('site_name') || 'MyBlog')
 const siteLogo = computed(() => settingsStore.getSetting('site_logo'))
+const currentYear = new Date().getFullYear()
 
 // ===== 未读提醒（评论 / 留言待审核红点）=====
 const unread = ref<{ comments: number; messages: number }>({ comments: 0, messages: 0 })
@@ -488,5 +493,7 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: $spacing-3;
+  flex-wrap: wrap;
 }
 </style>

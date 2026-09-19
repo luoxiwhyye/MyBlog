@@ -21,7 +21,7 @@
         />
       </div>
 
-      <NuxtLink to="/home" class="enter-btn">进入博客</NuxtLink>
+      <NuxtLink to="/home" class="enter-btn">进入网站</NuxtLink>
     </div>
   </div>
 </template>
@@ -42,7 +42,7 @@ const siteName = computed(() => settingsStore.getSetting("site_name") || "MyBlog
 const siteDescription = computed(
   () =>
     settingsStore.getSetting("site_description") ||
-    "一个专注于技术内容、笔记与生活记录的个人博客。",
+    "一个专注于技术内容、笔记与生活记录的个人网站。",
 );
 const authorName = computed(() => bloggerStore.nickname());
 const bio = computed(() => bloggerStore.bio());
@@ -84,8 +84,14 @@ const onMouseMove = (e: MouseEvent) => {
 onMounted(() => window.addEventListener("mousemove", onMouseMove, { passive: true }));
 onBeforeUnmount(() => window.removeEventListener("mousemove", onMouseMove));
 
+// 标题后段 = 站长自己起的副标题（标题前段固定是站点名，见 useLayoutSeo 的 titleTemplate）。
+// 未配置副标题时传 undefined，标题只显示站点名，不出现「A | A」式的自重复。
+const siteSubtitle = computed(
+  () => settingsStore.getSetting("site_subtitle") || undefined,
+);
+
 usePageSeo({
-  title: computed(() => siteName.value),
+  title: siteSubtitle,
   description: computed(() => siteDescription.value),
   image: avatar,
 });
@@ -204,6 +210,8 @@ usePageSeo({
   color: var(--text-secondary);
   line-height: 1.8;
   margin: 0;
+  /* 保留后台输入的换行（与公告栏同一口径） */
+  white-space: pre-line;
   /* 说明文字原先是全页唯一没有阴影的裸文字（实测亮色下平均 4.35:1、压图上最暗处
      仅 1.45:1）。字号小时更依赖衜底与阴影，两者都要给。 */
   text-shadow: var(--text-shadow-on-bg);

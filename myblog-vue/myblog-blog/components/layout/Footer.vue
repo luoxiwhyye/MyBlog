@@ -1,30 +1,14 @@
 <template>
   <footer class="footer">
     <div class="container">
-      <!-- 上行：站点标语（居中，允许换行） -->
+      <!-- 自上而下三行：备案号 → 版权 → 站点描述。
+           备案是合规信息，放最上；三项都为「未配置即不渲染」，
+           由 container 的 flex 列布局均分间距，配置缺省时也不留空洞。 -->
+      <SiteIcp />
+      <p class="copyright">
+        &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
+      </p>
       <p v-if="siteDescription" class="slogan">{{ siteDescription }}</p>
-
-      <!-- 下行：版权 + 备案号 + 后台入口，成组居中并排。
-           两项可选项都是「未配置即不渲染」，flex + gap 让配置缺省时也不留空洞。 -->
-      <div class="footer-meta">
-        <p class="copyright">
-          &copy; {{ new Date().getFullYear() }} {{ siteAuthor || "MyBlog" }}. {{ t('footer.rights') }}
-        </p>
-        <!-- 备案号：未配置时不渲染（详见 components/common/SiteIcp.vue） -->
-        <SiteIcp />
-        <!-- 后台入口：站长工具，不占主导航（避免破坏访客信息层级）。
-             链接目标由「后台 → 基本设置 → 后台入口」决定（可填完整 URL 或相对路径），
-             未配置时整项不渲染，不占位也不留空白。 -->
-        <a
-          v-if="siteAdminUrl"
-          class="footer-admin"
-          :href="siteAdminUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {{ t('footer.adminEntry') }}
-        </a>
-      </div>
     </div>
   </footer>
 </template>
@@ -40,7 +24,6 @@ const siteAuthor = computed(() => bloggerStore.nickname());
 const siteDescription = computed(
   () => settingsStore.getSetting("site_description") || "",
 );
-const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
 </script>
 
 <style lang="scss" scoped>
@@ -105,9 +88,8 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
    （原先 max-width 1400px vs 正文 1200px，实测文字错位 103px）。
    两处共用 $layout-max-width / $layout-gutter，避免再次各自漂移。
 
-   两行分层：上行 slogan 居中、下行元信息成组居中。
-   ⚠️ 不要改回 `space-between` 的左右两块 —— 1200px 容器里常见文案下中间会留 ≥400px 空档，
-   且单段 slogan 会被 `align-items: center` 对齐到两行块的整体中线，既没贴版权也没贴 meta。 */
+   三行分层：备案 / 版权 / 描述自上而下，靠 flex 列 + gap 均分间距；
+   不用 space-between —— 1200px 容器下三行会被拉到上下贴边、中间留下大片空白。 */
 .container {
   width: 100%;
   max-width: $layout-max-width;
@@ -115,6 +97,7 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: $spacing-3;
   padding: 0 $layout-gutter;
 }
@@ -123,27 +106,6 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
   color: var(--text-primary);
   margin: 0;
   transition: color 0.3s;
-}
-
-/* 版权行与元信息（备案号 + 后台入口）成组居中并排（原先是「版权在上、元信息在下」两行）。 */
-.footer-meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: $spacing-3;
-}
-
-.footer-admin {
-  font-size: $font-size-sm;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color 0.3s;
-}
-
-.footer-admin:hover {
-  color: var(--color-category-strong);
-  text-decoration: underline;
 }
 
 .slogan {
@@ -159,7 +121,7 @@ const siteAdminUrl = computed(() => settingsStore.getSetting("site_admin_url"));
 @media (max-width: 480px) {
   .container {
     padding: 0 $layout-gutter-mobile;
-    /* 两行之间的间距也收紧一档（页脚实测 127px，其中上下 padding 占 41.9px） */
+    /* 三行之间的间距也收紧一档（页脚实测 127px，其中上下 padding 占 41.9px） */
     gap: $spacing-2;
   }
 

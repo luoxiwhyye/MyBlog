@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   // 站点信息（settings 驱动，失败回退默认）
   let siteTitle = "MyBlog";
-  let siteDescription = "个人技术博客";
+  let siteDescription = "个人技术网站";
   try {
     const apiBase = (
       runtimeConfig.apiBase || "http://localhost:3000/api/v1"

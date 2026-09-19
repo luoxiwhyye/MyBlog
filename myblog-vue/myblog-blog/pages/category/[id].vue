@@ -113,7 +113,7 @@ watch(categoryId, () => {
 
 usePageSeo({
   title: computed(() => categoryName.value),
-  description: computed(() => `${categoryName.value} 分类下的博客文章列表。`),
+  description: computed(() => `${categoryName.value} 分类下的网站文章列表。`),
 });
 
 // 面包屑结构化数据（BreadcrumbList）
