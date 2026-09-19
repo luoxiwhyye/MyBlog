@@ -84,6 +84,13 @@ cp .env.docker.example .env.docker
 vim .env.docker
 ```
 
+配置改完后可以先用自检脚本过一遍 —— 它会指出「漏配后容器照样能起、但功能是坏的」那些项
+（密钥仍是模板值 / 地址填成容器服务名 / 时区不同区 / SMTP 缺项 / `SITE_URL` 收信人打不开 等）：
+
+```bash
+node scripts/preflight.mjs                 # 退出码 0 = 无阻断项；有问题会逐条给出改法
+```
+
 **必须修改的配置项：**
 
 ```env
@@ -92,18 +99,25 @@ DB_PASSWORD=your-strong-password-here
 JWT_SECRET=change-me-to-a-random-string-at-least-32-chars
 MEILI_MASTER_KEY=your-random-meili-key
 
-# 博主邮箱（默认 admin@example.com 是保留域名，通知必退信）
+# 博主初始口令（空库首启会用它创建账号；默认 admin123 等同无密码）
+BLOGGER_PASSWORD=your-strong-password-here
+
+# 博主邮箱（默认 admin@example.com 是保留域名、无 MX 记录，通知必退信）
 BLOGGER_EMAIL=you@example.com
 
 # 地址类：按「是否用反向代理」二选一，详见「配置说明 → 站点信息」
-# ① IP 直连部署：
-VITE_API_BASE=http://<服务器IP>:3000/api/v1
-APP_BASE_URL=http://<服务器IP>:3000
-SITE_URL=http://<服务器IP>:3001
-# ② 反向代理部署：VITE_API_BASE=/api/v1、APP_BASE_URL=https://blog.example.com
+# ① 反向代理部署（推荐）：
+VITE_API_BASE=/api/v1
+APP_BASE_URL=https://blog.example.com
+SITE_URL=https://blog.example.com
+FRONTEND_ORIGIN=https://blog.example.com
+ADMIN_ORIGIN=https://admin.example.com
+BIND_ADDR=127.0.0.1
+# ② IP 直连部署（无反向代理）：VITE_API_BASE=http://<服务器IP>:3000/api/v1、
+#    APP_BASE_URL=http://<服务器IP>:3000、BIND_ADDR=0.0.0.0（并在安全组只放行必要端口）
 ```
 
-> 生成随机串：`openssl rand -hex 32`（三个密钥各跑一次）。
+> 生成随机串：`openssl rand -hex 32`（**每个密钥各跑一次**，包括 `BLOGGER_PASSWORD`）。
 > ⚠️ 密码里避免 `$`、`&`、`#` 等字符，它们在 `.env.docker` 的 shell 解析里会出问题，
 > 典型表现是 `myblog-mysql` 一直不 healthy。
 
@@ -146,16 +160,24 @@ myblog-backup       Up
 | API 接口 | [http://localhost:3000/api/v1](http://localhost:3000/api/v1) |
 | 健康检查 | [http://localhost:3000/health](http://localhost:3000/health) |
 
+部署完成后跑一遍冒烟自检（健康分块 / 关键接口 / SSR 页面 / SEO 域名 / 未登录访问管理端接口是否被拦）：
+
+```bash
+node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.example.com
+```
+
+> ⚠️ 端口默认只绑回环（`BIND_ADDR=127.0.0.1`），所以上面这些地址**只能在服务器本机访问**，
+> 从外网要靠 Nginx 反代（见 `nginx.conf`）。若你用的是「无反向代理、IP 直连」部署
+> （`BIND_ADDR=0.0.0.0`），冒烟时把 `--base` 换成 `http://<服务器IP>:3001`、`--admin` 换成 `http://<服务器IP>:3002`。
+
 ### 6. 初始化博主账号（两端均会自动完成）
 
 如果是首次启动，后端会自动创建博主账号（Express 的 `utils/initBlogger.js` / Spring 的
-`BlogInitRunner`）。默认凭据：
+`BlogInitRunner`），用户名与口令取 `.env.docker` 的 `BLOGGER_USERNAME` / `BLOGGER_PASSWORD`。
 
-| 用户名  | 密码       |
-| ------- | ---------- |
-| `admin` | `admin123` |
-
-⚠️ **登录后请立即修改默认密码！**
+> ⚠️ **口令必须在首次启动前就设置好**：`BLOGGER_PASSWORD` 只在「创建博主」时生效，
+> 库里已有博主时改 `.env` 没有任何效果（要改就去后台「个人资料」）。
+> 模板默认值是 `admin123` —— 等同于无密码，`scripts/preflight.mjs` 会把它列为阻断项。
 
 ---
 
@@ -209,6 +231,11 @@ myblog-backup       Up
 | `BACKEND_PORT` | API 服务宿主机端口 | `3000` |
 | `BLOG_PORT`    | 博客前台端口       | `3001` |
 | `ADMIN_PORT`   | 管理后台端口       | `3002` |
+| `BIND_ADDR`    | 端口绑定地址       | `127.0.0.1` |
+
+> `BIND_ADDR` 默认为 `127.0.0.1`：上述端口（以及 MySQL / Redis / Meilisearch 的端口）**只绑宿主机回环**，
+> 只有同一台机器上的 Nginx 能访问 —— 否则 MySQL(root) / Redis(无密码) / Meilisearch 会直接暴露到公网。
+> 仅当「没有反向代理、靠 IP 直连」时才改成 `0.0.0.0`，并且必须在云安全组 / 防火墙上只放行必要端口。
 
 #### 前端配置
 
@@ -348,7 +375,7 @@ docker compose exec mysql mysql -uroot -p
 docker compose exec redis redis-cli
 ```
 
-### 数据库操作（备份 · 校验 · 恢复，完整闭环）
+### 备份 · 校验 · 恢复（数据库 + 图片，完整闭环）
 
 推荐使用仓库内置脚本（会自动【备份 → 生成校验和 → 立即校验】闭环，杜绝坏备份）：
 
@@ -368,7 +395,20 @@ bash /scripts/verify-backup.sh
 
 # ▸ 恢复（会先校验 sha256 + gzip 完整性，通过才导入；需确认或 CONFIRM=1）
 bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+
+# ▸ 图片备份（上传目录不在数据库里，必须与数据库备份成对）
+bash /scripts/backup-uploads.sh
 ```
+
+> **图片备份**（`backup-uploads.sh`）：产出 `uploads_YYYYMMDD_HHMMSS.tar.gz` + 同名 `.sha256`，
+> 打包后立即校验（gzip + sha256），校验不过会删产物并返回非 0；保留期与数据库备份共用 `BACKUP_RETENTION_DAYS`。
+> 定时任务默认 `30 2 * * *`（可用 `UPLOAD_BACKUP_CRON` 覆盖）。恢复方式：`tar -xzf <归档> -C <目标父目录>`（归档内是 `uploads/` 前缀）。
+>
+> **异地备份（对象存储 / 另一台机器）**：在 `myblog-backup` 容器里内置了 `rclone`，
+> 配置好远端后在 `.env.docker` 里填 `RCLONE_REMOTE=oss:myblog-backup`（或 `s3:` / `b2:` 等），
+> 每次备份会自动同步上去；**同步失败会让备份任务返回非 0**（不会静默留下一份「只在本机」的备份）。
+> 配置目录默认从宿主机 `/root/.config/rclone` 只读挂进容器（可用 `RCLONE_CONFIG_DIR` 改路径），
+> 所以在宿主机上跑 `rclone config` 即可；不是 root 部署时记得改这个路径。
 
 > 备份目录挂载在 Docker 卷 `backup-data`，容器宿主机也可挂载到本地持久化目录。
 > 定时备份默认每天 `02:00` 触发（`BACKUP_CRON` 可在 `.env.docker` 覆盖），

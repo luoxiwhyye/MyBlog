@@ -1,7 +1,11 @@
 # ============================================================
-# myblog-backup — 定时数据库备份容器
-# 基于 Alpine + mariadb-client + crond，调用 scripts/backup.sh
+# myblog-backup — 定时备份容器
+# 基于 Alpine + mariadb-client + rclone + crond，调用 scripts/backup*.sh
 # 备份文件挂载到 /backups，同时生成 .sha256 校验和
+#
+# 两类备份都要有：backup.sh 备份数据库，backup-uploads.sh 备份上传目录
+# （图片不在数据库里，丢了无法从库重建）。
+# rclone 用于把备份同步到对象存储 —— 备份只留在本机 = 宿主机磁盘损坏即全丢。
 # ============================================================
 
 FROM alpine:3.20
@@ -12,13 +16,15 @@ RUN apk add --no-cache \
     gzip \
     coreutils \
     tzdata \
-    curl
+    curl \
+    rclone
 
 # 时区（默认 Asia/Shanghai，可用 TZ 环境变量覆盖）
 ENV TZ=Asia/Shanghai
 
 # 拷贝备份 / 校验 / 恢复脚本
 COPY backup.sh /scripts/backup.sh
+COPY backup-uploads.sh /scripts/backup-uploads.sh
 COPY verify-backup.sh /scripts/verify-backup.sh
 COPY restore.sh /scripts/restore.sh
 

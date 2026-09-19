@@ -15,6 +15,14 @@
 #   3. 首次启动后需要初始化数据库，详见 DEPLOY.md
 # ============================================================
 
+# ── 公共片段：容器日志轮转 ──
+# 不加限制时 json-file 日志会无限增长，长期会把磁盘写满（表现是某天突然全部服务写入失败）。
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # ==========================================
   # MySQL 数据库
@@ -33,7 +41,10 @@ services:
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
-      - "${DB_PORT:-3307}:3306"
+      # 只绑回环：这些端口只给宿主机上的 Nginx 与本机调试用，不需要对外暴露。
+      # 若确实要做「IP 直连」部署（无反向代理），把 .env.docker 的 BIND_ADDR 改成 0.0.0.0，
+      # 并务必在云安全组 / 防火墙上只放行必须的端口。
+      - "${BIND_ADDR:-127.0.0.1}:${DB_PORT:-3307}:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       # 首次启动自动初始化数据库结构
@@ -54,6 +65,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -71,7 +83,7 @@ services:
       --maxmemory-policy allkeys-lru
       ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${BIND_ADDR:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -79,6 +91,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -94,7 +107,7 @@ services:
       MEILI_ENV: ${MEILI_ENV:-production}
       MEILI_NO_ANALYTICS: "true"
     ports:
-      - "${MEILI_PORT:-7700}:7700"
+      - "${BIND_ADDR:-127.0.0.1}:${MEILI_PORT:-7700}:7700"
     volumes:
       - meili-data:/meili_data
     healthcheck:
@@ -103,6 +116,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -153,7 +167,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
     ports:
-      - "${BACKEND_PORT:-3000}:3000"
+      - "${BIND_ADDR:-127.0.0.1}:${BACKEND_PORT:-3000}:3000"
     volumes:
       - uploads-data:/app/uploads
     depends_on:
@@ -161,6 +175,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -237,9 +252,10 @@ services:
       #    否则 SSR HTML 与浏览器水合结果可能跨天不一致。详见 DEPLOY.md「时间字段与时区」。
       TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "${BLOG_PORT:-3001}:3001"
+      - "${BIND_ADDR:-127.0.0.1}:${BLOG_PORT:-3001}:3001"
     depends_on:
       - myblog-backend
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -255,9 +271,10 @@ services:
     container_name: myblog-admin
     restart: unless-stopped
     ports:
-      - "${ADMIN_PORT:-3002}:80"
+      - "${BIND_ADDR:-127.0.0.1}:${ADMIN_PORT:-3002}:80"
     depends_on:
       - myblog-backend
+    logging: *default-logging
     networks:
       - myblog-net
 
@@ -279,22 +296,49 @@ services:
       DB_NAME: ${DB_NAME:-myblog}
       BACKUP_DIR: /backups
       RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
-      # cron 表达式（容器内 crond 解析），默认每天 02:00
+      # uploads 目录（只读挂载）—— 图片是数据库之外的资产，两类备份必须成对
+      UPLOAD_DIR: /uploads
+      # 数据库备份的 cron 表达式（容器内 crond 解析），默认每天 02:00
       BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+      # 图片备份的 cron 表达式，默认错开半小时，避免与 mysqldump 抢磁盘 IO
+      UPLOAD_BACKUP_CRON: ${UPLOAD_BACKUP_CRON:-30 2 * * *}
+      # rclone 远端名（如 oss:myblog-backup）—— 留空则备份只留在本机备份目录
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
     volumes:
       - backup-data:/backups
+      # 备份容器只读上传目录：它不需要写任何东西
+      - uploads-data:/uploads:ro
+      # rclone 配置目录（只读）。宿主机上用 `rclone config` 配好远端后，
+      # 容器里的备份脚本就能直接用它同步到对象存储（RCLONE_REMOTE 填远端名）。
+      # 路径不存在时会自动建空目录，不影响其他功能。
+      - ${RCLONE_CONFIG_DIR:-/root/.config/rclone}:/root/.config/rclone:ro
     depends_on:
       mysql:
         condition: service_healthy
+    logging: *default-logging
     # 用 crond 前台模式，但通过 entrypoint 注入自定义 cron 表
     entrypoint: >
       /bin/sh -c "
       echo \"$${BACKUP_CRON} /bin/bash /scripts/backup.sh >> /var/log/myblog-backup.log 2>&1\" > /etc/crontabs/root &&
+      echo \"$${UPLOAD_BACKUP_CRON} /bin/bash /scripts/backup-uploads.sh >> /var/log/myblog-backup.log 2>&1\" >> /etc/crontabs/root &&
       crond -f -l 8
       "
     networks:
       - myblog-net
 
+# ==========================================
+# 可选：单容器资源上限（内存紧张的机器上建议开启，避免单个容器 OOM 拖垮宿主机）
+#
+# 用法：在对应 service 下加一行 mem_limit。参考值（按实际内存调整）：
+#   mysql            mem_limit: 1g
+#   meilisearch      mem_limit: 512m
+#   redis            mem_limit: 320m    # 与 redis 的 --maxmemory 256mb 留出余量
+#   myblog-backend   mem_limit: 512m
+#   myblog-blog      mem_limit: 512m
+#   myblog-admin     mem_limit: 128m
+#   myblog-backup    mem_limit: 128m
+#
+# 注意：这是上限而非预留，但设得过低会触发 OOM 重启（表现为容器反复 Restarting）。
 # ==========================================
 # 数据卷
 # ==========================================
