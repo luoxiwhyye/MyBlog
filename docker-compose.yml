@@ -156,7 +156,11 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       MEILI_HOST: ${MEILI_HOST:-meilisearch}
-      MEILI_PORT: ${MEILI_PORT:-7700}
+      # ⚠️ 容器内端口固定 7700，不要写成 ${MEILI_PORT}：
+      #    MEILI_PORT 是「宿主机映射端口」（见上面 meilisearch 服务的 ports），
+      #    两者混用会让「为避免端口冲突而改 MEILI_PORT」直接把搜索打成静默降级
+      #    （后端去连 meilisearch:<宿主机端口>，必然连不上）。DB_PORT / REDIS_PORT 同理。
+      MEILI_PORT: 7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
@@ -208,7 +212,7 @@ services:
   #     REDIS_PORT: 6379
   #     REDIS_PASSWORD: ${REDIS_PASSWORD:-}
   #     MEILI_HOST: ${MEILI_HOST:-meilisearch}
-  #     MEILI_PORT: ${MEILI_PORT:-7700}
+  #     MEILI_PORT: 7700
   #     MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-meili-master-key-change-me}
   #     JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
   #     JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-604800000}

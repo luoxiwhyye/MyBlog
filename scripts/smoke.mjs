@@ -7,9 +7,10 @@
  *
  * 用法：
  *   node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.example.com
- *   node scripts/smoke.mjs --base=http://127.0.0.1:3001          # 本机预览
  *   node scripts/smoke.mjs --base=... --allow-degraded           # 接受搜索降级为 SQL LIKE
  *   node scripts/smoke.mjs --base=... --require-mail             # 邮件未配置也视为阻断
+ *   node scripts/smoke.mjs --base=http://127.0.0.1:3901 --health=http://127.0.0.1:3900/health \
+ *     --site=https://blog.example.com                            # 本地验证：无外层反代
  *
  * 退出码：0 = 全部通过 / 1 = 有阻断项 / 2 = 用法错误
  */
@@ -18,10 +19,15 @@ const args = process.argv.slice(2);
 if (args.includes("--help") || args.includes("-h")) {
   console.log(
     [
-      "用法: node scripts/smoke.mjs --base=<博客域名> [--admin=<后台域名>]",
+      "用法: node scripts/smoke.mjs --base=<博客域名> [--admin=<后台域名>] [--site=<站点域名>]",
       "",
-      "  --base=<url>        博客前台地址（必填，健康检查也从它下面取）",
+      "  --base=<url>        实际要访问的博客地址（必填，健康检查默认也从它下面取）",
       "  --admin=<url>       管理后台地址（可选）",
+      "  --site=<url>        站点对外域名（可选，默认取 --base）。SEO 元数据（og:image /",
+      "                      canonical）要求指向站点域名 —— 本地用 IP 或临时端口验证时",
+      "                      传入它，否则域名不同会被报成异常",
+      "  --health=<url>      健康检查地址（可选，默认 <base>/health）。本地没配套反代",
+      "                      时 /health 不在博客域名下，可直接指向后端",
       "  --allow-degraded    接受搜索降级 / 图片变体不可用（默认视为阻断）",
       "  --require-mail      邮件未配置也视为阻断（默认只是警告）",
       "",
@@ -38,6 +44,10 @@ const getArg = (name) => {
 
 const BASE = getArg("base");
 const ADMIN = getArg("admin");
+// SEO 断言比对的「站点域名」：默认与实际访问地址一致；本地验证时用 --site 显式指定
+const SITE = getArg("site") || BASE;
+// 健康检查地址：生产下 /health 由反代从博客域名转给后端；本地无反代时用 --health 直指后端
+const HEALTH = getArg("health") || `${BASE}/health`;
 const ALLOW_DEGRADED = args.includes("--allow-degraded");
 const REQUIRE_MAIL = args.includes("--require-mail");
 
@@ -116,18 +126,23 @@ const expectStatus = async (
 // 1. 健康检查（反代链路 + 每个分块）
 // ─────────────────────────────────────────────
 
-console.log(`冒烟自检：${BASE}${ADMIN ? ` + ${ADMIN}` : ""}`);
+console.log(`冒烟自检：${BASE}${ADMIN ? ` + ${ADMIN}` : ""}${SITE !== BASE ? `（站点域名 ${SITE}）` : ""}`);
 console.log("=".repeat(70));
 
-const healthRes = await probe(`${BASE}/health`);
+const healthRes = await probe(HEALTH);
 let health = null;
 if (healthRes.error) {
   error(
-    `健康检查不可达：${healthRes.error}`,
-    "先确认反代到后端 3000 的 /health 路由与后端进程都在",
+    `健康检查不可达（${HEALTH}）：${healthRes.error}`,
+    "确认反代把 /health 转给了后端 3000；本地无反代时用 --health=http://127.0.0.1:<后端端口>/health",
   );
 } else if (healthRes.status !== 200) {
-  error(`健康检查返回 ${healthRes.status}`);
+  error(
+    `健康检查返回 ${healthRes.status}（${HEALTH}）`,
+    healthRes.status === 404
+      ? "404 通常是反代没配 /health，或（本地直连博客端口时）博客本身不转发 /health"
+      : "确认后端进程在跑且 /health 可用",
+  );
 } else {
   try {
     health = JSON.parse(healthRes.text);
@@ -160,18 +175,35 @@ const reasonOf = (key) => {
 
 if (health) {
   const top =
-    health.status ?? (health.code === 0 ? "ok" : `code=${health.code ?? "?"}`);
+    health.status ??
+    (health.code === 0 || health.code === 200 ? "ok" : `code=${health.code ?? "?"}`);
   if (top === "ok") pass("/health 顶层 status = ok");
   else warn(`/health 顶层 status = ${top}`);
 
-  for (const key of ["db", "redis"]) {
-    const status = statusOf(key);
-    if (status === "ok") pass(`${key} = ok`);
-    else
-      error(`${key} = ${status}${reasonOf(key) ? `（${reasonOf(key)}）` : ""}`);
-  }
+  // 分块键名以运行时为准：Express 是 database / redis / meilisearch / mail / imageVariants，
+  // 这里同时接受 db / meili 这类简写，避免以后改名就假报「missing」。
+  const DB_KEYS = ["database", "db"];
+  const MEILI_KEYS = ["meilisearch", "meili"];
+  const pick = (candidates) =>
+    candidates.find((k) => block(k) !== undefined) ?? candidates[0];
 
-  const meili = statusOf("meili");
+  const redisStatus = statusOf("redis");
+  if (redisStatus === "ok") pass("redis = ok");
+  else
+    error(
+      `redis = ${redisStatus}${reasonOf("redis") ? `（${reasonOf("redis")}）` : ""}`,
+    );
+
+  const dbKey = pick(DB_KEYS);
+  const dbStatus = statusOf(dbKey);
+  if (dbStatus === "ok") pass(`db = ok`);
+  else
+    error(
+      `db = ${dbStatus}${reasonOf(dbKey) ? `（${reasonOf(dbKey)}）` : ""}`,
+    );
+
+  const meiliKey = pick(MEILI_KEYS);
+  const meili = statusOf(meiliKey);
   if (meili === "ok") pass("meili = ok（搜索走搜索引擎，不是 SQL LIKE）");
   else if (ALLOW_DEGRADED)
     warn(
@@ -179,7 +211,7 @@ if (health) {
     );
   else
     error(
-      `meili = ${meili}${reasonOf("meili") ? `（${reasonOf("meili")}）` : ""}`,
+      `meili = ${meili}${reasonOf(meiliKey) ? `（${reasonOf(meiliKey)}）` : ""}`,
       "无密钥 / 错密钥都不影响 /health 的 200，但索引操作会被 403 拒掉 → 搜索静默降级",
     );
 
@@ -250,7 +282,9 @@ if (articlesRes.error) {
 } else {
   try {
     const body = JSON.parse(articlesRes.text);
-    if (body.code !== 0) {
+    // 统一响应格式的成功码是 200（utils/response.js 的 success 默认值）；
+    // 同时兼容 0，避免以后改成 0 时误报。
+    if (body.code !== 200 && body.code !== 0) {
       error(`GET /api/v1/articles 业务码 ${body.code}（${body.message}）`);
     } else {
       const list = body.data?.list ?? body.data?.rows ?? body.data ?? [];
@@ -299,9 +333,9 @@ if (homeRes && !homeRes.error) {
   if (ogImage) {
     const ogHost = hostOf(ogImage[1]);
     if (!ogHost) warn(`og:image 不是绝对地址：${ogImage[1]}`);
-    else if (ogHost !== hostOf(BASE))
+    else if (ogHost !== hostOf(SITE))
       error(
-        `og:image 指向 ${ogHost}，与站点域名（${hostOf(BASE)}）不同`,
+        `og:image 指向 ${ogHost}，与站点域名（${hostOf(SITE)}）不同`,
         "分享卡片会指到后端域名：确认 APP_BASE_URL / NUXT_SITE_URL 用的是站点域名",
       );
     else pass(`og:image 使用站点域名（${ogHost}）`);
@@ -313,7 +347,7 @@ if (homeRes && !homeRes.error) {
   if (
     canonical &&
     hostOf(canonical[1]) &&
-    hostOf(canonical[1]) !== hostOf(BASE)
+    hostOf(canonical[1]) !== hostOf(SITE)
   ) {
     error(
       `canonical 指向 ${canonical[1]}，与站点域名不同`,
@@ -404,12 +438,23 @@ if (!ADMIN) {
       `后台 /api 代理不可达（${adminGuard.error}）`,
       "确认 admin 域名的 location /api/ 已配置",
     );
-  } else if ([401, 403].includes(adminGuard.status)) {
-    pass(`后台域名下未登录访问 /api/v1/blogger/profile → ${adminGuard.status}`);
   } else {
-    warn(
-      `后台域名下未登录访问 /api/v1/blogger/profile 返回 ${adminGuard.status}`,
-    );
+    const contentType = adminGuard.headers?.get("content-type") || "";
+    const looksLikeHtml =
+      contentType.includes("text/html") ||
+      /^\s*<!DOCTYPE html/i.test(adminGuard.text || "");
+    if (looksLikeHtml) {
+      error(
+        `后台域名下的 /api/v1/blogger/profile 返回了 HTML（SPA 回退，状态码 ${adminGuard.status}）`,
+        "反代缺 location /api/ 转发到后端 → 后台登录界面能打开，但所有接口拿到的是 index.html（表现为一登录就转圈）。本地只起容器端口、没配外层反代时也会命中这条，属预期。",
+      );
+    } else if ([401, 403].includes(adminGuard.status)) {
+      pass(`后台域名下未登录访问 /api/v1/blogger/profile → ${adminGuard.status}`);
+    } else {
+      warn(
+        `后台域名下未登录访问 /api/v1/blogger/profile 返回 ${adminGuard.status}（期望 401/403）`,
+      );
+    }
   }
 }
 

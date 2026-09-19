@@ -630,13 +630,21 @@ netstat -ano | findstr 3307
 
 ### 3. 前端页面 502/504
 
-可能是 Nuxt 博客 SSR 构建时未正确注入 API 地址：
+先分清是哪一层：
 
 ```bash
-# 重新构建博客前端
-docker compose --env-file .env.docker build myblog-blog --no-cache
-docker compose --env-file .env.docker up -d myblog-blog
+# 容器是否健康、进程在不在
+docker compose ps
+docker compose logs myblog-blog | head -3      # 应看到 Listening on http://0.0.0.0:3001
+docker compose exec myblog-blog netstat -lntp  # 或 ss -lntp，确认容器内实际监听端口
 ```
+
+| 现象 | 原因 | 处置 |
+| --- | --- | --- |
+| 日志显示 `Listening on ...:3000`（不是 3001） | 镜像缺 `ENV PORT=3001`。`nuxt.config.ts` 的 `devServer.port` **只对 `nuxt dev` 生效**，构建产物读的是 `PORT` 环境变量（缺省 3000），与 `EXPOSE` / 健康检查 / compose 映射的 3001 对不上 | 重建前台镜像：`docker compose --env-file .env.docker build myblog-blog` 后 `up -d myblog-blog`（镜像已修，旧镜像会重现） |
+| 容器 healthy 但反代 502 | Nginx 的 `upstream blog` 地址/端口不对，或容器不在同一网络 | 按 `nginx.conf` 的 `upstream` 核对 |
+| 宿主机 `curl 127.0.0.1:3001` 连不上 | 端口默认只绑回环（`BIND_ADDR=127.0.0.1`），只能从服务器本机访问 | 属预期；外网走 Nginx |
+| 接口 200 但内容是 HTML | 反代缺 `location /api/`，请求落到 SPA 回退（返回 index.html） | 后台域名下必须有 `location /api/` 转发到后端 |
 
 ### 4. 上传文件不显示
 
@@ -701,6 +709,22 @@ docker compose exec myblog-backup bash -c "ls -l /backups; bash /scripts/backup.
 > docker compose exec myblog-backup bash /scripts/verify-backup.sh   # gzip + sha256 双校验
 > ```
 > 定期做一次真恢复演练（导到另一个库名比对行数），只验证「文件能解开」不等于「能恢复出完整数据」。
+
+### 8. 搜索看起来能用，其实没走 Meilisearch（静默降级）
+
+```bash
+curl -s http://127.0.0.1:3000/health | grep -o '"meilisearch":{[^}]*}'
+```
+
+`status` 不是 `ok` 就是降级成 SQL LIKE（页面照常能搜，只是走数据库 `LIKE`）。
+
+| reason / 现象 | 原因 | 处置 |
+| --- | --- | --- |
+| `连接失败: Request to http://meilisearch:<端口>/health has failed` | 后端拿到的端口不对，或 Meili 没起来 | 确认后端环境里的 `MEILI_PORT` 是 **7700**（容器内端口）。`MEILI_PORT` 在本项目里只是**宿主机映射端口**，改它不影响容器间连接 |
+| `unauthorized` | `MEILI_MASTER_KEY` 与 Meili 容器的不一致 | 两边用同一个值后重启后端 |
+| `unavailable` | Meili 容器未启动 / 不在同一网络 | `docker compose ps` 与 `docker compose logs meilisearch` |
+
+> 排查要点：`/health` 是**公开**端点，无密钥也会返回 200 —— 判断可用性要看里面的 `status` / `reason`，不能只看 HTTP 码。
 
 ---
 

@@ -46,7 +46,12 @@ USER nodejs
 
 EXPOSE 3001
 
+# ⚠️ PORT 必须显式设置，不能依赖 nuxt.config.ts 的 devServer.port：
+#    devServer.port 只作用于 `nuxt dev`，构建产物（Nitro node-server）读的是 PORT，
+#    缺省为 3000 → 进程监听 3000，而 EXPOSE / 健康检查 / compose 映射都是 3001，
+#    表现为容器永远 unhealthy、反代到 3001 直接 502（页面打不开）。
 ENV HOST=0.0.0.0
+ENV PORT=3001
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

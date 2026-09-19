@@ -41,6 +41,9 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+# Vite 的依赖预打包缓存：由 vite 在 dev/build 时自动生成，内容与机器/依赖版本绑定
+.vite
+.vite/
 
 # Environment
 .env

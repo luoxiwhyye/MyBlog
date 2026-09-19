@@ -7,8 +7,11 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install
+# 必须把 package-lock.json 一起复制并用 npm ci：
+# 只复制 package.json 时 npm install 会现场解析版本，镜像里的依赖与 CI / 本地
+# 验证过的版本可能不同（同一个 commit 构不出同一个镜像）。
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 
