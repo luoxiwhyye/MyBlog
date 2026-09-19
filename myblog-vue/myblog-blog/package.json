@@ -16,7 +16,6 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "@element-plus/nuxt": "^1.1.5",
-    "@nuxt/image": "^1.11.0",
     "@tiptap/core": "^3.31.3",
     "@tiptap/extension-document": "^3.31.3",
     "@tiptap/extension-image": "^3.31.3",

@@ -6,12 +6,7 @@ export default defineNuxtConfig({
   experimental: {
     appManifest: false,
   },
-  modules: [
-    "@pinia/nuxt",
-    "@nuxt/image",
-    "@element-plus/nuxt",
-    "@vite-pwa/nuxt",
-  ],
+  modules: ["@pinia/nuxt", "@element-plus/nuxt", "@vite-pwa/nuxt"],
   components: [
     {
       path: "~/components",

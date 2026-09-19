@@ -54,7 +54,7 @@ graph TB
 
 - **后端 (Express)**: Node.js 20.19+、Express 5、MySQL (mysql2)、Redis (ioredis)、JWT + bcryptjs、Helmet + CORS + 限流、multer + sharp (WebP/缩略图)、Meilisearch、nodemailer、winston + morgan、vitest + supertest (详见 [myblog-express/README.md](./myblog-express/README.md))
 - **后端 (Spring Boot)**: JDK 17+、Spring Boot 4、Spring Security + JWT (jjwt)、JPA、Redis、webp-imageio、Meilisearch、Actuator + Micrometer、Jakarta Validation (详见 [myblog-springboot/README.md](./myblog-springboot/README.md))
-- **博客前台**: Nuxt 3 + TypeScript、Element Plus、Pinia、markdown-it + highlight.js、dayjs、`@nuxt/image`、`@vite-pwa/nuxt`、Vitest (详见 [myblog-blog/README.md](./myblog-vue/myblog-blog/README.md))
+  - **博客前台**: Nuxt 3 + TypeScript、Element Plus、Pinia、markdown-it + highlight.js、dayjs、`@vite-pwa/nuxt`、Vitest (详见 [myblog-blog/README.md](./myblog-vue/myblog-blog/README.md))
 - **管理后台**: Vue 3 + Vite、Pinia、Element Plus、Axios、Vue Quill、ECharts 6、markdown-it、vue-tsc (详见 [myblog-admin/README.md](./myblog-vue/myblog-admin/README.md))
 
 ---

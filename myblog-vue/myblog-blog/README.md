@@ -16,7 +16,7 @@
 
 ## 技术栈
 
-- **框架**: Nuxt 3（`@pinia/nuxt`、`@nuxt/image`、`@element-plus/nuxt`、`@vite-pwa/nuxt`）
+- **框架**: Nuxt 3（`@pinia/nuxt`、`@element-plus/nuxt`、`@vite-pwa/nuxt`）
 - **语言**: TypeScript
 - **渲染模式**: SSR + ISR / SWR / CSR 混合
 - **状态管理**: Pinia
