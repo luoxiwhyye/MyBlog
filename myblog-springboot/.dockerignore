@@ -1,0 +1,27 @@
+# ============================================================
+# Spring Boot 构建上下文排除清单
+# ============================================================
+# 本目录的 Dockerfile 是**显式 COPY**（pom.xml / mvnw / .mvn / src），
+# 所以缺这份文件不会把多余文件塞进镜像；但**构建上下文**仍会整个传给
+# Docker daemon —— 实测本目录含 target/（约 78MB）与本地 .env，
+# 每次构建都要多传几十 MB（CI 的 Docker Build 步骤同样受影响）。
+#
+# ⚠️ 不要排除 Dockerfile 需要的四项：pom.xml / mvnw / .mvn / src
+# ============================================================
+
+# 构建产物（Dockerfile 内部会重新 mvn package）
+target/
+
+# 本地环境文件：配置由 docker-compose 的 environment 注入容器。
+# ⚠️ Spring 侧会读 .env（DotenvEnvironmentPostProcessor），本地那份不该进镜像
+.env
+.env.*
+
+# IDE 与本地运行产物
+.idea/
+*.iml
+logs/
+uploads/
+HELP.md
+.git/
+*.log

@@ -104,6 +104,24 @@ cp .env.docker.example .env.docker
 vim .env.docker
 ```
 
+> **仓库里有 5 个 `.env` 模板，Docker 部署只需要根目录那一个** —— 别顺手把其余 4 个也填了：
+>
+> | 文件 | 用途 | Docker 部署要不要动 |
+> | ---- | ---- | ------------------- |
+> | `.env.docker.example`（根目录） | **Docker 部署的全部配置** | ✅ 复制成 `.env.docker` 后逐项填 |
+> | `myblog-express/.env.example` | 本地跑 `npm run dev` 用（不用 Docker 开发时） | ❌ 不用创建 |
+> | `myblog-springboot/.env.example` | 同上（Spring 侧） | ❌ 不用创建 |
+> | `myblog-vue/myblog-blog/.env.example` | 同上（前台 dev server） | ❌ 不用创建 |
+> | `myblog-vue/myblog-admin/.env.example` | 同上（后台 dev server） | ❌ 不用创建 |
+>
+> 原因是**注入方式不同**：Docker 部署时 `docker-compose.yml` 把变量以 `environment:`
+> 直接传进容器（前端的 `NUXT_*` / `VITE_*` 走构建参数），容器里根本不需要 `.env` 文件；
+> 而那 4 个子项目的 `.env` 只服务于本机 `npm run dev`。
+>
+> 容器里**不会**带本地 `.env`：三个构建上下文都有 `.dockerignore` 排除 `.env*`（express / blog / admin），
+> Spring 侧由显式 `COPY` + 新增的 `.dockerignore` 保证。想验证可以看
+> `docker compose exec myblog-backend ls -a /app`（不应出现 `.env`）。
+
 配置改完后可以先用自检脚本过一遍 —— 它会指出「漏配后容器照样能起、但功能是坏的」那些项
 （密钥仍是模板值 / 地址填成容器服务名 / 时区不同区 / SMTP 缺项 / `SITE_URL` 收信人打不开 等）：
 
@@ -214,6 +232,8 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
       密钥是否仍是模板值、地址类是否填了容器服务名、时区四项是否同区、SMTP 是否缺项、
       `SITE_URL` 收信人能否打开（复用后端自己的判定口径，不是另写一套）。
 - [ ] 密码里没有 `$` `&` `#`（这三个字符在 `.env.docker` 的 shell 解析里会出问题，典型表现是 mysql 一直不 healthy）。
+- [ ] **只填了根目录的 `.env.docker`** —— 子项目的 4 个 `.env.example` 是本地 `npm run dev` 用的，
+      Docker 部署不需要创建（配置由 compose 直接注入容器）。
 - [ ] `.env.docker` 的权限是 `600`，且 `git status` 里看不到它（`.gitignore` 已覆盖）。
 
 ### 二、地址类（配错的表现全是「页面能开、功能静默坏」）

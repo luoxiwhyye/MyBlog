@@ -203,6 +203,9 @@ sudo systemctl restart docker
 
 > 也可以用鼠标操作：把 `.env.docker.example` 复制一份，改名成 `.env.docker`，
 > 右键 → 打开方式 → 记事本。**不要用 Word 打开**。
+>
+> 项目里还有几个名字很像的模板（如 `myblog-express/.env.example`），那些是**电脑上直接
+> 开发项目**时才用的，用 Docker 部署**完全不用管**，只弄根目录这一个 `.env.docker` 就行。
 
 ### A3. 修改密码和地址（重要）
 

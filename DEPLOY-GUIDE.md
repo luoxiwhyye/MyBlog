@@ -206,6 +206,12 @@ nano .env.docker
 
 > `docker compose` 默认只读 `.env`，所以下面所有命令都带 `--env-file .env.docker`。
 > 想省掉这个参数就把文件直接命名为 `.env`（但容易和子项目 `.env` 混淆，不推荐）。
+>
+> **⚠️ 只要弄这一个文件。** 仓库里另有 4 个 `.env.example`（在 `myblog-express/`、
+> `myblog-springboot/`、`myblog-vue/myblog-blog/`、`myblog-vue/myblog-admin/`）——
+> 那是给人**本地跑 `npm run dev`** 用的，Docker 部署不需要创建，也不要照它们去改容器。
+> 因为注入方式不同：compose 用 `environment:` 与构建参数把变量直接传进容器，
+> 容器里不读 `.env` 文件。对照表见 [`DEPLOY.md`](./DEPLOY.md#2-配置环境变量)。
 
 ### 5.1 必改四项（不改等于把后台敞开）
 
