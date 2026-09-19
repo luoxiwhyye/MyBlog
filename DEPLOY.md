@@ -78,15 +78,18 @@
 # 服务器没装 git 时先装（Ubuntu / Debian；CentOS 用 yum install -y git）
 sudo apt install -y git
 
-git clone https://github.com/luoxiwhyye/MyBlog.git myblog
+# ⚠️ 一定要带 --depth 1：仓库历史里有 100+ MB 早已不再跟踪的文件
+#    （早期提交过的 node_modules 与 uploads 图片），全量克隆在慢网络下要一两个小时；
+#    浅克隆只取最新快照，约 3 MB / 几秒完成。
+git clone --depth 1 --single-branch --branch v2-myblog \
+  https://github.com/luoxiwhyye/MyBlog.git myblog
 cd myblog
 
-# 默认分支就是部署分支（v2-myblog），无需切换
 git branch --show-current      # 应输出 v2-myblog
 ```
 
-> 想省流量可以用浅克隆：`git clone --depth 1 <地址> myblog`（约 3 MB）。
-> 浅克隆一样能 `git pull`，只是看不到完整历史。
+> **浅克隆会影响什么**：看不到历史提交（`git log` 只有一条），部署用不到；
+> `git pull` 照常可用。哪天想看历史，在仓库目录跑 `git fetch --unshallow` 补齐即可。
 >
 > ⚠️ **`.env.docker` 不在仓库里**（含密钥，已被 `.gitignore` 排除），
 > 克隆后需要从模板创建一份 —— 见下一步。
@@ -96,6 +99,15 @@ git branch --show-current      # 应输出 v2-myblog
 
 ### 2. 配置环境变量
 
+**A. 已经在本地配好过一份 `.env.docker`？直接传上去**（比在服务器上重填一遍省事，也不会抄错）：
+
+```powershell
+# 在你自己的电脑上执行（Windows 自带 scp；用 WinSCP 拖也行）
+scp D:\vscode-project\myblog\.env.docker root@<服务器IP>:/opt/myblog/.env.docker
+```
+
+**B. 从模板新建**（第一次部署 / 想重新配一份）：
+
 ```bash
 # 复制环境变量模板
 cp .env.docker.example .env.docker
@@ -103,6 +115,10 @@ cp .env.docker.example .env.docker
 # 编辑配置（必须修改数据库密码和 JWT 密钥！）
 vim .env.docker
 ```
+
+> ⚠️ **传上去之后记得改地址类那几项**：本地那份如果填的是 `localhost` 或本地 IP，
+> 服务器上要改成真实域名 / 服务器 IP，否则后台登录会转圈、图片也会裂。
+> 用 `node scripts/preflight.mjs` 过一遍最保险（它会把这些逐条列出来）。
 
 > **仓库里有 5 个 `.env` 模板，Docker 部署只需要根目录那一个** —— 别顺手把其余 4 个也填了：
 >
@@ -161,11 +177,28 @@ BIND_ADDR=127.0.0.1
 
 ### 3. 构建并启动所有服务
 
+> ⚠️ **中国大陆服务器先做这一步**，否则构建会非常慢：镜像构建要从 Alpine 官方 CDN 与 npm
+> 官方源下载，境内直连可能只有几十 KB/s（实测 `apk add` 两个小包耗 **428 秒**）。
+> 在 `.env.docker` 里加两行（境外服务器 / CI 不用管，留空即官方源）：
+>
+> ```env
+> APK_MIRROR=mirrors.tencent.com
+> NPM_REGISTRY=https://registry.npmmirror.com
+> ```
+>
+> 可选镜像：`mirrors.tencent.com` / `mirrors.aliyun.com` / `mirrors.ustc.edu.cn`。
+> 这两项**只影响构建期**，与运行时行为无关。
+
 ```bash
 docker compose --env-file .env.docker up -d --build
 ```
 
-首次构建大约需要 **3-8 分钟**（取决于网络速度）。构建完成后自动启动所有容器。
+首次构建大约需要 **3-8 分钟**（取决于网络速度；设了上面的加速源后境内服务器也差不多）。
+构建完成后自动启动所有容器。
+
+> 只想先构建一个服务排查问题时：`docker compose --env-file .env.docker build myblog-backend`
+> （⚠️ 必须在项目目录里执行 —— `--env-file` 是相对当前目录解析的，
+> 在 `~` 下跑会报 `couldn't find env file: /root/.env.docker`）。
 
 ### 4. 验证服务状态
 
@@ -925,6 +958,34 @@ curl -s http://127.0.0.1:3000/health | grep -o '"meilisearch":{[^}]*}'
 | `unavailable` | Meili 容器未启动 / 不在同一网络 | `docker compose ps` 与 `docker compose logs meilisearch` |
 
 > 排查要点：`/health` 是**公开**端点，无密钥也会返回 200 —— 判断可用性要看里面的 `status` / `reason`，不能只看 HTTP 码。
+
+### 9. 构建极慢，卡在 `apk add` 或 `npm install`
+
+```bash
+# 测一下到 Alpine 官方 CDN 的速度（境内服务器常见只有几十 KB/s）
+docker run --rm alpine:3.20 sh -c "time apk add --no-cache curl >/dev/null"
+```
+
+| 现象 | 原因 | 处置 |
+| --- | --- | --- |
+| 单个 `RUN apk add` 步骤耗时几百秒 | 直连 `dl-cdn.alpinelinux.org` 慢 | 在 `.env.docker` 设 `APK_MIRROR=mirrors.tencent.com`（或 `mirrors.aliyun.com`），再 `build` |
+| `npm install` 阶段极慢 / 频繁重试 | 直连 `registry.npmjs.org` 慢 | 在 `.env.docker` 设 `NPM_REGISTRY=https://registry.npmmirror.com` |
+| 拉基础镜像慢 | Docker Hub 慢 | 给 Docker daemon 配镜像加速（`/etc/docker/daemon.json` 的 `registry-mirrors`），改完 `systemctl restart docker` |
+
+> 这两项只作用于**构建期**（Dockerfile 的 `ARG`），与容器运行时无关 —— 也就是说
+> 设错了也不影响线上行为，最多是构建时连不上源导致 `build` 失败。
+> 反过来说：**`build` 完成后就可以把这两项留着不动**，下次重建依然受益。
+
+### 10. `couldn't find env file: /root/.env.docker`
+
+`--env-file` 是**相对当前目录**解析的。你多半不在项目目录里：
+
+```bash
+cd /opt/myblog        # 先回到项目根（能看到 docker-compose.yml 的那层）
+docker compose --env-file .env.docker up -d
+```
+
+> 提示符里的路径能看出你在哪：`root@host:/opt/myblog#` 才对，`root@host:~#` 说明在家目录。
 
 ---
 

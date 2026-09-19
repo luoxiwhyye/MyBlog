@@ -174,8 +174,12 @@ sudo systemctl restart docker
   →「Open Git Bash here」）：
 
   ```bash
-  git clone https://github.com/luoxiwhyye/MyBlog.git myblog
+  git clone --depth 1 --single-branch --branch v2-myblog \
+    https://github.com/luoxiwhyye/MyBlog.git myblog
   ```
+
+  （`--depth 1` 是「只要最新一份代码」的意思，约 3 MB、几秒下完；
+  不加它会连历史一起拉，多下 100 多 MB。）
 
 - 或者在 GitHub 页面上点「Code → Download ZIP」，解压得到项目文件夹。
 
@@ -384,7 +388,12 @@ ssh root@你的服务器IP
 ```bash
 mkdir -p /opt/myblog
 sudo apt install -y git        # CentOS / 阿里云 Linux 用 yum install -y git
-git clone https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
+
+# ⚠️ 一定要带上 --depth 1 这一段：项目历史里有 100 多 MB 早就没用了的文件，
+#    不带它下载会慢几十倍（服务器网络慢的话要一两个小时）
+git clone --depth 1 --single-branch --branch v2-myblog \
+  https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
+
 cd /opt/myblog
 git branch --show-current      # 应输出 v2-myblog
 ```
@@ -463,6 +472,17 @@ openssl rand -hex 32
 > 所以上面 6 个带 IP 的地址**建议一次改到位**。
 
 ### B7. 启动
+
+> 💡 **国内服务器建议先加两行加速配置**，否则构建可能慢到十几分钟以上
+> （构建要从国外的软件源下载）。在 `.env.docker` 里找到 `APK_MIRROR` 与 `NPM_REGISTRY`，
+> 填成：
+>
+> ```env
+> APK_MIRROR=mirrors.tencent.com
+> NPM_REGISTRY=https://registry.npmmirror.com
+> ```
+>
+> 这两项只影响「安装/构建」阶段，和网站运行无关，填错了最多是构建失败、不会影响线上。
 
 ```bash
 cd /opt/myblog

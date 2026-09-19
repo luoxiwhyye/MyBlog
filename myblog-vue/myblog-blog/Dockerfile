@@ -11,14 +11,21 @@ WORKDIR /app
 # sharp(@nuxt/image→ipx)、@parcel/watcher(sass)、esbuild 等若预编译二进制
 # 下载失败会回退到 node-gyp 源码编译，缺 python3/make/g++ 会让 npm install
 # 直接 exit code 1；libc6-compat 兼容部分 glibc 依赖。
-RUN apk add --no-cache python3 make g++ libc6-compat
+# Alpine 软件源：默认官方源。中国大陆服务器可用 --build-arg APK_MIRROR=mirrors.tencent.com 加速
+ARG APK_MIRROR=
+RUN if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi \
+ && apk add --no-cache python3 make g++ libc6-compat
 
 # 先复制整个项目（.dockerignore 已排除 node_modules/.nuxt/.output 等），
 # 再安装依赖。因为 postinstall=nuxt prepare 需要 nuxt.config 等源文件，
 # 若只 COPY package.json 会在缺源码时执行 nuxt prepare 而失败。
 COPY . .
 
-RUN npm install
+# npm 源：默认官方源。中国大陆服务器可用 --build-arg NPM_REGISTRY=https://registry.npmmirror.com 加速
+ARG NPM_REGISTRY=https://registry.npmjs.org
+RUN npm config set registry "${NPM_REGISTRY}" && npm install
 
 # Nuxt 构建（ARG 注入构建时环境变量）
 ARG NUXT_API_BASE=http://myblog-backend:3000/api/v1
@@ -32,7 +39,12 @@ RUN npm run build
 FROM node:22-alpine
 WORKDIR /app
 
-RUN apk add --no-cache dumb-init curl
+# Alpine 软件源：默认官方源。中国大陆服务器可用 --build-arg APK_MIRROR=mirrors.tencent.com 加速
+ARG APK_MIRROR=
+RUN if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi \
+ && apk add --no-cache dumb-init curl
 
 # Nuxt .output 已包含运行时全部依赖，无需复制 node_modules，显著减小镜像体积
 COPY --from=builder /app/.output ./.output

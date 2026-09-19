@@ -165,10 +165,13 @@ sudo mkdir -p /opt/myblog && sudo chown $USER /opt/myblog
 ```bash
 sudo apt install -y git        # CentOS / 阿里云 Linux 用 yum install -y git
 
-git clone https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
+# ⚠️ 必须带 --depth 1：仓库历史里有 100+ MB 早已不再跟踪的文件（早期提交过的
+#    node_modules 与 uploads 图片），全量克隆在慢网络下要一两个小时
+git clone --depth 1 --single-branch --branch v2-myblog \
+  https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
 cd /opt/myblog
 
-git branch --show-current      # 应输出 v2-myblog（默认分支就是部署分支）
+git branch --show-current      # 应输出 v2-myblog
 ```
 
 确认根目录层级正确：
@@ -178,6 +181,7 @@ ls /opt/myblog                 # 必须能直接看到 docker-compose.yml 与 .e
 ```
 
 > ⚠️ `git clone` 要求**目标目录是空的**：`/opt/myblog` 里若已有东西，先把它们移走。
+> 中途失败过记得先 `rm -rf /opt/myblog` 再重试。
 >
 > **为什么用 clone 而不是上传整个文件夹**：构建上下文是相对路径（`./myblog-express` 等），
 > 手工上传时漏一个目录就会构建失败（历史上最容易漏的是 `scripts/` 与 `.dockerignore`）；
@@ -189,10 +193,11 @@ ls /opt/myblog                 # 必须能直接看到 docker-compose.yml 与 .e
 > **克隆得不到的东西**：`.env.docker`（含密钥，被 `.gitignore` 排除）与 `uploads/` 里的图片
 > （生产环境走数据卷）。前者下一步从模板创建，后者是空库首启无需迁移。
 >
+> **浅克隆的代价**：看不到历史提交（`git log` 只有一条），部署用不到；`git pull` 照常可用。
+> 想看历史就 `git fetch --unshallow`。
+>
 > ⚠️ **不要在服务器上直接改源码**：更新方式就是 `git pull`，本地有未提交改动时会冲突。
 > 想调整行为优先改 `.env.docker` 或走后台界面。
->
-> 想省流量可以用浅克隆：`git clone --depth 1 <地址> /opt/myblog`（约 3 MB）。
 
 ---
 
@@ -366,6 +371,19 @@ TRUST_PROXY=1
 ---
 
 ## 六、构建与启动
+
+### 6.0 先设构建加速源（中国大陆服务器必做）
+
+镜像构建要从 **Alpine 官方 CDN** 与 **npm 官方源**下载。境内服务器直连可能只有几十 KB/s ——
+实测 `apk add` 两个小包花了 **428 秒**，是整次构建耗时的 95%。在 `.env.docker` 里加两行：
+
+```env
+APK_MIRROR=mirrors.tencent.com
+NPM_REGISTRY=https://registry.npmmirror.com
+```
+
+- 可选 `APK_MIRROR`：`mirrors.tencent.com` ｜ `mirrors.aliyun.com` ｜ `mirrors.ustc.edu.cn`
+- 这两项**只影响构建期**（Dockerfile 的 `ARG`），与运行时行为无关；境外服务器留空即用官方源。
 
 ### 6.1 先算内存账
 

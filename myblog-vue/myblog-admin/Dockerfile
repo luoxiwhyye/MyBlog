@@ -10,8 +10,10 @@ WORKDIR /app
 # 必须把 package-lock.json 一起复制并用 npm ci：
 # 只复制 package.json 时 npm install 会现场解析版本，镜像里的依赖与 CI / 本地
 # 验证过的版本可能不同（同一个 commit 构不出同一个镜像）。
+# npm 源：默认官方源。中国大陆服务器可用 --build-arg NPM_REGISTRY=https://registry.npmmirror.com 加速
+ARG NPM_REGISTRY=https://registry.npmjs.org
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set registry "${NPM_REGISTRY}" && npm ci
 
 COPY . .
 

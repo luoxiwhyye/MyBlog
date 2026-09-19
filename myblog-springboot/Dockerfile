@@ -19,7 +19,12 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # 安装 dumb-init + curl（健康检查）
-RUN apk add --no-cache dumb-init curl
+# Alpine 软件源：默认官方源。中国大陆服务器可用 --build-arg APK_MIRROR=mirrors.tencent.com 加速
+ARG APK_MIRROR=
+RUN if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi \
+ && apk add --no-cache dumb-init curl
 
 # 创建上传目录
 RUN mkdir -p uploads/article/cover uploads/blogger/avatar uploads/setting/image

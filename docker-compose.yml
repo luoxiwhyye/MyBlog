@@ -138,6 +138,10 @@ services:
     build:
       context: ./myblog-express
       dockerfile: Dockerfile
+      args:
+        # 构建期源加速（可选，默认官方源）；详见 .env.docker.example
+        APK_MIRROR: ${APK_MIRROR:-}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: myblog-backend
     restart: unless-stopped
     environment:
@@ -196,6 +200,8 @@ services:
   #   build:
   #     context: ./myblog-springboot
   #     dockerfile: Dockerfile
+  #     args:
+  #       APK_MIRROR: ${APK_MIRROR:-}
   #   container_name: myblog-backend
   #   restart: unless-stopped
   #   environment:
@@ -255,6 +261,9 @@ services:
       args:
         NUXT_API_BASE: ${NUXT_API_BASE:-http://myblog-backend:3000/api/v1}
         NUXT_SITE_URL: ${NUXT_SITE_URL:-http://localhost:3001}
+        # 构建期源加速（可选，默认官方源）；详见 .env.docker.example
+        APK_MIRROR: ${APK_MIRROR:-}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: myblog-blog
     restart: unless-stopped
     environment:
@@ -280,6 +289,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE: ${VITE_API_BASE:-http://myblog-backend:3000/api/v1}
+        # 构建期源加速（可选，默认官方源）；详见 .env.docker.example
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     container_name: myblog-admin
     restart: unless-stopped
     ports:
@@ -297,6 +308,9 @@ services:
     build:
       context: ./scripts
       dockerfile: backup.Dockerfile
+      args:
+        # 构建期源加速（可选，默认官方源）；详见 .env.docker.example
+        APK_MIRROR: ${APK_MIRROR:-}
     container_name: myblog-backup
     restart: unless-stopped
     environment:

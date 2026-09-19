@@ -14,7 +14,12 @@
 
 FROM alpine:3.20
 
-RUN apk add --no-cache \
+# Alpine 软件源：默认官方源。中国大陆服务器可用 --build-arg APK_MIRROR=mirrors.tencent.com 加速
+ARG APK_MIRROR=
+RUN if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi \
+ && apk add --no-cache \
     bash \
     mariadb-client \
     mariadb-connector-c \

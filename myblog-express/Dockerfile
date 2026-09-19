@@ -9,15 +9,22 @@
 # 导致 WebP 图片转换静默失效。
 FROM node:22-alpine AS builder
 WORKDIR /app
+# npm 源：默认官方源。中国大陆服务器可用 --build-arg NPM_REGISTRY=https://registry.npmmirror.com 加速
+ARG NPM_REGISTRY=https://registry.npmjs.org
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm config set registry "${NPM_REGISTRY}" && npm ci --omit=dev
 
 # ── 阶段二：运行 ──
 FROM node:22-alpine
 WORKDIR /app
 
+# Alpine 软件源：默认官方源。中国大陆服务器可用 --build-arg APK_MIRROR=mirrors.tencent.com 加速
+ARG APK_MIRROR=
 # 安装 dumb-init 用于优雅关闭 + curl 用于健康检查
-RUN apk add --no-cache dumb-init curl
+RUN if [ -n "${APK_MIRROR}" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|${APK_MIRROR}|g" /etc/apk/repositories; \
+    fi \
+ && apk add --no-cache dumb-init curl
 
 # 从 builder 复制 node_modules
 COPY --from=builder /app/node_modules ./node_modules
