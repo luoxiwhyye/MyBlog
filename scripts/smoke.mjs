@@ -126,7 +126,9 @@ const expectStatus = async (
 // 1. 健康检查（反代链路 + 每个分块）
 // ─────────────────────────────────────────────
 
-console.log(`冒烟自检：${BASE}${ADMIN ? ` + ${ADMIN}` : ""}${SITE !== BASE ? `（站点域名 ${SITE}）` : ""}`);
+console.log(
+  `冒烟自检：${BASE}${ADMIN ? ` + ${ADMIN}` : ""}${SITE !== BASE ? `（站点域名 ${SITE}）` : ""}`,
+);
 console.log("=".repeat(70));
 
 const healthRes = await probe(HEALTH);
@@ -176,7 +178,9 @@ const reasonOf = (key) => {
 if (health) {
   const top =
     health.status ??
-    (health.code === 0 || health.code === 200 ? "ok" : `code=${health.code ?? "?"}`);
+    (health.code === 0 || health.code === 200
+      ? "ok"
+      : `code=${health.code ?? "?"}`);
   if (top === "ok") pass("/health 顶层 status = ok");
   else warn(`/health 顶层 status = ${top}`);
 
@@ -198,9 +202,7 @@ if (health) {
   const dbStatus = statusOf(dbKey);
   if (dbStatus === "ok") pass(`db = ok`);
   else
-    error(
-      `db = ${dbStatus}${reasonOf(dbKey) ? `（${reasonOf(dbKey)}）` : ""}`,
-    );
+    error(`db = ${dbStatus}${reasonOf(dbKey) ? `（${reasonOf(dbKey)}）` : ""}`);
 
   const meiliKey = pick(MEILI_KEYS);
   const meili = statusOf(meiliKey);
@@ -449,7 +451,9 @@ if (!ADMIN) {
         "反代缺 location /api/ 转发到后端 → 后台登录界面能打开，但所有接口拿到的是 index.html（表现为一登录就转圈）。本地只起容器端口、没配外层反代时也会命中这条，属预期。",
       );
     } else if ([401, 403].includes(adminGuard.status)) {
-      pass(`后台域名下未登录访问 /api/v1/blogger/profile → ${adminGuard.status}`);
+      pass(
+        `后台域名下未登录访问 /api/v1/blogger/profile → ${adminGuard.status}`,
+      );
     } else {
       warn(
         `后台域名下未登录访问 /api/v1/blogger/profile 返回 ${adminGuard.status}（期望 401/403）`,
