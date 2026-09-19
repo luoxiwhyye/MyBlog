@@ -397,13 +397,16 @@ cd /opt/myblog
 docker compose --env-file .env.docker stop meilisearch || true
 ```
 
-3. 逐个构建，避免并发峰值：
+3. 逐个构建，避免并发峰值（四个都要，最后那个最轻）：
 
 ```bash
 docker compose --env-file .env.docker build myblog-backend
 docker compose --env-file .env.docker build myblog-admin
 docker compose --env-file .env.docker build myblog-blog     # 最重的一个
+docker compose --env-file .env.docker build myblog-backup
 ```
+
+建完直接 `up -d` 启动（**不要再带 `--build`**，理由见 6.2 的提示）。
 
 > 机器更小（2 核 2G）且构建反复被 OOM kill，就改为**本地构建再传产物**：
 > 本地 `npm run build` 后把 `myblog-vue/myblog-blog/.output` 传上去，用
@@ -416,8 +419,31 @@ cd /opt/myblog
 docker compose --env-file .env.docker up -d --build
 ```
 
-首次会拉取 `mysql:8.0`、`redis:7-alpine`、`getmeili/meilisearch:v1.10` 等基础镜像，
-视网络 3 到 10 分钟。中途 `Ctrl+C` 不会白干，重跑会复用已完成层。
+这一条命令**一次做完三件事**，不需要再补别的命令：
+
+| 它做的事 | 涉及的服务 |
+| --- | --- |
+| ① 构建镜像（4 个） | `myblog-backend`、`myblog-blog`、`myblog-admin`、`myblog-backup` |
+| ② 拉基础镜像（3 个） | `mysql:8.0`、`redis:7-alpine`、`getmeili/meilisearch:v1.10` |
+| ③ 创建并启动全部 7 个容器 | 按 `depends_on` 顺序：mysql / redis 先健康 → backend → blog / admin / backup |
+
+首次会拉取基础镜像，视网络 3 到 10 分钟。中途 `Ctrl+C` 不会白干，重跑会复用已完成层。
+
+> ⚠️ **内存小的机器按 6.1 逐个构建过之后，只用 `up -d`（不要再加 `--build`）**：
+>
+> ```bash
+> docker compose --env-file .env.docker up -d
+> ```
+>
+> 因为 `--build` 会去构建那 4 个镜像，小机器上同时构建（尤其 `nuxt build`
+> 峰值约 2GB）容易被 OOM kill。镜像已经建好了就不必再让它构建一次。
+> 反过来：**没按 6.1 逐个构建过**就必须带 `--build`，否则 Docker 会在 `up`
+> 时顺手构建（行为一样，只是不受你控制）。
+
+> 💡 两条附带说明：
+> - `--build` 是「用当前源码重新构建」，不是「重新下载」；源码没变时全是缓存命中，很快。
+> - 构建阶段**附在前台**跑：用网页终端的话别关页面，否则构建会中断
+>   （重跑命令会接着做，已完成层不丢）。想彻底免疫就用 `tmux` / `nohup`。
 
 ### 6.3 看状态
 

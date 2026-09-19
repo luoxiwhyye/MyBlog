@@ -10,9 +10,13 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 # npm 源：默认官方源。中国大陆服务器可用 --build-arg NPM_REGISTRY=https://registry.npmmirror.com 加速
+# 用环境变量而不是 npm config set：环境变量的优先级高于任何 .npmrc，不会被子项目文件覆盖
 ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 COPY package.json package-lock.json ./
-RUN npm config set registry "${NPM_REGISTRY}" && npm ci --omit=dev
+# npm ci 严格按 lockfile 安装（比 npm install 少一轮整树解析）；
+# --no-audit / --no-fund 跳过额外的安全审计与赞助提示请求
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # ── 阶段二：运行 ──
 FROM node:22-alpine

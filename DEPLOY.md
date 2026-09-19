@@ -188,6 +188,17 @@ BIND_ADDR=127.0.0.1
 >
 > 可选镜像：`mirrors.tencent.com` / `mirrors.aliyun.com` / `mirrors.ustc.edu.cn`。
 > 这两项**只影响构建期**，与运行时行为无关。
+>
+> 💡 **设完源之后仍然慢是正常的，慢在哪要分清**：
+>
+> | 阶段 | 瓶颈 | 期望 |
+> | --- | --- | --- |
+> | 装系统包 `apk add` | 网络 | 几秒（不设镜像源时可能是几百秒） |
+> | 装依赖 `npm ci` | 网络 | 1~3 分钟（blog 有 1200+ 个包） |
+> | **`npm run build`（nuxt build）** | **CPU，与网络无关** | **2 核机器上 3~10 分钟** |
+>
+> 最后那步是纯计算，把源换成再快的镜像也不会变快 —— 只看 CPU。它会打
+> `Client built in ...ms` / `Building server...` 这类进度，只要在动就别中断。
 
 ```bash
 docker compose --env-file .env.docker up -d --build
@@ -196,6 +207,20 @@ docker compose --env-file .env.docker up -d --build
 首次构建大约需要 **3-8 分钟**（取决于网络速度；设了上面的加速源后境内服务器也差不多）。
 构建完成后自动启动所有容器。
 
+> 这一条命令**一次做完三件事**：构建 4 个镜像（backend / blog / admin / backup）、
+> 拉 3 个基础镜像（mysql / redis / meilisearch）、按依赖顺序创建并启动全部 7 个容器。
+>
+> ⚠️ **内存较小的机器（2 核 4G 及以下）建议先逐个构建、再 `up -d`（不带 `--build`）**：
+> 同时构建多个镜像时 `nuxt build` 峰值约 2GB，容易被 OOM kill。
+>
+> ```bash
+> docker compose --env-file .env.docker build myblog-backend
+> docker compose --env-file .env.docker build myblog-admin
+> docker compose --env-file .env.docker build myblog-blog
+> docker compose --env-file .env.docker build myblog-backup
+> docker compose --env-file .env.docker up -d
+> ```
+>
 > 只想先构建一个服务排查问题时：`docker compose --env-file .env.docker build myblog-backend`
 > （⚠️ 必须在项目目录里执行 —— `--env-file` 是相对当前目录解析的，
 > 在 `~` 下跑会报 `couldn't find env file: /root/.env.docker`）。

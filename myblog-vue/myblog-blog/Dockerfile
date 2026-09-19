@@ -24,8 +24,14 @@ RUN if [ -n "${APK_MIRROR}" ]; then \
 COPY . .
 
 # npm 源：默认官方源。中国大陆服务器可用 --build-arg NPM_REGISTRY=https://registry.npmmirror.com 加速
+# 用环境变量而不是 npm config set：环境变量的优先级高于任何 .npmrc，不会被子项目文件覆盖
 ARG NPM_REGISTRY=https://registry.npmjs.org
-RUN npm config set registry "${NPM_REGISTRY}" && npm install
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+# ⚠️ 用 npm ci 而不是 npm install：这个项目有 1200+ 个依赖，
+#    npm install 即使 lockfile 完整也要重新解析整棵树（每个包一次元数据请求），
+#    实测比 npm ci 慢很多；CI 也用的是 npm ci。
+#    --no-audit / --no-fund 跳过额外的安全审计与赞助提示请求。
+RUN npm ci --no-audit --no-fund
 
 # Nuxt 构建（ARG 注入构建时环境变量）
 ARG NUXT_API_BASE=http://myblog-backend:3000/api/v1
