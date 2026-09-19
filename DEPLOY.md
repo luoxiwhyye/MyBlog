@@ -327,10 +327,15 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
       docker compose exec myblog-backup bash /scripts/verify-backup.sh    # gzip + sha256 双校验
       docker compose exec myblog-backup bash /scripts/backup-uploads.sh   # 图片备份（不在数据库里）
       ```
-      再**真恢复一次**：建一个临时库 → `DB_NAME=<临时库> CONFIRM=1 bash /scripts/restore.sh <备份>` →
-      比对表数与关键行数。`restore.sh` **不会创建目标库**，要先 `CREATE DATABASE`。
+      再**真演练一次恢复**（完整步骤见上文「恢复演练」小节）：建临时库 → 恢复到临时库 →
+      断言**表数**与**关键表行数**都和生产库一致 → 删临时库。
+      ⚠️ 恢复命令**必须**带 `-e DB_NAME=<临时库>`：漏掉时脚本会回落到容器里的 `DB_NAME`（即生产库），
+      而备份文件内含 `DROP TABLE`，**会直接清掉生产库的表**。
 - [ ] **[阻断]** **[服务器]** 备份**出了机器**：用 `rclone lsd <远端>:` 验证凭据后实跑一次备份，
       确认对象存储里真的多出文件（`RCLONE_REMOTE` 没配或同步失败时备份任务会返回非 0，不会静默）。
+      ```bash
+      docker run --rm -v /root/.config/rclone:/config/rclone rclone/rclone lsf <远端>:<桶名>
+      ```
 - [ ] **[服务器]** 定时任务已注入：`docker compose exec myblog-backup cat /etc/crontabs/root` 应有两行（DB + 图片）。
 - [ ] **[服务器]** 磁盘余量 > 20%，且容器日志有轮转（compose 已配 `max-size: 10m` / `max-file: 3`）。
 
@@ -594,6 +599,42 @@ bash /scripts/backup-uploads.sh
 > 否则会报 `ERROR 1049 (42000): Unknown database`。
 > 备份文件内含 `DROP TABLE` 语句，**导入会覆盖目标库里的同名表**。
 
+#### 恢复演练（上线首日必做一次）
+
+**为什么必须演练**：`mysqldump` 退出码 0 只说明「导出过程没报错」，**不说明这个文件能导回数据库**。
+磁盘写满导致归档截断、传输/存储损坏、字符集建表失败、外键导入顺序冲突 —— 这些**平时完全无症状**，
+只在灾难恢复当天才暴露，而那天没有补救机会。未验证的备份等于没有备份。
+
+```bash
+cd /opt/myblog
+
+# ① 建临时库当靶子（绝不能恢复到生产库）
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE myblog_restore_test"'
+
+# ② 恢复到临时库
+#    ⚠️ 这一步最危险：必须带 -e DB_NAME=<临时库>。
+#    不带时脚本回落到容器里的 DB_NAME（生产库），而备份文件里每个表都带
+#    DROP TABLE IF EXISTS（不带库名前缀）→ 会先清空生产库的表再重灌。
+#    按下回车前扫一眼这一行有没有 -e DB_NAME=myblog_restore_test
+docker compose exec -e DB_NAME=myblog_restore_test -e CONFIRM=1 \
+  myblog-backup bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+
+# ③ 断言一：表数（本库共 12 张）
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog_restore_test -e "SELECT COUNT(*) AS tables_cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()"'
+
+# ④ 断言二：关键表行数，必须与生产库逐项一致
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog_restore_test -e "SELECT (SELECT COUNT(*) FROM setting) AS settings, (SELECT COUNT(*) FROM blogger) AS bloggers, (SELECT COUNT(*) FROM article) AS articles"'
+
+# ⑤ 收尾：删掉临时库（演练用的是独立库名，删它不会碰到生产数据）
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE myblog_restore_test"'
+```
+
+> **只断言表数是不够的** —— 表数只证明「结构建起来了」。必须再比对关键表的**行数**，
+> 那才证明「数据真的搬回来了」。两者都过，才算这次备份可用。
+>
+> **恢复成功后建议顺手做的事**：`sql.gz` 归档是 gzip 流，`gzip -dc <归档> | head` 能直接看 SQL 头，
+> 确认里面有 `CREATE TABLE` / `INSERT` 而不是空文件。
+
 > **图片备份**（`backup-uploads.sh`）：产出 `uploads_YYYYMMDD_HHMMSS.tar.gz` + 同名 `.sha256`，
 > 打包后立即校验（gzip + sha256），校验不过会删产物并返回非 0；保留期与数据库备份共用 `BACKUP_RETENTION_DAYS`。
 > 定时任务默认 `30 2 * * *`（可用 `UPLOAD_BACKUP_CRON` 覆盖）。恢复方式：`tar -xzf <归档> -C <目标父目录>`（归档内是 `uploads/` 前缀）。
@@ -607,21 +648,44 @@ bash /scripts/backup-uploads.sh
 > 桶名要填服务商给的**真实桶名**（腾讯云 COS 形如 `bucket-125xxxxxxx`）。
 >
 > ```bash
-> # 远端名取 myoss，一条命令建好（不必走交互向导）
-> rclone config create myoss oss provider Alibaba \
->   access_key_id <AK> access_key_secret <SK> endpoint oss-cn-hangzhou.aliyuncs.com
-> rclone config create myoss cos provider TencentCOS \
->   secret_id <Id> secret_key <Key> endpoint cos.ap-guangzhou.myqcloud.com
-> rclone config create myoss s3  provider Cloudflare \
->   access_key_id <AK> secret_access_key <SK> endpoint https://<账号ID>.r2.cloudflarestorage.com
+> # 腾讯云 COS（远端名取 mycos，一条命令建好，不必走交互向导）
+> # ⚠️ backend 类型固定是 s3（rclone 没有 cos / oss 这两种 backend），服务商用 provider 区分
+> # ⚠️ 凭据参数名是 access_key_id / secret_access_key（不是腾讯云的 secret_id / secret_key）
+> rclone config create mycos s3 provider TencentCOS \
+>   access_key_id <SecretId> secret_access_key <SecretKey> \
+>   endpoint cos.ap-guangzhou.myqcloud.com      # 地域按控制台填：ap-beijing / ap-shanghai / ...
 >
-> rclone lsd myoss:                  # 能列出桶 → 凭据正确
-> rclone mkdir myoss:myblog-backup   # 桶不存在就建一个
-> # 于是 .env.docker 里填：RCLONE_REMOTE=myoss:myblog-backup
+> # 阿里云 OSS
+> rclone config create myoss s3 provider Alibaba \
+>   access_key_id <AK> secret_access_key <SK> \
+>   endpoint oss-cn-hangzhou.aliyuncs.com
+>
+> # Cloudflare R2（或其他 S3 兼容）
+> rclone config create myr2 s3 provider Cloudflare \
+>   access_key_id <AK> secret_access_key <SK> \
+>   endpoint https://<账号ID>.r2.cloudflarestorage.com
+>
+> rclone lsd mycos:                  # 能列出桶 → 凭据正确
+> rclone mkdir mycos:myblog-backup   # 桶不存在就建一个
+> # 于是 .env.docker 里填：RCLONE_REMOTE=mycos:myblog-backup
 > ```
+>
+> ⚠️ **三个容易填错的地方**（都实测过）：`type` 永远是 `s3`（写 `cos` / `oss` 会报
+> `couldn't find backend for type "..."`）；凭据参数名是 `access_key_id` / `secret_access_key`
+> （控制台上的 `secret_id` / `secret_key` 是另一套叫法，rclone 不认）；`endpoint` 不带
+> `https://` 前缀也能用（R2 那种带完整域名的写全也无妨）。
 >
 > ⚠️ rclone 必须在**服务器上以 root** 跑（容器只读挂载宿主机的 `/root/.config/rclone`，
 > 非 root 部署用 `RCLONE_CONFIG_DIR` 改路径）；**桶保持私有**，别开公共读 —— 备份文件等于整库数据。
+>
+> 宿主机没装 rclone 也能配（用官方镜像代跑，配置一样落到 `/root/.config/rclone/rclone.conf`）：
+> ```bash
+> docker run --rm -it -v /root/.config/rclone:/config/rclone rclone/rclone \
+>   config create mycos s3 provider TencentCOS \
+>   access_key_id <SecretId> secret_access_key <SecretKey> endpoint cos.<地域>.myqcloud.com
+> docker run --rm -v /root/.config/rclone:/config/rclone rclone/rclone lsd mycos:   # 列桶即可验证
+> # ⚠️ 镜像是 Alpine，它的默认配置路径是 /config/rclone/rclone.conf，所以挂载点写 /config/rclone（不是 /root/.config/rclone）
+> ```
 
 > 备份目录挂载在 Docker 卷 `backup-data`，容器宿主机也可挂载到本地持久化目录。
 > 定时备份默认每天 `02:00` 触发（`BACKUP_CRON` 可在 `.env.docker` 覆盖），
