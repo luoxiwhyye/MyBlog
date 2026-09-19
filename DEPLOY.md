@@ -9,11 +9,13 @@
 - [架构概览](#架构概览)
 - [环境要求](#环境要求)
 - [快速开始](#快速开始)
+- [上线前检查清单](#上线前检查清单)
 - [配置说明](#配置说明)
 - [后端切换](#后端切换)
 - [常用命令](#常用命令)
 - [数据持久化](#数据持久化)
 - [生产环境建议](#生产环境建议)
+- [上线首日速查](#上线首日速查)
 - [故障排查](#故障排查)
 
 ---
@@ -178,6 +180,97 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
 > ⚠️ **口令必须在首次启动前就设置好**：`BLOGGER_PASSWORD` 只在「创建博主」时生效，
 > 库里已有博主时改 `.env` 没有任何效果（要改就去后台「个人资料」）。
 > 模板默认值是 `admin123` —— 等同于无密码，`scripts/preflight.mjs` 会把它列为阻断项。
+
+---
+
+## 上线前检查清单
+
+> 逐条打勾；**任何一条标 [阻断] 的没通过，就不要上线**（或书面记下接受风险的理由）。
+> 标 [服务器] 的只能在服务器上做，其余在本机就能完成。
+
+### 一、配置与密钥
+
+- [ ] **[阻断]** `.env.docker` 里 `JWT_SECRET` / `DB_PASSWORD` / `MEILI_MASTER_KEY` / `BLOGGER_PASSWORD` 都已换成随机值
+      （`openssl rand -hex 32`，每个各跑一次）。默认值写在本公开仓库里，不改等于任何人都能签发管理员 token。
+- [ ] **[阻断]** `node scripts/preflight.mjs` 输出 **0 阻断**。它会逐项检查：
+      密钥是否仍是模板值、地址类是否填了容器服务名、时区四项是否同区、SMTP 是否缺项、
+      `SITE_URL` 收信人能否打开（复用后端自己的判定口径，不是另写一套）。
+- [ ] 密码里没有 `$` `&` `#`（这三个字符在 `.env.docker` 的 shell 解析里会出问题，典型表现是 mysql 一直不 healthy）。
+- [ ] `.env.docker` 的权限是 `600`，且 `git status` 里看不到它（`.gitignore` 已覆盖）。
+
+### 二、地址类（配错的表现全是「页面能开、功能静默坏」）
+
+- [ ] **[阻断]** `VITE_API_BASE=/api/v1`（反代同源）。填容器服务名会让后台「能开页面、一登录就转圈」。
+- [ ] **[阻断]** `APP_BASE_URL` 是站点域名。不填时新上传的图会以 `http://localhost:3000/...` 入库，
+      前台看不出来，但**后台的封面 / 头像 / 表情会全部裂掉**。
+- [ ] **[阻断]** `SITE_URL` 是**收信人能打开**的地址（邮件里链接的前缀）。
+- [ ] `FRONTEND_ORIGIN` / `ADMIN_ORIGIN` 与页面实际 origin **逐字一致**（含 scheme，末尾不要斜杠）。
+- [ ] **[阻断]** 后台用**独立域名**，不是 `博客域名/admin` 子路径（它的构建未设 Vite `base`）。
+- [ ] **[阻断]** `TRUST_PROXY=1`（Nginx 一跳反代）。填 `0` 会让所有访客共用一个限流桶，正常浏览也被 429。
+- [ ] 改完 `NUXT_SITE_URL` / `VITE_API_BASE` 后**重新构建过前端镜像**（只 `up -d` 不生效）。
+
+### 三、对外暴露面
+
+- [ ] **[阻断]** **[服务器]** 从**外网**（手机 4G，不要用服务器自己）扫端口，
+      只应看到 22（限来源 IP）/ 80 / 443：
+      `nmap -Pn -p 22,80,443,3000,3001,3002,3307,6379,7700 <服务器IP>`
+      （compose 默认已把其余端口绑在回环，此项是确认它真的生效）
+- [ ] **[阻断]** **[服务器]** HTTPS 生效：`curl -sI https://<域名>` 返回 200 且有 HSTS；`http://` 自动 301 到 `https://`；
+      证书剩余有效期 > 30 天，**且自动续期已启用**。
+- [ ] **[服务器]** 后台域名的 `/api/` 能正确转发（配错时接口返回的是 index.html，表现为登录转圈）。
+
+### 四、数据与备份
+
+- [ ] **[阻断]** **[服务器]** 起库后核对结构：`article.comment_enabled` 为 `tinyint(1) NOT NULL DEFAULT 1`
+      （默认值必须是 **1**，为 0 会让全站评论区集体消失）。
+- [ ] **[阻断]** **[服务器]** `node scripts/auditData.js`（在 `myblog-express/` 下）报 **`[error] 0`**。
+- [ ] **[阻断]** **[服务器]** `node scripts/verifyUploads.js` 的「失联」为 **0**。
+- [ ] **[阻断]** **[服务器]** **备份能跑通且能恢复**（只看到备份文件不算）：
+      ```bash
+      docker compose exec myblog-backup bash /scripts/backup.sh           # 备份 + 校验和
+      docker compose exec myblog-backup bash /scripts/verify-backup.sh    # gzip + sha256 双校验
+      docker compose exec myblog-backup bash /scripts/backup-uploads.sh   # 图片备份（不在数据库里）
+      ```
+      再**真恢复一次**：建一个临时库 → `DB_NAME=<临时库> CONFIRM=1 bash /scripts/restore.sh <备份>` →
+      比对表数与关键行数。`restore.sh` **不会创建目标库**，要先 `CREATE DATABASE`。
+- [ ] **[阻断]** **[服务器]** 备份**出了机器**：用 `rclone lsd <远端>:` 验证凭据后实跑一次备份，
+      确认对象存储里真的多出文件（`RCLONE_REMOTE` 没配或同步失败时备份任务会返回非 0，不会静默）。
+- [ ] **[服务器]** 定时任务已注入：`docker compose exec myblog-backup cat /etc/crontabs/root` 应有两行（DB + 图片）。
+- [ ] **[服务器]** 磁盘余量 > 20%，且容器日志有轮转（compose 已配 `max-size: 10m` / `max-file: 3`）。
+
+### 五、功能可用性（用**真实浏览器 + 真实域名 + HTTPS**）
+
+- [ ] **[阻断]** **[服务器]** `node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名>` **0 阻断**。
+      它检查健康检查各分块、关键接口、SSR 页面、`og:image` / canonical 是否用站点域名、上传路由、以及未登录访问管理端接口是否被拦。
+- [ ] **[阻断]** 健康检查五块全绿：`curl -s https://<博客域名>/health`
+      （`database` / `redis` / `meilisearch` / `mail` / `imageVariants`；`mail` 显示 `disabled` 且你确实不打算发信时可接受）
+- [ ] **[阻断]** 后台能登录、能上传一张图并**立即回读**（能显示 = `APP_BASE_URL` 正确）。
+- [ ] **[阻断]** 邮件「测试发信」**真实收到**（后台「系统设置 · 邮件通知」），且该页**没有告警条**
+      （`siteUrlWarning` / `recipientWarning` 都为空）。
+- [ ] 前台冒烟：首页 → 文章详情（目录 / 代码高亮 / 图片 / 相关推荐 / 上下篇）→ 分类 → 标签 → 归档 → 友链 → 留言板 → 关于 → 搜索 → 主题与语言切换。
+- [ ] 后台冒烟：新建文章（含封面裁剪、分类、标签、**评论区开关**）→ 编辑 → 回收站 → 评论批量审核 → 留言 → 表情分组 → 系统设置各 Tab → 缓存运维页。
+- [ ] 通知四类：顶层评论→博主 / 回复→被回复者（**审核通过后**才发，且订阅框默认不勾）/ 新留言→博主 / 留言审核通过→留言者。
+- [ ] **[阻断]** **搜索真的走了 Meilisearch**：`/health` 的 `meilisearch.status = ok`。
+      无密钥 / 错密钥都不影响 `/health` 返回 200，但索引操作会被 403 拒掉，结果是**静默降级成 SQL LIKE**（看着能用）。
+- [ ] **图片变体真的在生成**：`/health` 的 `imageVariants.status = ok`；上传后磁盘上应有 `.webp` 与 `_thumb.webp`。
+- [ ] **时间没有整体偏移**：比对同一篇文章在后台与前台显示的时间；
+      `docker compose logs myblog-backend | grep -E "读时区|时区不一致"` 不应有告警。
+
+### 六、合规与外显信息（用境内服务器 + 真域名必做）
+
+- [ ] **[阻断]** 后台「基本设置」里的**备案号已填**，页脚能正常渲染出来
+      （未配置时前台 `SiteIcp` 组件不渲染 —— 不报错，但合规上必须有）。
+- [ ] 页脚显示的备案号与实际备案主体、域名一致（含是否带 `www`）。
+- [ ] 做过公安联网备案的，同样在页脚挂出（链接到 `beian.mps.gov.cn`）。
+- [ ] 评论与留言是**审核制**（本项目默认如此，确认没被改成自动通过）。
+- [ ] 「关于我」页有能联系到站长的方式（备案要求，也是邮件通知的兜底）。
+- [ ] 80 / 443 两个端口都返回正常页面（接入商可能抽查）。
+
+### 七、回滚准备
+
+- [ ] 记录本次部署版本：git commit + 各镜像 digest（`docker images --digests`）+ 已执行的迁移脚本清单。
+- [ ] 上一个可用镜像 / 备份点仍在。
+- [ ] 回滚步骤**除你之外还有一个人读过**并能照着执行。
 
 ---
 
@@ -557,11 +650,16 @@ server {
 
 ### 2. 安全加固
 
-- ✅ 修改 `.env.docker` 中所有默认密码和密钥
+- ✅ 修改 `.env.docker` 中所有默认密码和密钥（`scripts/preflight.mjs` 会把模板值列为阻断项）
 - ✅ 使用 `openssl rand -hex 32` 生成强随机 JWT 密钥
-- ✅ 限制端口暴露：如果使用反向代理，可移除 `docker-compose.yml` 中 `myblog-blog` 和 `myblog-admin` 的 `ports` 映射
+- ✅ 端口暴露：compose 已把全部发布端口绑到 `BIND_ADDR`（默认 `127.0.0.1`，只有宿主机上的
+  Nginx 能访问）。用公网扫描确认 MySQL / Redis / Meilisearch / 后端端口确实不可达
 - ✅ 定期备份数据库：使用仓库内置 `scripts/backup.sh`（备份后自动生成校验和并校验），
   或启用 docker-compose 的 `myblog-backup` 服务（默认每天 02:00 自动备份）
+- ✅ **备份上传图片**：`scripts/backup-uploads.sh`（默认每天 02:30）。
+  图片不在数据库里，丢了无法从库重建，两类备份必须成对
+- ✅ **备份出机器**：配置 `RCLONE_REMOTE` 后会同步到对象存储。
+  备份只留在本机 = 宿主机磁盘损坏就全丢；同步失败时任务返回非 0（不会静默）
 - ✅ 校验备份完整性：定期执行 `bash scripts/verify-backup.sh`，
   确保备份未被静默损坏 / 传输错误
 - ✅ 恢复演练：定期用 `bash scripts/restore.sh` 在测试库恢复一次，
@@ -570,30 +668,94 @@ server {
 
 ### 3. 资源限制
 
-在 `docker-compose.yml` 中为每个服务添加资源限制：
+compose 目前未设内存上限 —— 单个容器 OOM 会拖垮宿主机。参考值见 `docker-compose.yml`
+末尾的注释块，按实际内存调整后在对应 service 下加一行：
 
 ```yaml
 services:
   myblog-backend:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+    mem_limit: 512m
 ```
+
+> ⚠️ 这是上限而非预留；设得过低会触发 OOM 重启（表现为容器反复 `Restarting`）。
 
 ### 4. 日志管理
 
+compose 已通过 `x-logging` 锚点为所有服务配好轮转（`max-size: 10m` / `max-file: 3`），
+无需额外配置。若要改档位，改锚点处一处即可（各服务都引用它）。
+
 ```yaml
-services:
-  myblog-backend:
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 ```
+
+---
+
+## 上线首日速查
+
+### 1. 部署后按顺序跑这四条
+
+```bash
+# ① 配置自检（0 阻断才算过）
+node scripts/preflight.mjs
+
+# ② 服务是否都健康的
+docker compose ps
+
+# ③ 健康检查五块（database / redis / meilisearch / mail / imageVariants）
+curl -s https://<博客域名>/health
+
+# ④ 端到端冒烟（0 阻断才算过）
+node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名>
+```
+
+> `smoke.mjs` 的两条说明：访问地址与站点域名不同时用 `--site=<域名>` 指定；
+> `/health` 不在博客域名下（没配反代）时用 `--health=http://127.0.0.1:3000/health` 直连后端。
+
+### 2. 首 24 小时观察（建议每 2 小时一轮）
+
+| 看什么 | 命令 / 位置 | 正常 |
+| --- | --- | --- |
+| 服务状态与重启次数 | `docker compose ps` | 全部 `Up`，无反复 `Restarting` |
+| 资源 | `docker stats --no-stream` | 无容器长期贴着内存上限 |
+| 磁盘 | `df -h` | < 80%（容器日志已按 10m×3 轮转） |
+| 错误日志 | `docker compose logs --tail=200 myblog-backend \| grep -i error` | 无持续新增 |
+| 健康检查 | `curl -s https://<域名>/health` | 五块全绿 |
+| 限流是否误杀 | 浏览器正常翻页 | 不出现 429（出现说明 `TRUST_PROXY` 配错） |
+| 备份 | 次日 02:00 后 `docker compose exec myblog-backup ls -lh /backups` | 出现当日 `.sql.gz` 与 `uploads_*.tar.gz`（各带 `.sha256`） |
+
+### 3. 首日常见问题（每条的详细排查见「故障排查」）
+
+| 症状 | 先想到 | 三步处置 |
+| --- | --- | --- |
+| 前台打不开、页面 502 | 博客容器端口 | `docker compose logs myblog-blog \| head -3` 看监听端口是否为 **3001**（不是 → 重建前台镜像）→ `docker compose ps` → 查 Nginx `upstream` |
+| 后台能开页面，一登录就转圈 | 反代缺 `location /api/` | 浏览器 Network 里 `/api/v1/...` 返回的是不是 HTML（是 → 补反代规则）→ 确认 `VITE_API_BASE=/api/v1` → 重建 admin 镜像 |
+| 图片全部裂（尤其是后台） | `APP_BASE_URL` | 看库里存的地址前缀（`SELECT cover_image FROM article LIMIT 1`）→ 改 `APP_BASE_URL` → **存量行需 SQL 回填** |
+| 搜索"能用"但很慢 | Meilisearch 降级 | 看 `/health` 的 `meilisearch.status` 与 `reason` → 核对密钥 / 容器状态 → 改完重启后端（密钥错时**不报错只降级**） |
+| 收不到通知邮件 | SMTP 或收件人 | 后台「系统设置 · 邮件通知」点测试发信 → 页面告警条写了缺哪项 → 改完 `docker compose restart myblog-backend` |
+| 邮件里链接点开是空页 / 被邮箱拦截 | `SITE_URL` | 必须是收信人能访问的公网地址（`localhost` / 内网地址必然不行）→ 改完重启后端 |
+| 正常浏览也被 429 | `TRUST_PROXY` | 反代部署应为 `1` → 改完重启后端 |
+| 时间整体差 8 小时 | 时区四项 | `docker compose exec mysql sh -c 'date; echo $TZ'` → 核对 `TZ` / `DB_TIME_ZONE` / `APP_TIME_ZONE` → 重建容器 |
+| 内存吃满、服务被 OOM 杀掉 | 单容器无上限 | `docker stats` 找元凶 → 参照 `docker-compose.yml` 末尾的参考值加 `mem_limit` |
+| 备份文件只有几十字节 | 备份其实失败了 | `docker compose exec myblog-backup bash /scripts/backup.sh` 看真实报错 → 对照「故障排查 §7」 |
+| 某篇文章看不到评论区 | 文章级开关 | 后台文章编辑器里「评论区」是否被关掉（默认开放） |
+
+### 4. 出问题时的第一动作
+
+**先别改配置**。按这个顺序取证，能避免「改了一堆反而查不出原因」：
+
+```bash
+docker compose ps                          # 谁不健康
+docker compose logs --tail=200 <服务名>     # 它的报错
+curl -s <域名>/health                      # 哪一块不对
+node scripts/smoke.mjs --base=<域名>        # 覆盖面最广的一遍
+```
+
+改完任何 `.env.docker` 里的值，**必须重建/重启对应容器**（`docker compose up -d <服务名>` 或 `restart`），
+改前端构建期变量（`NUXT_*` / `VITE_*`）则必须 `build` 后 `up -d`。
 
 ---
 

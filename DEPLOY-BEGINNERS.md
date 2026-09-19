@@ -875,6 +875,11 @@ Windows 本地专用：
 
 ## 最后：上线后的安全检查清单
 
+> 下面是速查版。**正式上线前建议按 [DEPLOY.md 「上线前检查清单」](./DEPLOY.md#上线前检查清单) 逐条过**
+> （30+ 条，标了哪些是阻断项、哪些只能在服务器上做），并用仓库自带的三个脚本收口：
+> `node scripts/preflight.mjs`（配置自检）、`node scripts/smoke.mjs`（上线后冒烟）、
+> `bash scripts/backup-uploads.sh`（图片备份）。
+
 - [ ] 管理后台默认密码 `admin123` **已修改**
 - [ ] `.env.docker` 里 `DB_PASSWORD` / `JWT_SECRET` / `MEILI_MASTER_KEY` **都不是默认值**
 - [ ] 博主邮箱已改成真实邮箱（否则评论通知会退信）

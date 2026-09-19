@@ -1012,6 +1012,10 @@ UPDATE article SET cover_image = REPLACE(cover_image, 'http://旧地址', 'https
 
 ## 附录 C：上线检查清单
 
+> 这里是速查版；**完整版（含阻断标记与服务器侧检查项）见 [DEPLOY.md 「上线前检查清单」](./DEPLOY.md#上线前检查清单)**。
+> 上线后跑一遍 `node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名>`，
+> 它能盖住健康检查、关键接口、SEO 域名、权限矩阵与反代拓扑。
+
 **配置**
 
 - [ ] `DB_PASSWORD` / `JWT_SECRET` / `MEILI_MASTER_KEY` 均已改为随机串
