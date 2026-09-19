@@ -19,22 +19,33 @@ export default defineNuxtConfig({
     host: process.env.NUXT_HOST || "0.0.0.0",
   },
   css: ["~/assets/css/main.scss"],
-  // S-05: ISR 预渲染配置 — 低频变化页面使用 ISR 降低服务端压力
+  // S-05: 预渲染 / 缓存策略
+  //
+  // ⚠️ 这里曾经给 /home、/archive、/category、/tag、/about 配了 isr / swr，现已全部改为实时 SSR。
+  //    原因：Nitro 的 ISR / SWR 缓存键是**完整请求 URL（含 host）**。当同一个站点能用多个
+  //    域名访问时（如 blog.example.com、www.example.com、裸域并存 —— 备案与用户习惯都支持
+  //    这种用法），每个 host 会各自缓存一份、各自决定何时过期，于是出现
+  //    「某个域名显示的还是旧内容、另一个域名已经是新的」。
+  //    2026-09-19 实际踩到：分类页在一个域名下只显示 2 个分类、另两个域名显示全部 5 个，
+  //    因为那个 host 的缓存是「只有 2 个分类有已发布文章」时渲染的。
+  //    多域名并存不该被缓存机制破坏一致性，故改为全站实时 SSR；个人博客流量下 SSR 开销可忽略。
+  //    将来若流量上来确实需要缓存，请优先选「与 host 无关」的方案（外层 CDN 按路径缓存，
+  //    或把多域名 301 收敛到一个），而不要直接恢复 isr / swr。
   routeRules: {
     // 欢迎落地页（/）: SSR 渲染（静态落地，不缓存）
     "/": { ssr: true },
-    // 主博客（/home）: ISR 缓存 60 秒，过期后陈旧重验证
-    "/home": { isr: 60 },
-    // 归档页 ISR: 缓存 300 秒
-    "/archive": { isr: 300 },
-    // 分类页 ISR
-    "/category": { isr: 300 },
-    "/category/**": { isr: 300 },
-    // 标签页 ISR
-    "/tag": { isr: 300 },
-    "/tag/**": { isr: 300 },
-    // 关于页 SWR: 5 分钟缓存 + 10 分钟陈旧重验证
-    "/about": { swr: 600 },
+    // 主博客（/home）
+    "/home": { ssr: true },
+    // 归档页
+    "/archive": { ssr: true },
+    // 分类页
+    "/category": { ssr: true },
+    "/category/**": { ssr: true },
+    // 标签页
+    "/tag": { ssr: true },
+    "/tag/**": { ssr: true },
+    // 关于页
+    "/about": { ssr: true },
     // 文章详情页 SSR（实时内容）
     "/article/**": { ssr: true },
     // 工具箱页纯客户端渲染（各页面 definePageMeta 中已设 ssr: false）

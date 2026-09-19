@@ -4,12 +4,12 @@
 
 ## 功能特性
 
-- 🏠 页面：`/` 欢迎落地页（SSR）、`/home` 主站（ISR 60s）、文章详情、分类、标签、归档、关于、`/friends` 友链页、留言板、404；全站搜索由命令面板（`Ctrl/Cmd + K`）承载，不设独立搜索页；站内页**统一页头**（`PageHeader`）、页脚两行分层（含后台入口）
+- 🏠 页面：`/` 欢迎落地页（SSR）、`/home` 主站、文章详情、分类、标签、归档、关于、`/friends` 友链页、留言板、404；全站搜索由命令面板（`Ctrl/Cmd + K`）承载，不设独立搜索页；站内页**统一页头**（`PageHeader`）、页脚两行分层（含后台入口）
 - 🧰 编程工具箱：编解码 / 格式化 / 哈希加密 / 文本处理 / 颜色工具 / 开发辅助，支持历史快照、收藏、复制反馈
 - 📖 文章体验：评论区（回复/@提及，**后台可按文章单独下线**）、代码高亮 + 行号 + 一键复制、目录导航、阅读进度、**正文图片灯箱预览**（点击放大/缩放/切换/关闭）、**字号/行距调节**、上一篇/下一篇 + 相关推荐
 - 🎨 视觉与动效：主题色体系（后台可切换、按维度/亮暗独立，品牌色拆「装饰 / 文字」两级）、暗色模式、滚动入场动画（`v-reveal`）、页面/布局 fade+blur 过渡、移动端 Mobile-First 适配、**标签云按权重分级**
 - 🔗 交互：社交链接支持**点击跳转或点击复制**（按链接类型，复制有提示反馈）
-- 📊 渲染与性能：`/home`、归档/分类/标签 ISR、关于页 SWR、工具页纯客户端渲染；响应式图片 + LCP 优化（图片 URL 推导与失败回退统一到 `useSmartImage`）；背景图按视口绘制；骨架屏；全局错误边界
+- 📊 渲染与性能：**全站实时 SSR**（不做服务端页面缓存，原因见「路由与渲染策略」）、工具页纯客户端渲染；响应式图片 + LCP 优化（图片 URL 推导与失败回退统一到 `useSmartImage`）；背景图按视口绘制；骨架屏；全局错误边界
 - 🔎 SEO / 可发现性：titleTemplate、description、Open Graph、Twitter Card、canonical、JSON-LD；内置 `robots.txt` / `sitemap.xml` / **`rss.xml`**
 - 📱 PWA：可安装（manifest）+ Workbox 缓存（API NetworkFirst、图片 CacheFirst、字体 StaleWhileRevalidate）
 - 🔁 通过 Nuxt server route 代理后端 Express / Spring Boot API，并代理 `/uploads/**` 图片
@@ -18,7 +18,7 @@
 
 - **框架**: Nuxt 3（`@pinia/nuxt`、`@element-plus/nuxt`、`@vite-pwa/nuxt`）
 - **语言**: TypeScript
-- **渲染模式**: SSR + ISR / SWR / CSR 混合
+- **渲染模式**: SSR + CSR（不做服务端页面缓存）
 - **状态管理**: Pinia
 - **UI 组件库**: Element Plus
 - **富文本**: markdown-it + highlight.js
@@ -68,13 +68,20 @@ npm run test         # vitest 单元测试
 | 路由 | 渲染 |
 | --- | --- |
 | `/` | 欢迎落地页（SSR，`layouts/landing`，无 Header/Footer） |
-| `/home` | 主站（ISR 60s） |
-| `/archive` `/category/**` `/tag/**` | ISR 300s |
-| `/about` | SWR 600s |
+| `/home` | 主站（SSR） |
+| `/archive` `/category/**` `/tag/**` | SSR |
+| `/about` | SSR |
 | `/article/**` `/friends` `/message-board` `/maintenance` | SSR |
 | `/tools/**` | 纯客户端渲染（`ssr: false`） |
 | `/uploads/**` | 代理到后端 |
 | `/robots.txt` `/sitemap.xml` `/rss.xml` | Nitro handler |
+
+> 以上全部是**实时 SSR，不做服务端页面缓存**。此前 `/home`（ISR 60s）、`/archive`、
+> `/category/**`、`/tag/**`（ISR 300s）、`/about`（SWR 600s）用过页面缓存，现已全部移除。
+> 原因：Nitro 的 ISR / SWR 缓存键是**完整请求 URL（含 host）**，当站点能用多个域名访问时
+> （如 `blog.example.com`、`www.example.com`、裸域并存），每个域名会各存一份、各自过期，
+> 表现为「某个域名显示的是旧内容、另一个域名已经是新的」。
+> 详细说明见 `nuxt.config.ts` 的 `routeRules` 注释。
 
 ## 项目结构
 

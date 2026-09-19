@@ -156,8 +156,8 @@ const { data: articles, pending } = await useAsyncData(
 
 // ===== 搜索 / 按时间筛选 / 排序 状态 =====
 // 站内搜索入口统一为 /archive?q=xxx（独立搜索页已移除），故此处支持从 URL 预填关键词。
-// 注意：只做「URL → 关键词」单向同步，不回写 URL——归档页带 isr 缓存，
-// 若把用户每次输入都写进 query 会产生大量缓存键。
+// 注意：只做「URL → 关键词」单向同步，不回写 URL——若把每次输入都写进 query，
+// 会在浏览器历史里堆出几十条记录，用户按返回键要按很多次才能退回上页。
 const route = useRoute();
 const keyword = ref(typeof route.query.q === "string" ? route.query.q : "");
 
