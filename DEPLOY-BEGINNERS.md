@@ -168,9 +168,19 @@ sudo systemctl restart docker
 
 ### A1. 把项目代码放到电脑上
 
-1. 拿到项目文件夹（如果是从代码仓库下载的，解压出来）。
-2. 确认里面**直接就有** `docker-compose.yml` 和 `.env.docker.example` 这两个文件。
-   如果点进去还有一层同名文件夹，就把里面那层剪切到外面。
+二选一：
+
+- **推荐：用 git 克隆**（装好 [Git for Windows](https://git-scm.com/download/win) 后，在任意目录右键
+  →「Open Git Bash here」）：
+
+  ```bash
+  git clone https://github.com/luoxiwhyye/MyBlog.git myblog
+  ```
+
+- 或者在 GitHub 页面上点「Code → Download ZIP」，解压得到项目文件夹。
+
+然后确认里面**直接就有** `docker-compose.yml` 和 `.env.docker.example` 这两个文件。
+如果点进去还有一层同名文件夹（ZIP 解压后很常见），就把里面那层的内容移到外面。
 
 > 记住这个文件夹的路径，例如 `D:\vscode-project\myblog`。下面说的「项目文件夹」都是指它。
 
@@ -364,38 +374,38 @@ ssh root@你的服务器IP
 
 > 如果提示 `Connection refused`，先检查安全组是否放行了 `22`，以及 IP 是否抄错。
 
-### B4. 把项目代码上传到服务器
+### B4. 把项目代码拉到服务器
 
-在服务器上建一个目录：
+在服务器上建一个目录，然后**从 GitHub 直接克隆**（不用传文件、不用配密钥）：
 
 ```bash
 mkdir -p /opt/myblog
+sudo apt install -y git        # CentOS / 阿里云 Linux 用 yum install -y git
+git clone https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
+cd /opt/myblog
+git branch --show-current      # 应输出 v2-myblog
 ```
 
-然后从**你自己的电脑**把整个项目文件夹传上去。推荐用 **WinSCP**（免费图形化工具）：
-
-1. 下载安装 WinSCP，新建连接：协议 `SFTP`，主机填服务器 IP，用户名 `root`，密码填服务器密码。
-2. 左侧是「你的电脑」，右侧是「服务器」。右侧进入 `/opt/myblog`。
-3. 把项目文件夹里的**所有内容**（包括 `docker-compose.yml`）拖到右侧。
-4. 等待传输完成。
-
-> 有几个必须传上去的东西容易被漏掉：`.env.docker.example`、`docker-compose.yml`、
-> `scripts/`、`myblog-express/`、`myblog-vue/`、`myblog-springboot/`。
-> **整个文件夹全部传，不要挑着传。**
-> 另外，传输时不要传 `node_modules`（如果有的话），它是本地的缓存，服务器会自己生成。
-
-传完后，回到服务器命令行确认一下：
+确认一下：
 
 ```bash
-ls /opt/myblog
+ls /opt/myblog                 # 应该能直接看到 docker-compose.yml
 ```
 
-应该能看到 `docker-compose.yml`。如果看到的是 `/opt/myblog/myblog/docker-compose.yml`，
-说明多套了一层，用下面这条修正：
-
-```bash
-mv /opt/myblog/myblog/* /opt/myblog/
-```
+> ⚠️ `git clone` 要求**目标目录是空的**：如果 `/opt/myblog` 里已经有东西，
+> 先把它们移走（或换一个目录名）。
+>
+> **为什么用克隆而不是上传文件夹**：项目里有十几个目录，手工上传漏一个就会构建失败
+> （最容易漏的是 `scripts/`）。克隆不会有这个问题，以后更新也只需 `git pull`。
+>
+> **注意两件事**：
+> 1. `.env.docker`（存密钥的配置文件）**不在**克隆下来的内容里，下一步要从模板创建；
+> 2. 不要在服务器上直接改项目里的文件 —— 更新方式是 `git pull`，有本地改动会冲突。
+>    想调整设置优先改 `.env.docker` 或走后台界面。
+>
+> 如果你不习惯命令行、或服务器连不上 GitHub：也可以用 WinSCP 把本地整个项目文件夹拖到
+> `/opt/myblog`（协议 `SFTP`，主机填服务器 IP）。两种方式效果一样，但**不要混用** ——
+> 混用之后 `git pull` 会报冲突。
 
 ### B5. 给服务器加一块「虚拟内存」（2 核 4G 建议做）
 
@@ -762,16 +772,22 @@ docker volume ls | grep myblog     # 看看数据卷还在不在（不要删它�
 
 ```bash
 cd /opt/myblog
-# 用 WinSCP 把新代码覆盖上传，然后：
+git pull
 docker compose --env-file .env.docker up -d --build
 ```
 
 只改了前端页面时，可以只重建那两个：
 
 ```bash
+cd /opt/myblog
+git pull
 docker compose --env-file .env.docker build myblog-blog myblog-admin
 docker compose --env-file .env.docker up -d
 ```
+
+> `git pull` 报冲突（`local changes would be overwritten`）说明服务器上有人改过项目里的文件：
+> 先 `git status` 看清是什么，确认无用再 `git checkout -- <文件>`. **不要**用 `git reset --hard`
+> 一把梭 —— 会连你手动调过的东西一起丢。
 
 ---
 

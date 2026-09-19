@@ -72,9 +72,27 @@
 
 ### 1. 克隆项目并进入目录
 
+仓库是公开的，**在服务器上直接克隆即可**，不需要凭据：
+
 ```bash
+# 服务器没装 git 时先装（Ubuntu / Debian；CentOS 用 yum install -y git）
+sudo apt install -y git
+
+git clone https://github.com/luoxiwhyye/MyBlog.git myblog
 cd myblog
+
+# 默认分支就是部署分支（v2-myblog），无需切换
+git branch --show-current      # 应输出 v2-myblog
 ```
+
+> 想省流量可以用浅克隆：`git clone --depth 1 <地址> myblog`（约 3 MB）。
+> 浅克隆一样能 `git pull`，只是看不到完整历史。
+>
+> ⚠️ **`.env.docker` 不在仓库里**（含密钥，已被 `.gitignore` 排除），
+> 克隆后需要从模板创建一份 —— 见下一步。
+>
+> 💡 **不要在服务器上直接改源码**：更新方式就是 `git pull`，本地有未提交改动时会冲突。
+> 想调整行为优先改 `.env.docker` 或走后台界面。
 
 ### 2. 配置环境变量
 

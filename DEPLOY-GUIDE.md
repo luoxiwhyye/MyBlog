@@ -14,7 +14,7 @@
 1. [现状速览：跑起来是什么样](#一现状速览跑起来是什么样)
 2. [先选部署形态](#二先选部署形态)
 3. [服务器与网络准备](#三服务器与网络准备)
-4. [上传代码](#四上传代码)
+4. [拉取代码](#四拉取代码)
 5. [配置 .env.docker（全量逐项说明）](#五配置-envdocker全量逐项说明)
 6. [构建与启动](#六构建与启动)
 7. [验收：怎么确认真的好了](#七验收怎么确认真的好了)
@@ -154,27 +154,45 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 ---
 
-## 四、上传代码
+## 四、拉取代码
 
 ```bash
 sudo mkdir -p /opt/myblog && sudo chown $USER /opt/myblog
 ```
 
-从本地电脑上传**整个仓库**（构建上下文是相对路径 `./myblog-express` 等，缺一个目录就会构建失败）：
-
-```powershell
-# Windows 本地
-scp -r D:\vscode-project\myblog root@<服务器IP>:/opt/myblog
-```
-
-或用 WinSCP 拖拽。上传后确认根目录层级正确：
+仓库是公开的，**在服务器上直接克隆即可**（不需要配置 SSH key 或 token）：
 
 ```bash
-ls /opt/myblog            # 必须能直接看到 docker-compose.yml 与 .env.docker.example
+sudo apt install -y git        # CentOS / 阿里云 Linux 用 yum install -y git
+
+git clone https://github.com/luoxiwhyye/MyBlog.git /opt/myblog
+cd /opt/myblog
+
+git branch --show-current      # 应输出 v2-myblog（默认分支就是部署分支）
 ```
 
-> 提示：可以排除 `node_modules/`、`.nuxt/`、`.output/`、`target/`、`dist/` 这些构建产物，
-> 服务器会自己生成。
+确认根目录层级正确：
+
+```bash
+ls /opt/myblog                 # 必须能直接看到 docker-compose.yml 与 .env.docker.example
+```
+
+> ⚠️ `git clone` 要求**目标目录是空的**：`/opt/myblog` 里若已有东西，先把它们移走。
+>
+> **为什么用 clone 而不是上传整个文件夹**：构建上下文是相对路径（`./myblog-express` 等），
+> 手工上传时漏一个目录就会构建失败（历史上最容易漏的是 `scripts/` 与 `.dockerignore`）；
+> clone 不会有这个问题，而且更新只需 `git pull`。
+>
+> **克隆得到的东西**：`docker-compose.yml`、四份 Dockerfile、`scripts/`（含备份与自检脚本）、
+> `.env.docker.example`、`nginx.conf`、三份部署文档。
+>
+> **克隆得不到的东西**：`.env.docker`（含密钥，被 `.gitignore` 排除）与 `uploads/` 里的图片
+> （生产环境走数据卷）。前者下一步从模板创建，后者是空库首启无需迁移。
+>
+> ⚠️ **不要在服务器上直接改源码**：更新方式就是 `git pull`，本地有未提交改动时会冲突。
+> 想调整行为优先改 `.env.docker` 或走后台界面。
+>
+> 想省流量可以用浅克隆：`git clone --depth 1 <地址> /opt/myblog`（约 3 MB）。
 
 ---
 
@@ -807,12 +825,21 @@ sudo systemctl status nginx
 
 ```bash
 cd /opt/myblog
-# 1. 上传新代码（覆盖同名文件）
+# 1. 拉取新代码
+git pull
+
 # 2. 重建受影响的服务
 docker compose --env-file .env.docker build myblog-blog myblog-admin myblog-backend
 docker compose --env-file .env.docker up -d
 ```
 
+> 拉取失败（`local changes would be overwritten`）说明服务器上有未提交的本地改动 ——
+> 先 `git status` 看清是什么，确认无用再 `git checkout -- <文件>` 丢弃；
+> **不要**用 `git reset --hard` 一把梭（会连你手动调过的配置一起丢）。
+>
+> 反过来说：想让 `git pull` 永远顺利，就别在服务器上改仓库里的文件
+> （`.env.docker` 不在仓库里，随便改）。
+>
 > 改了后端 `package.json` 记得在本地先跑 `npm install --package-lock-only` 同步 lockfile：
 > 后端 Dockerfile 用 `npm ci`，lockfile 与 `package.json` 不一致会让 `docker build` 直接失败。
 
