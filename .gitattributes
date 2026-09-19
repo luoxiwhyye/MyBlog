@@ -1,0 +1,24 @@
+# ============================================================
+# 换行符策略（.gitattributes）
+# ============================================================
+# 背景：本仓库在 Windows 上 core.autocrlf=true，git 会在 checkout 时把行尾写成 CRLF。
+# 但 scripts/*.sh 是被 **Linux 容器直接执行** 的（docker-compose 把 ./scripts 挂进
+# myblog-backup 容器，再 `bash /scripts/backup.sh`）。实测 CRLF 版本会立刻失败：
+#
+#   /scripts/backup.sh: line 24: $'\r': command not found
+#   : invalid option nameset: pipefail      → 退出码 2
+#
+# 也就是「在 Windows 上 clone 之后再部署」会静默搞坏整条备份链，因此这几个文件必须钉死 LF。
+# ============================================================
+
+# 容器内由 bash 执行的脚本
+*.sh text eol=lf
+
+# 容器/CI 里用 Node 执行的脚本（Node 本身两种都吃，统一成 LF 以免 diff 噪音）
+*.mjs text eol=lf
+
+# 镜像构建与编排文件：行尾连续符（`\` 后跟 CRLF）容易出问题，统一 LF
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

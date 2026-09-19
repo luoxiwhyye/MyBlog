@@ -400,6 +400,11 @@ bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
 bash /scripts/backup-uploads.sh
 ```
 
+> ⚠️ **`restore.sh` 不会创建目标库**：恢复前目标库必须已存在（正式库由 MySQL 容器首次启动时导入
+> `myblog-1.1.sql` 建好）。要恢复到别的库名（如临时验证）先 `CREATE DATABASE <名字>`，
+> 否则会报 `ERROR 1049 (42000): Unknown database`。
+> 备份文件内含 `DROP TABLE` 语句，**导入会覆盖目标库里的同名表**。
+
 > **图片备份**（`backup-uploads.sh`）：产出 `uploads_YYYYMMDD_HHMMSS.tar.gz` + 同名 `.sha256`，
 > 打包后立即校验（gzip + sha256），校验不过会删产物并返回非 0；保留期与数据库备份共用 `BACKUP_RETENTION_DAYS`。
 > 定时任务默认 `30 2 * * *`（可用 `UPLOAD_BACKUP_CRON` 覆盖）。恢复方式：`tar -xzf <归档> -C <目标父目录>`（归档内是 `uploads/` 前缀）。
@@ -676,6 +681,27 @@ docker compose logs myblog-backend | grep -E "读时区|时区不一致"
 
 > ⚠️ 若此前 mysql 容器未设 `TZ`（写库为 UTC），改动 `TZ` 后**存量行的墙钟仍是 UTC**，与新写入的行相差 8 小时；需要抹平的话按 `scripts/` 的备份/恢复流程导出后统一转换，或接受历史偏移。
 
+### 7. 备份失败 / 备份文件只有几十字节
+
+**先看产物大小**：一份正常的数据库备份至少是 KB 级；只有几十字节说明 `mysqldump` 没成功，`gzip` 只压出了一个空归档。
+
+```bash
+docker compose exec myblog-backup bash -c "ls -l /backups; bash /scripts/backup.sh; echo EXIT=\$?"
+```
+
+| 症状 | 原因 | 处置 |
+| --- | --- | --- |
+| `Plugin caching_sha2_password could not be loaded` | 备份镜像缺 MySQL 8 的认证插件（需要 `mariadb-connector-c`） | 重新构建：`docker compose --env-file .env.docker build myblog-backup --no-cache` 后再 `up -d myblog-backup`（镜像已修，旧镜像会重现） |
+| `didn't find section in config file` | 服务器上还没配 rclone 远端（容器只读挂载宿主机的 `/root/.config/rclone`） | 按「备份 · 校验 · 恢复」章节用 `rclone config create` 建好远端，或用 `rclone lsd <远端>:` 验证 |
+| `Unknown database '<名字>'`（恢复时） | `restore.sh` 不会创建目标库 | 先 `CREATE DATABASE <名字>` 再恢复 |
+| 备份成功但云端没文件 | `RCLONE_REMOTE` 为空，或 rclone 同步失败（脚本会返回非 0） | 看容器日志 `docker compose logs myblog-backup`（cron 输出会写进 `/var/log/myblog-backup.log`） |
+
+> **验证备份真的可用**（别只看脚本退出码）：
+> ```bash
+> docker compose exec myblog-backup bash /scripts/verify-backup.sh   # gzip + sha256 双校验
+> ```
+> 定期做一次真恢复演练（导到另一个库名比对行数），只验证「文件能解开」不等于「能恢复出完整数据」。
+
 ---
 
 ## 项目文件清单
@@ -687,6 +713,9 @@ myblog/
 ├── DEPLOY.md                   # 本文档
 ├── nginx.conf                  # Nginx 反向代理模板（blog + admin 双域名）
 ├── scripts/                    # 备份 / 校验 / 恢复脚本（含备份容器 Dockerfile）
+│   ├── preflight.mjs           # 上线前配置自检（密钥 / 地址 / 时区 / SMTP）
+│   ├── smoke.mjs               # 上线后冒烟（健康检查 / 接口 / SEO / 权限）
+│   └── backup-uploads.sh       # 上传目录备份（图片不在数据库里）
 ├── deploy/k8s/myblog.yaml      # Kubernetes 清单
 ├── myblog-express/
 │   ├── Dockerfile              # Express 后端镜像

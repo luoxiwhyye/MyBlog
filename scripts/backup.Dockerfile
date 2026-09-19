@@ -6,6 +6,10 @@
 # 两类备份都要有：backup.sh 备份数据库，backup-uploads.sh 备份上传目录
 # （图片不在数据库里，丢了无法从库重建）。
 # rclone 用于把备份同步到对象存储 —— 备份只留在本机 = 宿主机磁盘损坏即全丢。
+#
+# ⚠️ mariadb-connector-c 不能省：MySQL 8 默认用 caching_sha2_password 认证，
+#    mariadb-client 单独安装时缺少该插件（/usr/lib/mariadb/plugin/caching_sha2_password.so），
+#    mysqldump 会直接报「Plugin caching_sha2_password could not be loaded」→ 数据库备份永远失败。
 # ============================================================
 
 FROM alpine:3.20
@@ -13,6 +17,7 @@ FROM alpine:3.20
 RUN apk add --no-cache \
     bash \
     mariadb-client \
+    mariadb-connector-c \
     gzip \
     coreutils \
     tzdata \

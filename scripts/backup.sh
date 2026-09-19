@@ -16,6 +16,7 @@
 #   2. 备份完成后立即校验 gzip -t + sha256 -c，失败即报错退出
 #      （不产生不可信备份，杜绝"备份了但损坏/传输错误"的静默风险）
 #   3. 可选 VERIFY_ONLY 仅校验已有备份
+#   4. 可选 RCLONE_REMOTE 同步到对象存储（备份只留本机 = 磁盘挂了就没了）
 # ============================================================
 
 #!/bin/bash
@@ -30,9 +31,12 @@ DB_NAME="${DB_NAME:-myblog}"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 
-# 可选：上传到 S3/OSS
-S3_BUCKET="${S3_BUCKET:-}"
-S3_ENDPOINT="${S3_ENDPOINT:-}"
+# 可选：同步到对象存储（rclone 远端名 + 桶名，与 backup-uploads.sh 同一套配置）
+RCLONE_REMOTE="${RCLONE_REMOTE:-}"
+
+# 本脚本产物的文件名前缀。同一目录里还住着 uploads_* 的图片备份，
+# 清理时必须按前缀区分 —— 用 *.sha256 这种通配会连对方的校验和一起删掉。
+FILENAME_PREFIX="${DB_NAME}"
 
 # ── 生成校验和 ──
 calc_hash() {
@@ -88,8 +92,7 @@ if [ "${VERIFY_ONLY:-0}" = "1" ]; then
     if [ -n "${1:-}" ]; then
         verify_backup "$1" || exit 1
     else
-        # 校验目录下最近一个备份
-        local latest
+        # 校验目录下最近一个备份（⚠️ 这里不在函数体内，不能用 local）
         latest="$(ls -t "${BACKUP_DIR}"/*.sql.gz 2>/dev/null | head -1 || true)"
         if [ -z "${latest}" ]; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: 备份目录为空: ${BACKUP_DIR}" >&2
@@ -125,7 +128,10 @@ if mysqldump \
     SIZE="$(du -h "${BACKUP_FILE}" | cut -f1)"
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup created: ${BACKUP_FILE} (${SIZE})"
 else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Backup failed!" >&2
+    # gzip 已经把（空的）归档写出来了，必须删掉：否则备份目录里会留下一个
+    # 几十字节、看着像备份的假文件，灾难恢复时才发现它是空的。
+    rm -f "${BACKUP_FILE}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Backup failed! 已删除不完整产物: ${BACKUP_FILE}" >&2
     exit 1
 fi
 
@@ -142,24 +148,30 @@ else
     exit 1
 fi
 
-# ── 上传到 S3（可选） ──
-if [ -n "${S3_BUCKET}" ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Uploading to S3: ${S3_BUCKET}"
-    if [ -n "${S3_ENDPOINT}" ]; then
-        aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/backups/${TIMESTAMP}/" \
-            --endpoint-url "${S3_ENDPOINT}"
-        aws s3 cp "${CHECKSUM_FILE}" "s3://${S3_BUCKET}/backups/${TIMESTAMP}/" \
-            --endpoint-url "${S3_ENDPOINT}"
-    else
-        aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/backups/${TIMESTAMP}/"
-        aws s3 cp "${CHECKSUM_FILE}" "s3://${S3_BUCKET}/backups/${TIMESTAMP}/"
+# ── 同步到对象存储（可选；配了就必须成功） ──
+# 备份只留在本机等于没有备份（宿主机磁盘损坏即全丢），所以这里不做「试着上传、失败就算了」：
+# 同步失败一律返回非 0，让 cron 日志/监控能看见。
+if [ -n "${RCLONE_REMOTE}" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 同步到对象存储: ${RCLONE_REMOTE}/"
+    if ! command -v rclone >/dev/null 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: 配置了 RCLONE_REMOTE 但环境里没有 rclone 命令" >&2
+        exit 1
     fi
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Upload complete"
+    if ! rclone copy "${BACKUP_FILE}" "${RCLONE_REMOTE}/" --no-traverse; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: rclone 同步失败: ${BACKUP_FILE}" >&2
+        exit 1
+    fi
+    if ! rclone copy "${CHECKSUM_FILE}" "${RCLONE_REMOTE}/" --no-traverse; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: rclone 同步失败: ${CHECKSUM_FILE}" >&2
+        exit 1
+    fi
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] 对象存储同步完成"
 fi
 
 # ── 清理过期备份（同步清理校验和文件） ──
+# 只清理本脚本的产物（${FILENAME_PREFIX}_*.sql.gz 及其校验和）
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Cleaning backups older than ${RETENTION_DAYS} days"
-find "${BACKUP_DIR}" -name "*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete -print
-find "${BACKUP_DIR}" -name "*.sha256" -mtime "+${RETENTION_DAYS}" -delete -print
+find "${BACKUP_DIR}" -name "${FILENAME_PREFIX}_*.sql.gz" -mtime "+${RETENTION_DAYS}" -delete -print
+find "${BACKUP_DIR}" -name "${FILENAME_PREFIX}_*.sql.gz.sha256" -mtime "+${RETENTION_DAYS}" -delete -print
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup finished successfully"
