@@ -174,6 +174,17 @@ services:
       SITE_URL: ${SITE_URL:-http://localhost:3001}
       SITE_NAME: ${SITE_NAME:-MyBlog}
       APP_BASE_URL: ${APP_BASE_URL:-}
+      # 博主初始账号 —— ⚠️ 四个都要传，尤其是 USERNAME：
+      #   initBlogger 只在「blogger 表为空」时用它创建账号，但后续的通知链路
+      #   （commentController / messageBoardController / mailController）都会用
+      #   `getBloggerByUsername(process.env.BLOGGER_USERNAME || "admin")` 去查博主，
+      #   少了这一项会静默回退成 "admin" —— 一旦库里那行的用户名不是 admin（例如
+      #   在后台改过），通知收件人与「邮件通知」面板就会查不到人（显示「收件人为空」）。
+      #   此前只传了 BLOGGER_EMAIL，导致 .env.docker 里设的口令从未生效、
+      #   账号始终按兜底的 admin/admin123 创建（而 admin123 写在本公开仓库里）。
+      BLOGGER_USERNAME: ${BLOGGER_USERNAME:-admin}
+      BLOGGER_PASSWORD: ${BLOGGER_PASSWORD:-admin123}
+      BLOGGER_NICKNAME: ${BLOGGER_NICKNAME:-博主}
       # 占位地址：真实通知会退信，请改成自己的邮箱；库已有博主时需到后台「个人资料」改
       BLOGGER_EMAIL: ${BLOGGER_EMAIL:-admin@example.com}
       SMTP_HOST: ${SMTP_HOST:-}

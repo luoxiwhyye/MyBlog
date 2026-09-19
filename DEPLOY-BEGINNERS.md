@@ -833,7 +833,7 @@ curl http://127.0.0.1:3000/health          # 3. 后端活着吗
 | `error during connect` | Docker 服务没启动 | Windows：打开 Docker Desktop 等变绿；服务器：`sudo systemctl start docker` |
 | 浏览器打不开网页 | 端口没放行 | 回云控制台检查安全组放了 `3001/3002`；服务器本机 `curl http://127.0.0.1:3001` 先确认程序在跑 |
 | 网页能开但一直转圈 / 数据加载失败 | `.env.docker` 里的 IP 或域名没改对 | 检查 `VITE_API_BASE`、`FRONTEND_ORIGIN`、`ADMIN_ORIGIN`、`SITE_URL`，改完**必须重新构建** |
-| 后台登录提示登录失败 | 账号密码不对 | 默认 `admin` / `admin123`；已改过就重置数据库或新库重建 |
+| 后台登录提示登录失败 | 密码不是你在 `.env` 里填的那个 | `BLOGGER_PASSWORD` / `BLOGGER_USERNAME` 这四个值**只在第一次启动、数据库还是空的时候生效**，之后改 `.env.docker` **没有用**。先试默认的 `admin` / `admin123` 能不能进（详见 [DEPLOY.md“故障排查 §11”](./DEPLOY.md#11-后台登录报用户名或密码错误而我-envdocker-里明明填了)）|
 | `myblog-mysql` 一直不 healthy | 首次初始化较慢，或密码含特殊字符 | 等 1 分钟；避免密码里出现 `$`、`&`、`#` 等符号 |
 | 构建中途显示 `Killed` | 内存不足（2 核 4G 常见） | 执行 B5 加虚拟内存；或先 `docker compose stop meilisearch` 再构建 |
 | 改动代码后页面没变 | 前端地址是构建时写死的 | 重新 `build` 对应服务，再 `up -d`，不要只 `restart` |

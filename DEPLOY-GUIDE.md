@@ -1024,6 +1024,31 @@ UPDATE article SET cover_image = REPLACE(cover_image, 'http://旧地址', 'https
 - 页面 origin 与 `ADMIN_ORIGIN` 不逐字一致（注意 `localhost` vs `127.0.0.1`、`http` vs `https`、
   有没有带端口）。
 
+### 16.11 登录报「用户名或密码错误」，而 `.env.docker` 里明明填了
+
+**`BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL` 是**一次性的**：
+只在「`blogger` 表为空」的那一刻用于 INSERT，此后改 `.env.docker` 无效。
+
+`utils/initBlogger.js` 开头就有一道闸 —— 表里已有任何一行就**静默跳过**（只创建、不更新）：
+
+```js
+if (await bloggerModel.exists()) { console.log("博主账号已存在，跳过初始化"); return; }
+```
+
+设计本身是对的（否则每次重启都会把后台改过的密码重置回 `.env` 值），但**静默**跳过很难查。
+典型场景：首次 `up -d` 时还是默认 `admin123`，库里建了 `admin`；后来把 `.env` 改成强口令并重建
+→ 跳过 → 新口令一次都没生效。
+
+```bash
+cd /opt/myblog
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog -e "SELECT id, username, created_at FROM blogger"'
+grep -E '^BLOGGER_USERNAME=' .env.docker
+```
+
+两者不一致就是命中了本条。**修复**：用当初那组值（通常 `admin` / `admin123`）登录，
+到后台「个人资料」改密码与邮箱；或（**先备份**）`DELETE FROM blogger` 后
+`docker compose restart myblog-backend` 按当前 `.env` 重建（`blogger` 与文章/评论无外键关联）。
+
 ---
 
 ## 附录 A：环境变量速查

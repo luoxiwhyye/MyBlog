@@ -893,6 +893,7 @@ node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域�
 | --- | --- | --- |
 | 前台打不开、页面 502 | 博客容器端口 | `docker compose logs myblog-blog \| head -3` 看监听端口是否为 **3001**（不是 → 重建前台镜像）→ `docker compose ps` → 查 Nginx `upstream` |
 | 后台能开页面，一登录就转圈 | 反代缺 `location /api/` | 浏览器 Network 里 `/api/v1/...` 返回的是不是 HTML（是 → 补反代规则）→ 确认 `VITE_API_BASE=/api/v1` → 重建 admin 镜像 |
+| 后台登录报「用户名或密码错误」，但用户名不是我 `.env` 里填的 | `BLOGGER_*` 四项是**一次性的** | 库里那条记录是**首次启动**时用**当时**的 `.env` 建的，之后改 `.env` 不会更新 → `SELECT username FROM blogger` 看真实用户名 → 用当初那组值登录后到后台改（详见「故障排查 §11」） |
 | 图片全部裂（尤其是后台） | `APP_BASE_URL` | 看库里存的地址前缀（`SELECT cover_image FROM article LIMIT 1`）→ 改 `APP_BASE_URL` → **存量行需 SQL 回填** |
 | 搜索"能用"但很慢 | Meilisearch 降级 | 看 `/health` 的 `meilisearch.status` 与 `reason` → 核对密钥 / 容器状态 → 改完重启后端（密钥错时**不报错只降级**） |
 | 收不到通知邮件 | SMTP 或收件人 | 后台「系统设置 · 邮件通知」点测试发信 → 页面告警条写了缺哪项 → 改完 `docker compose restart myblog-backend` |
@@ -1075,6 +1076,62 @@ docker compose --env-file .env.docker up -d
 ```
 
 > 提示符里的路径能看出你在哪：`root@host:/opt/myblog#` 才对，`root@host:~#` 说明在家目录。
+
+### 11. 后台登录报「用户名或密码错误」，而我 `.env.docker` 里明明填了
+
+**先说结论**：`BLOGGER_USERNAME` / `BLOGGER_PASSWORD` / `BLOGGER_NICKNAME` / `BLOGGER_EMAIL`
+这四个值是**一次性的** —— 只在「`blogger` 表为空」的那一刻用于 **INSERT**，此后改 `.env.docker`
+**完全无效**。
+
+`myblog-express/utils/initBlogger.js` 开头就有一道闸：
+
+```js
+if (await bloggerModel.exists()) {          // 表里已有任何一行
+  console.log("✅ 博主账号已存在，跳过初始化");
+  return;                                   // 直接返回，不更新
+}
+```
+
+这个设计本身是对的（否则每次重启都会把你在后台改过的密码重置回 `.env` 里的值），
+但它是**静默跳过**的 —— 于是「我明明改了 `.env` 为什么登不上」就成了个难查的谜。
+
+**典型时间线**：第一次 `up -d` 时 `BLOGGER_PASSWORD` 还是模板默认的 `admin123` →
+库里建了 `admin` / `admin123` → 之后你把 `.env.docker` 改成强口令并重建容器 →
+`initBlogger` 一看「博主已存在」就跳过 → **新口令一次都没生效过**。
+
+**诊断**（看库里那条到底是什么，别猜）：
+
+```bash
+cd /opt/myblog
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog -e "SELECT id, username, nickname, email, role, created_at FROM blogger"'
+grep -E '^(BLOGGER_USERNAME|BLOGGER_NICKNAME|BLOGGER_EMAIL)=' .env.docker
+```
+
+`blogger.username` 与 `.env.docker` 的 `BLOGGER_USERNAME` 不一致 → 就是命中了本条；
+`created_at` 还能告诉你它是什么时候建的（对上哪一轮启动）。
+
+**修复（推荐）**：用**当初**那组值（通常是 `admin` / `admin123`）登录 →
+后台「个人资料」→ 改密码、改邮箱、改昵称。
+
+> 走这条路顺带验证了「个人资料」这个功能本身是好的，而且改完 `.env.docker` 里那四个值
+> 可以当成「灾后重建的种子值」留着（**建议同步成与后台一致**，避免下次再看糊涂）。
+
+**修复（备选：让 `.env.docker` 的值真正生效）**：
+
+```bash
+cd /opt/myblog
+docker compose exec myblog-backup bash /scripts/backup.sh          # 先备份
+
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog -e "SELECT id, username FROM blogger"'
+docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" myblog -e "DELETE FROM blogger"'
+
+docker compose restart myblog-backend
+docker compose logs myblog-backend | grep -i blogger               # 应看到「创建博主」
+```
+
+> ⚠️ 两个前提：
+> 1. `.env.docker` 里那四项**必须已经是你现在想要的值** —— 重建是一次性的，之后再改 `.env` 又失效；
+> 2. **先备份**。`blogger` 表与文章 / 评论**没有外键关联**，删它只影响登录账号，不动内容。
 
 ---
 
