@@ -689,7 +689,41 @@ const fmtOffset = (minutes) => {
       );
     }
   } else {
-    ok(`备份会同步到对象存储（${remote}）`);
+    // 格式必须是 `<远端名>:<桶名>[/<前缀>]`。
+    // 只写桶名（漏掉 `远端名:`）不会在配置期报错，但备份时 rclone 会当成
+    // 「本地路径」或直接认不出 → 同步失败、备份任务返回非 0，才发现配错了。
+    const colon = remote.indexOf(":");
+    const slash = remote.indexOf("/");
+    const remoteName = colon === -1 ? "" : remote.slice(0, colon);
+    const bucket =
+      colon === -1
+        ? ""
+        : remote.slice(colon + 1, slash === -1 ? undefined : slash);
+    const looksLikeWindowsPath = /^[A-Za-z]:[\\/]/.test(remote);
+
+    if (colon === -1 || looksLikeWindowsPath) {
+      error(
+        `RCLONE_REMOTE 缺少「远端名:」前缀（当前 ${remote}）`,
+        "格式是 <远端名>:<桶名>，例如 mycos:luoxi-myblog-backup；远端名是你在 rclone config 里起的名字",
+      );
+    } else if (!remoteName || /[\\]/.test(remoteName)) {
+      error(
+        `RCLONE_REMOTE 的远端名为空或非法（当前 ${remote}）`,
+        "冒号前应是 rclone 配置里的远端名，例如 mycos:myblog-backup",
+      );
+    } else if (!bucket) {
+      error(
+        `RCLONE_REMOTE 只有远端名、没有桶名（当前 ${remote}）`,
+        "要写成 <远端名>:<桶名>，例如 mycos:luoxi-myblog-backup",
+      );
+    } else if (/\s/.test(remote)) {
+      error(
+        `RCLONE_REMOTE 含空格（当前 ${remote}）`,
+        "远端名与桶名之间只能有一个冒号，值里不要有空格",
+      );
+    } else {
+      ok(`备份会同步到对象存储（${remote}）`);
+    }
   }
   const retention = get("BACKUP_RETENTION_DAYS") || "14";
   if (!/^\d+$/.test(retention) || Number(retention) < 3) {
