@@ -175,3 +175,7 @@ DRY_RUN=1 node scripts/clearCache.js --all    # 只预览、不删除
 
 其余说明见项目根目录 [README.md](../README.md)。
 
+## 许可证
+
+MIT
+

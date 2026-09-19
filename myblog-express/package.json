@@ -2,8 +2,8 @@
   "name": "myblog-express",
   "version": "1.0.0",
   "description": "",
-  "license": "ISC",
-  "author": "",
+  "license": "MIT",
+  "author": "luoxiwhyye",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {

@@ -431,4 +431,10 @@ cd myblog-vue/myblog-admin && npm run build   # → dist/
 - [DEPLOY-BEGINNERS.md](./DEPLOY-BEGINNERS.md) — 零基础部署教程
 - 各子项目 README：· [Express](./myblog-express/README.md) · [Spring Boot](./myblog-springboot/README.md) · [博客前台](./myblog-vue/myblog-blog/README.md) · [管理后台](./myblog-vue/myblog-admin/README.md)
 
-> 设计规范、评估报告与变更日志属本地文档，未纳入版本库（`.gitignore` 排除 `documents/`）。
+---
+
+## 许可证
+
+本项目以 [MIT 许可证](./LICENSE) 开源 —— 可自由使用、修改、分发与商用，只需保留原始版权声明。
+
+第三方依赖与资源（npm / Maven 包、字体、图标等）各自遵循其原有许可证。

@@ -149,3 +149,7 @@ src/main/java/com/myblog/myblogspringboot/
 
 其余说明见项目根目录 [README.md](../README.md)。
 
+## 许可证
+
+MIT
+
