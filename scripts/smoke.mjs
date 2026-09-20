@@ -23,6 +23,9 @@ if (args.includes("--help") || args.includes("-h")) {
       "",
       "  --base=<url>        实际要访问的博客地址（必填，健康检查默认也从它下面取）",
       "  --admin=<url>       管理后台地址（可选）",
+      "  --alt-host=<列表>   其它站点域名（逗号分隔）。对每个域名抓关键页并与 --base 做",
+      "                      内容摘要比对 —— 服务端页面缓存的键含 host，多个域名各存一份时",
+      "                      会出现「某个域名稳定残缺、另一些正常」",
       "  --site=<url>        站点对外域名（可选，默认取 --base）。SEO 元数据（og:image /",
       "                      canonical）要求指向站点域名 —— 本地用 IP 或临时端口验证时",
       "                      传入它，否则域名不同会被报成异常",
@@ -44,6 +47,11 @@ const getArg = (name) => {
 
 const BASE = getArg("base");
 const ADMIN = getArg("admin");
+// 其它域名（多域名部署时逐个与 --base 比对内容摘要）
+const ALT_HOSTS = getArg("alt-host")
+  .split(",")
+  .map((h) => h.trim())
+  .filter(Boolean);
 // SEO 断言比对的「站点域名」：默认与实际访问地址一致；本地验证时用 --site 显式指定
 const SITE = getArg("site") || BASE;
 // 健康检查地址：生产下 /health 由反代从博客域名转给后端；本地无反代时用 --health 直指后端
@@ -364,6 +372,83 @@ await expectStatus("sitemap.xml", `${BASE}/sitemap.xml`, 200, {
   level: "warn",
   fix: "确认 routeRules 生成 sitemap，且反代没有拦掉 .xml",
 });
+
+// ─────────────────────────────────────────────
+// 4.1 多域名内容一致性（--alt-host）
+// ─────────────────────────────────────────────
+// 为什么需要：Nitro 的服务端页面缓存 key 含完整请求 URL（含 host）—— 三个域名各存一份。
+// 一旦某个域名先访问、恰逢数据不完整（或缓存未失效），那个域名就会“稳定地残缺”，
+// 而其它域名正常。人工逐个域名打开对比很费时，这里用「元素计数」自动比对。
+if (ALT_HOSTS.length > 0) {
+  const scheme = (() => {
+    try {
+      return new URL(BASE).protocol;
+    } catch {
+      return "https:";
+    }
+  })();
+
+  /** 数 HTML 里带某 class 的元素个数（\b 保证 tag-item 不会误匹配 tag-item__count） */
+  const countClass = (html, cls) => {
+    const re = new RegExp(`class="[^"]*\\b${cls}\\b[^"]*"`, "g");
+    return (html.match(re) || []).length;
+  };
+
+  const PAGES = [
+    { path: "/", label: "首页文章卡", cls: "article-card" },
+    { path: "/category", label: "分类卡片", cls: "category-card" },
+    { path: "/tag", label: "标签条目", cls: "tag-item" },
+    { path: "/archive", label: "归档文章条目", cls: "article-item" },
+  ];
+
+  const baseline = new Map();
+  for (const page of PAGES) {
+    const res = await probe(`${BASE}${page.path}`, { redirect: "manual" });
+    baseline.set(
+      page.path,
+      res.error
+        ? null
+        : { status: res.status, count: countClass(res.text, page.cls) },
+    );
+  }
+
+  for (const host of ALT_HOSTS) {
+    const origin = host.includes("://") ? host : `${scheme}//${host}`;
+    for (const page of PAGES) {
+      const base = baseline.get(page.path);
+      if (!base) {
+        warn(
+          `多域名比对：--base 的 ${page.path} 本身取不到，跳过与 ${host} 的该项比对`,
+        );
+        continue;
+      }
+      const res = await probe(`${origin}${page.path}`, { redirect: "manual" });
+      if (res.error) {
+        error(
+          `${origin}${page.path} 请求失败：${res.error}`,
+          "确认该域名已解析到本机且反代 server_name 覆盖它",
+        );
+        continue;
+      }
+      if (res.status !== 200) {
+        error(
+          `${origin}${page.path} 状态码 ${res.status}（--base 同一页是 ${base.status}）`,
+          "确认反代的默认 server 指向博客服务且该域名没被拦掉",
+        );
+        continue;
+      }
+      const count = countClass(res.text, page.cls);
+      if (count !== base.count) {
+        error(
+          `${origin}${page.path} 的${page.label}数为 ${count}，而 --base 是 ${base.count}`,
+          "服务端页面缓存的键含 host：确认各域名走同一份缓存或全部实时渲染（nuxt.config.ts 的 routeRules）",
+        );
+      } else {
+        pass(`多域名一致：${origin}${page.path}（${page.label} ${count} 个）`);
+      }
+    }
+  }
+}
 
 const notFoundRes = await expectStatus(
   "上传目录（不存在的文件应为 404，不能列目录）",

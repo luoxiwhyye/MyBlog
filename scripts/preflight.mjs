@@ -737,6 +737,40 @@ const fmtOffset = (minutes) => {
 }
 
 // ─────────────────────────────────────────────
+// 8. 模板 key 差异（新配置项会静默走 compose 兜底默认值）
+// ─────────────────────────────────────────────
+// git pull 后如果 .env.docker.example 新增了键，手上的 .env.docker 不会有它 →
+// 它不会报错，只是静默采用 docker-compose.yml 里的兜底默认值。多数兜底是合理的
+// （所以这里只 warn 不 error），但换成「默认值不安全」的新键就会出事。
+{
+  const templateFile = `${ENV_FILE}.example`;
+  if (path.basename(ENV_FILE).endsWith(".example")) {
+    info("自检对象本身就是模板文件，跳过「模板 key 差异」检查");
+  } else if (!fs.existsSync(templateFile)) {
+    info(
+      `未找到模板 ${path.basename(templateFile)}，跳过「模板 key 差异」检查`,
+    );
+  } else {
+    const templateEnv = parseEnvFile(templateFile);
+    const missing = Object.keys(templateEnv).filter((key) => !(key in env));
+    const extra = Object.keys(env).filter((key) => !(key in templateEnv));
+    if (missing.length > 0) {
+      warn(
+        `模板里有 ${missing.length} 个配置项，当前配置里没有：${missing.join(" / ")}`,
+        "它们会静默采用 docker-compose.yml 的兜底默认值：逐项确认可接受，或从模板补进配置",
+      );
+    } else {
+      ok(`配置项已覆盖模板的全部 ${Object.keys(templateEnv).length} 个键`);
+    }
+    if (extra.length > 0) {
+      info(
+        `配置里有 ${extra.length} 个模板没有的键（自定义项，不报警）：${extra.join(" / ")}`,
+      );
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
 // 输出
 // ─────────────────────────────────────────────
 

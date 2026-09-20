@@ -32,11 +32,12 @@ RUN if [ -n "${APK_MIRROR}" ]; then \
 # 时区（默认 Asia/Shanghai，可用 TZ 环境变量覆盖）
 ENV TZ=Asia/Shanghai
 
-# 拷贝备份 / 校验 / 恢复脚本
+# 拷贝备份 / 校验 / 恢复 / 演练脚本
 COPY backup.sh /scripts/backup.sh
 COPY backup-uploads.sh /scripts/backup-uploads.sh
 COPY verify-backup.sh /scripts/verify-backup.sh
 COPY restore.sh /scripts/restore.sh
+COPY rehearse-restore.sh /scripts/rehearse-restore.sh
 
 RUN chmod +x /scripts/*.sh && mkdir -p /backups /var/log
 

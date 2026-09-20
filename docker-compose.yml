@@ -331,6 +331,9 @@ services:
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD:-root}
       DB_NAME: ${DB_NAME:-myblog}
+      # 生产库名。备份容器里 DB_NAME 可能被 exec -e DB_NAME=<临时库> 覆盖（恢复演练），
+      # 那样 restore.sh 就无从知道生产库是谁 —— 它靠本项来判断「目标库是不是生产库」。
+      PROD_DB_NAME: ${DB_NAME:-myblog}
       BACKUP_DIR: /backups
       RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
       # uploads 目录（只读挂载）—— 图片是数据库之外的资产，两类备份必须成对

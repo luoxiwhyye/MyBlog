@@ -288,7 +288,15 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
       （`openssl rand -hex 32`，每个各跑一次）。默认值写在本公开仓库里，不改等于任何人都能签发管理员 token。
 - [ ] **[阻断]** `node scripts/preflight.mjs` 输出 **0 阻断**。它会逐项检查：
       密钥是否仍是模板值、地址类是否填了容器服务名、时区四项是否同区、SMTP 是否缺项、
-      `SITE_URL` 收信人能否打开（复用后端自己的判定口径，不是另写一套）。
+      `SITE_URL` 收信人能否打开（复用后端自己的判定口径，不是另写一套），
+      以及**模板新增但配置里没有的键**（那些键会静默走 compose 的兜底默认值）。
+- [ ] **[阻断]** **[服务器]** `node scripts/check-runtime.mjs` 输出 **0 阻断**（需 docker，起服务后跑）。
+      它补的正是 `preflight.mjs` 的盲区：preflight 只看 `.env.docker` 里的**字**，本脚本看那些字
+      **有没有真的进容器 / 库里** ——
+      ① 容器内环境变量 vs 配置文件（漏传 / 容器建于配置修改之前）；
+      ② 模板 key 差异；③ `BLOGGER_USERNAME`（容器内）vs `blogger.username`（库）逐字比对；
+      ④ 备份新鲜度；⑤ 七个容器状态与端口是否只绑回环。
+      这几类事故在实际部署时都真发生过，而当时 `preflight` 全部报 `[ok]`。
 - [ ] 密码里没有 `$` `&` `#`（这三个字符在 `.env.docker` 的 shell 解析里会出问题，典型表现是 mysql 一直不 healthy）。
 - [ ] **只填了根目录的 `.env.docker`** —— 子项目的 4 个 `.env.example` 是本地 `npm run dev` 用的，
       Docker 部署不需要创建（配置由 compose 直接注入容器）。
@@ -313,6 +321,10 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
       （compose 默认已把其余端口绑在回环，此项是确认它真的生效）
 - [ ] **[阻断]** **[服务器]** HTTPS 生效：`curl -sI https://<域名>` 返回 200 且有 HSTS；`http://` 自动 301 到 `https://`；
       证书剩余有效期 > 30 天，**且自动续期已启用**。
+- [ ] **[服务器]** **从部署者本机**确认各域名对外可达（不要在服务器上测：服务器自己可能走 IPv6，会得出假结论）：
+      `node scripts/probe-public.mjs <博客域名> <后台域名>` —— 它把 IPv4 / IPv6 分列，
+      并区分「超时（被安全组 DROP）」与「拒绝连接（服务没起）」；退出码非 0 时按提示处理。
+      ⚠️ 云安全组的 80 / 443 规则要**分 IPv4 与 IPv6 两条**（只加一条时，另一族的表现就是「超时」）。
 - [ ] **[服务器]** 后台域名的 `/api/` 能正确转发（配错时接口返回的是 index.html，表现为登录转圈）。
 
 ### 四、数据与备份
@@ -324,13 +336,19 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
 - [ ] **[阻断]** **[服务器]** **备份能跑通且能恢复**（只看到备份文件不算）：
       ```bash
       docker compose exec myblog-backup bash /scripts/backup.sh           # 备份 + 校验和
-      docker compose exec myblog-backup bash /scripts/verify-backup.sh    # gzip + sha256 双校验
+      docker compose exec myblog-backup bash /scripts/verify-backup.sh    # gzip + sha256 双校验 + 内容摘要
       docker compose exec myblog-backup bash /scripts/backup-uploads.sh   # 图片备份（不在数据库里）
+      docker compose exec myblog-backup bash /scripts/rehearse-restore.sh # ★ 一键恢复演练（见下）
       ```
-      再**真演练一次恢复**（完整步骤见上文「恢复演练」小节）：建临时库 → 恢复到临时库 →
-      断言**表数**与**关键表行数**都和生产库一致 → 删临时库。
-      ⚠️ 恢复命令**必须**带 `-e DB_NAME=<临时库>`：漏掉时脚本会回落到容器里的 `DB_NAME`（即生产库），
-      而备份文件内含 `DROP TABLE`，**会直接清掉生产库的表**。
+      `verify-backup.sh` 会额外打一行**内容摘要**（表数 / 含数据的表 / `article` 行数）：
+      sha256 只能证明「文件没坏」，内容摘要才能区分「空站点备份」与「有数据备份」——
+      恢复时选错备份（尤其拿到上线首日那份 4.0K 的）只能恢复出「没文章」的状态。
+- [ ] **[阻断]** **[服务器]** **真的演练过一次恢复**：`bash /scripts/rehearse-restore.sh` 退出码 **0**。
+      它把「建临时库 → 恢复到临时库 → 逐表比对行数 → 删临时库」做成一键，并在异常/`Ctrl+C` 时
+      也会清掉临时库；任何一张表行数不同就退出码 1（只断言表数不够，行数才证明数据搬回来了）。
+      > `restore.sh` 另有**生产库保险**：目标库 = 生产库时必须显式 `-e ALLOW_PROD=1`，
+      > 否则直接拒绝并打印两条正确命令（灾难恢复 / 演练各一条）—— 把「漏写 `-e DB_NAME`」
+      > 这个会清空生产库的手滑动作变成一条明确的报错。
 - [ ] **[阻断]** **[服务器]** 备份**出了机器**：用 `rclone lsd <远端>:` 验证凭据后实跑一次备份，
       确认对象存储里真的多出文件（`RCLONE_REMOTE` 没配或同步失败时备份任务会返回非 0，不会静默）。
       ```bash
@@ -341,8 +359,10 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
 
 ### 五、功能可用性（用**真实浏览器 + 真实域名 + HTTPS**）
 
-- [ ] **[阻断]** **[服务器]** `node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名>` **0 阻断**。
+- [ ] **[阻断]** **[服务器]** `node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名> --alt-host=www.<域名>,<顶点域名>` **0 阻断**。
       它检查健康检查各分块、关键接口、SSR 页面、`og:image` / canonical 是否用站点域名、上传路由、以及未登录访问管理端接口是否被拦。
+      `--alt-host` 会把其它域名与 `--base` 做**内容摘要比对**（分类卡片数 / 标签条目数 / 文章数）：
+      服务端页面缓存的 key 含 host，多域名各存一份时会出现「某个域名稳定残缺、另一些正常」。
 - [ ] **[阻断]** 健康检查五块全绿：`curl -s https://<博客域名>/health`
       （`database` / `redis` / `meilisearch` / `mail` / `imageVariants`；`mail` 显示 `disabled` 且你确实不打算发信时可接受）
 - [ ] **[阻断]** 后台能登录、能上传一张图并**立即回读**（能显示 = `APP_BASE_URL` 正确）。
@@ -370,6 +390,12 @@ node scripts/smoke.mjs --base=https://blog.example.com --admin=https://admin.exa
 ### 七、回滚准备
 
 - [ ] 记录本次部署版本：git commit + 各镜像 digest（`docker images --digests`）+ 已执行的迁移脚本清单。
+- [ ] **[服务器]** 用 `bash scripts/mark-good.sh --built=<这次重建的服务>` 打回滚标签：
+      它按 commit 给四个服务打 `rollback-<commit>`，**逐个校验「标签指向的镜像 ID == 容器实际在用的镜像 ID」**
+      （只靠「命令成功」不足信），并把一行台账追加到 `/root/myblog-rollback-points.txt`：
+      `时间  commit  重建=[...]  提交标题`。
+      > ⚠️ 台账里「重建了哪些服务」这一栏不能省：某次只重建了前端时，`rollback-<commit>`
+      > 这个标签名会让人以为四个服务都是那个 commit 构建的（实际只有被重建过的才是）。
 - [ ] 上一个可用镜像 / 备份点仍在。
 - [ ] 回滚步骤**除你之外还有一个人读过**并能照着执行。
 
@@ -590,13 +616,19 @@ bash /scripts/verify-backup.sh
 # ▸ 恢复（会先校验 sha256 + gzip 完整性，通过才导入；需确认或 CONFIRM=1）
 bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
 
+# ▸ 恢复到生产库（需额外确认，防手滑：目标库 = 生产库时脚本会拒绝执行）
+ALLOW_PROD=1 bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+
+# ▸ 一键恢复演练（建临时库 → 恢复 → 逐表比对 → 删临时库；退出码 0 才算通过）
+bash /scripts/rehearse-restore.sh
+
 # ▸ 图片备份（上传目录不在数据库里，必须与数据库备份成对）
 bash /scripts/backup-uploads.sh
 ```
 
 > ⚠️ **`restore.sh` 不会创建目标库**：恢复前目标库必须已存在（正式库由 MySQL 容器首次启动时导入
 > `myblog-1.1.sql` 建好）。要恢复到别的库名（如临时验证）先 `CREATE DATABASE <名字>`，
-> 否则会报 `ERROR 1049 (42000): Unknown database`。
+> 否则会报 `ERROR 1049 (42000): Unknown database`。演练用的 `rehearse-restore.sh` 会自己建库。
 > 备份文件内含 `DROP TABLE` 语句，**导入会覆盖目标库里的同名表**。
 
 #### 恢复演练（上线首日必做一次）
@@ -605,9 +637,32 @@ bash /scripts/backup-uploads.sh
 磁盘写满导致归档截断、传输/存储损坏、字符集建表失败、外键导入顺序冲突 —— 这些**平时完全无症状**，
 只在灾难恢复当天才暴露，而那天没有补救机会。未验证的备份等于没有备份。
 
+**推荐做法：一条命令**
+
 ```bash
 cd /opt/myblog
+docker compose exec myblog-backup bash /scripts/rehearse-restore.sh
+# 也可以指定某一份备份：
+docker compose exec myblog-backup bash /scripts/rehearse-restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
+```
 
+它一次性做完：选备份（不给参数就取最新一份）→ 建**带时间戳的**临时库 → `restore.sh`（内部先校验
+sha256 + gzip）→ **逐表比对生产库与临时库的行数** → 打印对比表 → 删临时库。
+
+- 退出码 **0 = 通过**，**1 = 不一致或失败**（可以挂到定时任务 / CI 上）
+- 比对**不是写死表名列表**，而是取 `information_schema` 两库的表并集逐表 `COUNT(*)` ——
+  将来加表自动覆盖，不会因为漏了一张表而给出假通过
+- `trap` 覆盖 `EXIT` / `INT` / `TERM`：报错或 `Ctrl+C` 都会把临时库删掉，不留垃圾库
+- 结束时打印**本次恢复耗时**（就是 RTO 实测值）
+
+> ⚠️ **`restore.sh` 生产库保险**：目标库 = 生产库时必须额外给 `-e ALLOW_PROD=1`，
+> 否则脚本直接拒绝执行，并把「灾难恢复」与「演练」两条正确命令都打印出来。
+> 原因：备份文件里每个表都带**不带库名前缀**的 `DROP TABLE IF EXISTS`，而「灾难恢复」与「演练漏写参数」
+> 这两条命令长得一模一样，脚本无法猜意图 —— 所以把这一个差别变成一道必填开关。
+
+**它替你做的事情（沿用原来的手工步骤，供对照）**
+
+```bash
 # ① 建临时库当靶子（绝不能恢复到生产库）
 docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE myblog_restore_test"'
 
@@ -616,6 +671,7 @@ docker compose exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREAT
 #    不带时脚本回落到容器里的 DB_NAME（生产库），而备份文件里每个表都带
 #    DROP TABLE IF EXISTS（不带库名前缀）→ 会先清空生产库的表再重灌。
 #    按下回车前扫一眼这一行有没有 -e DB_NAME=myblog_restore_test
+#    （就算忘了，现在也会被生产库保险拦下来并提示你怎么写）
 docker compose exec -e DB_NAME=myblog_restore_test -e CONFIRM=1 \
   myblog-backup bash /scripts/restore.sh /backups/myblog_YYYYMMDD_HHMMSS.sql.gz
 
@@ -856,24 +912,31 @@ x-logging: &default-logging
 
 ## 上线首日速查
 
-### 1. 部署后按顺序跑这四条
+### 1. 部署后按顺序跑这五条
 
 ```bash
 # ① 配置自检（0 阻断才算过）
 node scripts/preflight.mjs
 
-# ② 服务是否都健康的
+# ② 运行时一致性体检（0 阻断才算过；需 docker，看配置有没有真的进容器/库）
+node scripts/check-runtime.mjs
+
+# ③ 服务是否都健康的
 docker compose ps
 
-# ③ 健康检查五块（database / redis / meilisearch / mail / imageVariants）
+# ④ 健康检查五块（database / redis / mail / imageVariants / meilisearch）
 curl -s https://<博客域名>/health
 
-# ④ 端到端冒烟（0 阻断才算过）
+# ⑤ 端到端冒烟（0 阻断才算过）
 node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域名>
 ```
 
 > `smoke.mjs` 的两条说明：访问地址与站点域名不同时用 `--site=<域名>` 指定；
 > `/health` 不在博客域名下（没配反代）时用 `--health=http://127.0.0.1:3000/health` 直连后端。
+> 多域名部署（顶点域 / `www`）加 `--alt-host=www.<域名>,<顶点域名>` 比对各域名的页面内容是否一致。
+>
+> 另外两个按需用的：`node scripts/probe-public.mjs <域名>`（在**本机**确认外网 IPv4/IPv6 可达性）、
+> `bash scripts/mark-good.sh --built=<服务>`（给当前可用镜像打回滚标签）。
 
 ### 2. 首 24 小时观察（建议每 2 小时一轮）
 
@@ -912,6 +975,7 @@ node scripts/smoke.mjs --base=https://<博客域名> --admin=https://<后台域�
 docker compose ps                          # 谁不健康
 docker compose logs --tail=200 <服务名>     # 它的报错
 curl -s <域名>/health                      # 哪一块不对
+node scripts/check-runtime.mjs             # 配置有没有真的进容器 / 库里
 node scripts/smoke.mjs --base=<域名>        # 覆盖面最广的一遍
 ```
 
@@ -1024,14 +1088,17 @@ docker compose exec myblog-backup bash -c "ls -l /backups; bash /scripts/backup.
 | --- | --- | --- |
 | `Plugin caching_sha2_password could not be loaded` | 备份镜像缺 MySQL 8 的认证插件（需要 `mariadb-connector-c`） | 重新构建：`docker compose --env-file .env.docker build myblog-backup --no-cache` 后再 `up -d myblog-backup`（镜像已修，旧镜像会重现） |
 | `didn't find section in config file` | 服务器上还没配 rclone 远端（容器只读挂载宿主机的 `/root/.config/rclone`） | 按「备份 · 校验 · 恢复」章节用 `rclone config create` 建好远端，或用 `rclone lsd <远端>:` 验证 |
-| `Unknown database '<名字>'`（恢复时） | `restore.sh` 不会创建目标库 | 先 `CREATE DATABASE <名字>` 再恢复 |
+| `Unknown database '<名字>'`（恢复时） | `restore.sh` 不会创建目标库 | 先 `CREATE DATABASE <名字>` 再恢复；或直接用 `rehearse-restore.sh`（它自己建库） |
+| 恢复被拒，提示「目标库就是生产库」 | `restore.sh` 的生产库保险 | 灾难恢复加 `-e ALLOW_PROD=1`；演练改用 `rehearse-restore.sh`（它指向临时库，不需要这个） |
 | 备份成功但云端没文件 | `RCLONE_REMOTE` 为空，或 rclone 同步失败（脚本会返回非 0） | 看容器日志 `docker compose logs myblog-backup`（cron 输出会写进 `/var/log/myblog-backup.log`） |
 
 > **验证备份真的可用**（别只看脚本退出码）：
 > ```bash
-> docker compose exec myblog-backup bash /scripts/verify-backup.sh   # gzip + sha256 双校验
+> docker compose exec myblog-backup bash /scripts/verify-backup.sh   # gzip + sha256 + 内容摘要
+> docker compose exec myblog-backup bash /scripts/rehearse-restore.sh # 真的恢复进临时库并逐表比对
 > ```
-> 定期做一次真恢复演练（导到另一个库名比对行数），只验证「文件能解开」不等于「能恢复出完整数据」。
+> 只验证「文件能解开」不等于「能恢复出完整数据」；而 sha256 只能证明文件没坏 ——
+> 摘要里的 `article 行数` 才是「这份备份有没有内容」的判据（为 0 = 空站点备份）。
 
 ### 8. 搜索看起来能用，其实没走 Meilisearch（静默降级）
 
@@ -1133,6 +1200,31 @@ docker compose logs myblog-backend | grep -i blogger               # 应看到�
 > 1. `.env.docker` 里那四项**必须已经是你现在想要的值** —— 重建是一次性的，之后再改 `.env` 又失效；
 > 2. **先备份**。`blogger` 表与文章 / 评论**没有外键关联**，删它只影响登录账号，不动内容。
 
+### 12. `.env.docker` 改了但功能没变（配置静默失效）
+
+这是本项目最容易踩的一类坑：**配置写对了、语法也没错，但根本没进容器**。
+`preflight.mjs` 会把这类问题报成 `[ok]`（它只看文件里的字），所以要用 `check-runtime.mjs`：
+
+```bash
+cd /opt/myblog
+node scripts/check-runtime.mjs          # 只看问题：node scripts/check-runtime.mjs --quiet
+```
+
+它会逐条告诉你属于哪种情形：
+
+| 它报什么 | 真实原因 | 处置 |
+| --- | --- | --- |
+| 「容器里没有这些环境变量」 | `docker-compose.yml` 的 `environment:` 漏传该项 | 补上后 `docker compose up -d <服务>` |
+| 「容器内的值与 .env.docker 不同」 | 容器建于配置修改之前（`exec` 不重读 `--env-file`） | `docker compose up -d <服务>` 重建 |
+| 「模板里有 N 个配置项，配置里没有」 | `git pull` 后模板新增了键 | 逐项确认可接受，或从 `.env.docker.example` 补进来 |
+| 「BLOGGER_USERNAME 与库里的不一致」 | 见本节 §11 上方同名情形 | 改后重建后端；两者不一致时评论 / 留言通知会静默断链 |
+
+> 排查时不要只看 `.env.docker` 的内容：`docker compose exec` **不会重新解析 `--env-file`**，
+> 读的是容器**创建时**注入的值。要取证就看容器里的真实值：
+> ```bash
+> docker compose exec myblog-backend printenv | grep -E '^(BLOGGER|DB|SMTP)'
+> ```
+
 ---
 
 ## 项目文件清单
@@ -1143,9 +1235,13 @@ myblog/
 ├── .env.docker.example         # 环境变量模板
 ├── DEPLOY.md                   # 本文档
 ├── nginx.conf                  # Nginx 反向代理模板（blog + admin 双域名）
-├── scripts/                    # 备份 / 校验 / 恢复脚本（含备份容器 Dockerfile）
-│   ├── preflight.mjs           # 上线前配置自检（密钥 / 地址 / 时区 / SMTP）
-│   ├── smoke.mjs               # 上线后冒烟（健康检查 / 接口 / SEO / 权限）
+├── scripts/                    # 备份 / 校验 / 恢复 / 自检脚本（含备份容器 Dockerfile）
+│   ├── preflight.mjs           # 上线前配置自检（密钥 / 地址 / 时区 / SMTP / 模板 key 差异）
+│   ├── check-runtime.mjs       # 运行时一致性体检（容器内环境变量 vs 配置、库里的用户名等）
+│   ├── smoke.mjs               # 上线后冒烟（健康检查 / 接口 / SEO / 权限 / 多域名一致性）
+│   ├── probe-public.mjs        # 公网可达性（在本机跑；IPv4 / IPv6 分列）
+│   ├── mark-good.sh            # 回滚点标记（打标签 + 校验镜像 ID + 写台账）
+│   ├── rehearse-restore.sh     # 一键恢复演练（建临时库 → 恢复 → 逐表比对 → 删库）
 │   └── backup-uploads.sh       # 上传目录备份（图片不在数据库里）
 ├── deploy/k8s/myblog.yaml      # Kubernetes 清单
 ├── myblog-express/
