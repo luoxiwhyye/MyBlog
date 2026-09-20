@@ -8,7 +8,6 @@
 
       <p class="welcome-badge">欢迎光临</p>
       <h1 class="welcome-site">{{ siteName }}</h1>
-      <p class="welcome-author" v-if="showAuthor">{{ authorName }}</p>
       <p v-if="bio" class="welcome-bio">{{ bio }}</p>
 
       <div v-if="socialLinks.length" class="welcome-links">
@@ -53,14 +52,6 @@ const { src: avatar, onError: onAvatarError } = useSmartImage(
   () =>
     bloggerStore.avatar() || settingsStore.getSetting("site_logo") || "/favicon.svg",
 );
-
-// 站点名若已包含作者名，则不再单独展示作者行，避免重复
-const showAuthor = computed(() => {
-  const site = siteName.value.trim();
-  const author = authorName.value.trim();
-  if (!site || !author || author === "博主") return false;
-  return !site.includes(author);
-});
 
 // 极简社交链接：复用 social_links，取前 3 个
 const socialLinks = computed(() => {
@@ -197,18 +188,14 @@ usePageSeo({
   margin: 0;
 }
 
-.welcome-author {
-  font-size: 1.02rem;
-  color: var(--text-secondary);
-  margin: -6px 0 0;
-  /* 与标题同属「直接压在图上」的文字，但字号更小、更吃背景图 → 用文字阴影兜底 */
-  text-shadow: var(--text-shadow-on-bg);
-}
-
 .welcome-bio {
+  /* 宽度上限：实测约 60 字的长文案在此宽度下正好折成 2 行（收窄到 420px 会变 3 行）。
+     这是「长文案自然分为两行」的支撑，不要为其它目的改小。 */
   max-width: 480px;
-  color: var(--text-secondary);
-  line-height: 1.8;
+  /* 用正文档而不是辅助档：它直接压在背景图上，辅助档在亮色照片区实测只剩 1.45:1。 */
+  color: var(--text-primary);
+  /* 比原先松一档（1.8 → 2）：描述压在图上、行间还夹着文字阴影，行距偏紧时容易糊成一片。 */
+  line-height: 2;
   margin: 0;
   /* 保留后台输入的换行（与公告栏同一口径） */
   white-space: pre-line;
@@ -234,8 +221,13 @@ usePageSeo({
   border-radius: 999px;
   color: var(--text-secondary);
   background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  /* 描边走 --border-color（全站默认的浅边框档：亮色是 28% 的淡蓝，暗色是稍亮的深蓝灰），
+     与顶栏的 SearchTrigger / ThemeToggle 同档。不用 --control-border —— 那是品牌
+     文字/描边档，作边框会变成一条很深的线。 */
+  border: 1px solid var(--border-color);
   backdrop-filter: blur(var(--glass-blur));
+  /* 一点点落影让胶囊从背景图上浮起来（hover 时换成发光） */
+  box-shadow: var(--shadow-card);
   text-decoration: none;
   font-size: 14px;
   line-height: 1.4;
@@ -248,8 +240,9 @@ usePageSeo({
 
 .welcome-link:hover {
   color: var(--color-category-strong);
+  /* 描边从控件的品牌档转到分类图形档（同一亮度档、只换色相），并补上发光 */
   border-color: var(--color-category);
-  box-shadow: var(--shadow-glow);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
   transform: translateY(-1px);
 }
 
@@ -271,10 +264,12 @@ usePageSeo({
   font-weight: 600;
   color: var(--color-accent-deep);
   background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  /* 同 .welcome-link：走浅边框档，不用品牌文字/描边档（那会变成一条很深的线）。 */
+  border: 1px solid var(--border-color);
   backdrop-filter: blur(var(--glass-blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  box-shadow: var(--shadow-glow);
+  /* 落影（定义边缘）+ 发光（品牌感）：比原先只有发光更「立得起来」 */
+  box-shadow: var(--shadow-card), var(--shadow-glow);
   text-shadow: var(--text-shadow-on-bg);
   text-decoration: none;
   transition:
@@ -285,10 +280,11 @@ usePageSeo({
 }
 
 .enter-btn:hover {
-  /* hover 只做「边框高亮 + 发光 + 微抬升」：再把底填实就又变成贴在图上的一块色 */
+  /* 静息态描边是浅档，hover 用品牌文字档把它「点亮」；再配发光加剧与微抬升。
+     并保留落影 —— 否则悬停时边缘反而变虚。 */
   color: var(--color-accent-deep);
   border-color: var(--color-accent-deep);
-  box-shadow: var(--shadow-glow), 0 0 18px var(--color-accent-light);
+  box-shadow: var(--shadow-card), var(--shadow-glow), 0 0 18px var(--color-accent-light);
   transform: translateY(-2px);
 }
 
