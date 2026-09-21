@@ -331,20 +331,22 @@ onMounted(() => {
 }
 
 /* 登录页背景是固定的品牌渐变，其上的文字不跟随后台明暗主题。
-   选择器带上 .login-container 是为了稳定压过后台 SiteIcp 组件内的默认颜色 ——
-   同特异度的两条声明只靠注入顺序决定胜负，不可靠。 */
+   颜色与透明度必须落在**内部的备案号链接**上：容器绝对定位后计算为 flex，
+   其自身的 color 会被组件内 .site-icp 的声明覆盖。 */
 .login-container .login-icp {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 20px;
-  text-align: center;
+}
+
+.login-container .login-icp :deep(.site-icp) {
   color: var(--text-on-brand);
   opacity: 0.85;
 }
 
-.login-container .login-icp:hover,
-.login-container .login-icp:focus-visible {
+.login-container .login-icp :deep(.site-icp:hover),
+.login-container .login-icp :deep(.site-icp:focus-visible) {
   color: var(--text-on-brand);
   opacity: 1;
 }

@@ -706,6 +706,14 @@ const groups: GroupConfig[] = [
         description: '显示在前台页脚与后台登录页，为空则不显示。',
       },
       {
+        key: 'site_police_icp',
+        label: '公安联网备案号',
+        type: 'text',
+        placeholder: '如：京公网安备11010502030000号',
+        description:
+          '显示在前台页脚与后台登录页，为空则不显示；点击后跳转公安部备案查询系统（需号码中包含备案编码数字）。',
+      },
+      {
         key: 'enable_tools',
         label: '启用工具箱',
         type: 'boolean',

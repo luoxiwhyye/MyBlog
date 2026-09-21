@@ -164,6 +164,7 @@ INSERT INTO `setting` VALUES ('site_description', '一个专注于技术内容�
 INSERT INTO `setting` VALUES ('site_logo', '', 'image', '网站 Logo（用于 Open Graph、页头等）');
 INSERT INTO `setting` VALUES ('site_favicon', '', 'image', '网站 Favicon 图标');
 INSERT INTO `setting` VALUES ('site_icp', '', 'text', 'ICP 备案号');
+INSERT INTO `setting` VALUES ('site_police_icp', '', 'text', '公安联网备案号');
 INSERT INTO `setting` VALUES ('site_bg_light', '', 'image', '桌面端亮色模式背景图片');
 INSERT INTO `setting` VALUES ('site_bg_dark', '', 'image', '桌面端暗色模式背景图片');
 INSERT INTO `setting` VALUES ('site_bg_light_mobile', '', 'image', '移动端亮色模式背景图片（留空则沿用桌面端）');

@@ -170,6 +170,7 @@ export const zh = {
   },
   siteIcp: {
     linkTitle: "在工信部备案系统查验",
+    policeLinkTitle: "在公安部备案系统查验",
   },
   socialLink: {
     copyHint: "点击复制",
@@ -376,6 +377,7 @@ export const en: typeof zh = {
   },
   siteIcp: {
     linkTitle: "Verify this ICP filing at the MIIT registry",
+    policeLinkTitle: "Verify this filing at the MPS registry",
   },
   socialLink: {
     copyHint: "Click to copy",
