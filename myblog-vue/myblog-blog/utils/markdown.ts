@@ -35,11 +35,28 @@ export const looksLikeMarkdown = (content?: string): boolean => {
 };
 
 /**
+ * 给正文里的表格套一层滚动容器（`.table-wrap`）。
+ *
+ * 表格本身是 `width: 100%`，窄屏下只要某一列的内容比可用宽度还宽
+ * （长标识、长 URL、列数多），浏览器只能把单元格挤破 —— 表现为右侧被裁掉，
+ * 长页面甚至会把整页顶宽。套一层 `overflow-x: auto` 的容器后，
+ * 超宽变成表格自己横向滚动，正文栏宽不变。
+ *
+ * ⚠️ 只做一层匹配（非贪婪），不支持嵌套表格 —— 正文里没有这种用法。
+ */
+const wrapTables = (html: string): string =>
+  html.replace(
+    /<table\b[^>]*>[\s\S]*?<\/table>/gi,
+    (table) => `<div class="table-wrap">${table}</div>`,
+  );
+
+/**
  * 渲染正文：按文章声明的 content_format 决定渲染方式，输出 HTML。
  *   - 'markdown'：用 markdown-it 渲染为 HTML
  *   - 'html'：按既有 HTML 原样输出（归一化图片 URL）
  *   - 未声明（undefined）：回退到旧「自动识别」逻辑（兼容未回填的存量数据）
- * 渲染后再归一化正文中的图片 URL（localhost -> 相对路径）。
+ * 渲染后统一做两件事：表格套滚动容器、正文图片 URL 归一化（localhost -> 相对路径）。
+ * 两种格式都在这里汇合，所以这两步也只写一份。
  */
 export const renderArticleContent = (
   content?: string,
@@ -59,7 +76,7 @@ export const renderArticleContent = (
       : content;
   }
 
-  return normalizeContentUrls(html);
+  return normalizeContentUrls(wrapTables(html));
 };
 
 /**

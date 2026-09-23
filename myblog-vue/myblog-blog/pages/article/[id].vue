@@ -1665,7 +1665,7 @@ useHead(() => {
 }
 
 .cover-img {
-  max-width: 100%;
+  width: 100%;
   height: auto;
   border-radius: 8px;
 }
@@ -1771,13 +1771,28 @@ useHead(() => {
   margin-bottom: $spacing-2;
 }
 
-/* 表格：正文中的表格统一为可读的斑马纹样式 */
+/* 表格：正文中的表格统一为可读的斑马纹样式。
+   ⚠️ 表格外面还套了一层 .table-wrap（见 utils/markdown.ts 的 wrapTables）：
+      列数多、或某列里出现超宽的不可折行内容（如一整行配置项）时，
+      表格自己横向滚动，而不是把单元格挤破、把右侧内容挤出正文栏。
+      外层间距跟着移到滚动容器上，让滚动条贴着表格底边。 */
+.article-body :deep(.table-wrap) {
+  overflow-x: auto;
+  margin: $spacing-5 0;
+}
+
 .article-body :deep(table) {
   width: 100%;
   border-collapse: collapse;
-  margin: $spacing-5 0;
   font-size: $font-size-sm;
   line-height: 1.6;
+}
+
+/* 列宽下限：内容至少放得下 4 个汉字（再窄就该滚动，而不是一个字一行地竖排）。
+   单元格是 border-box，所以要把左右内边距 $spacing-4 加回去。 */
+.article-body :deep(th),
+.article-body :deep(td) {
+  min-width: calc(4em + #{$spacing-4} * 2);
 }
 
 .article-body :deep(thead th) {
